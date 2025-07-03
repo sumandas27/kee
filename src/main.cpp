@@ -1,18 +1,8 @@
-#include "raylib-cpp.hpp"
+#include "kee/game.hpp"
 
-int main(int argc, char** argv)
+int main()
 {
-    constexpr int window_width = 800;
-    constexpr int window_height = 450;
-    const raylib::Window window(window_width, window_height);
-
-    SetTargetFPS(60);
-    while (!window.ShouldClose())
-    {
-        BeginDrawing();
-        DrawText("Hello World", 160, 200, 20, LIGHTGRAY);
-        EndDrawing();
-    }
-
+    kee::game game;
+    game.main_loop();
     return EXIT_SUCCESS;
 }
