@@ -8,8 +8,7 @@ add_subdirectory(externals/raylib-cpp)
 file(GLOB_RECURSE KEE_SRC CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 add_executable(${PROJECT_NAME} ${KEE_SRC})
 
-# /W4 /permissive           - Enable all compile-time warnings.
-# -Wall -Wextra -Werror     - ^^^ (non-msvc)
+# /W4 /permissive- -Wall -Wextra -Werror     - Enable all compile-time warnings.
 if (MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W4 /permissive-)
 else()

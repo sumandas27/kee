@@ -4,6 +4,15 @@
 
 namespace kee {
 
+class window
+{
+public:
+    window();
+
+    raylib::Window impl;
+};
+
+
 class game
 {
 public:
@@ -12,9 +21,7 @@ public:
     void main_loop();
 
 private:
-    static constexpr int window_fps = 60;
-    raylib::Window window;
-
+    kee::window window;
     const kee::scene scene;
 };
 

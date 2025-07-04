@@ -2,20 +2,25 @@
 
 namespace kee {
 
-game::game()
+window::window()
 {
-    SetTargetFPS(game::window_fps);
-    SetConfigFlags(FLAG_WINDOW_TOPMOST | FLAG_WINDOW_UNDECORATED);
-    window.Init(GetScreenWidth(), GetScreenHeight());
+    static constexpr int window_fps = 60;
+    impl.SetTargetFPS(window_fps);
+    impl.SetConfigFlags(FLAG_WINDOW_TOPMOST | FLAG_WINDOW_UNDECORATED);
+    impl.Init(GetScreenWidth(), GetScreenHeight());
 }
+
+game::game() :
+    scene(window.impl.GetSize())
+{ }
 
 void game::main_loop()
 {
-    while (!window.ShouldClose())
+    while (!window.impl.ShouldClose())
     {
-        BeginDrawing();
+        window.impl.BeginDrawing();
         scene.render();
-        EndDrawing();
+        window.impl.EndDrawing();
     }
 }
 

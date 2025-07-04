@@ -16,7 +16,12 @@ namespace kee {
 class scene
 {
 public:
+    scene(const raylib::Vector2& window_dim);
+
     void render() const;
+
+private:
+    raylib::Rectangle rect_keys;
 };
 
 } // namespace kee
