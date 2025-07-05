@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_map>
+
 /**
  * Disabling a bunch of warnings on raylib's source code.
  */
@@ -13,6 +15,15 @@
 
 namespace kee {
 
+class key
+{
+public:
+    key(float prop_pos_x, float prop_pos_y);
+
+    const raylib::Vector2 proportional_pos;
+    bool is_pressed;
+};
+
 class scene
 {
 public:
@@ -21,7 +32,12 @@ public:
     void render() const;
 
 private:
+    const raylib::Vector2 rect_key_grid_dim;
+    const float percent_key_space_empty;
+    const float percent_key_border;
+
     raylib::Rectangle rect_keys;
+    std::unordered_map<int, kee::key> keys;
 };
 
 } // namespace kee
