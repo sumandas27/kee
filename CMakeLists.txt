@@ -11,6 +11,7 @@ add_executable(${PROJECT_NAME} ${KEE_SRC})
 # /W4 /permissive- -Wall -Wextra -Werror     - Enable all compile-time warnings.
 if (MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W4 /permissive-)
+    set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 else()
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror)
 endif()

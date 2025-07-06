@@ -35,7 +35,9 @@ private:
     const raylib::Vector2 rect_key_grid_dim;
     const float percent_key_space_empty;
     const float percent_key_border;
-
+    
+    int keys_font_size;
+    raylib::Font keys_font;
     raylib::Rectangle rect_keys;
     std::unordered_map<int, kee::key> keys;
 };

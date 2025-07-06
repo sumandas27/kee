@@ -31,6 +31,9 @@ scene::scene(const raylib::Vector2& window_dim) :
     rect_keys.x = (window_dim.x - rect_keys.width) / 2;
     rect_keys.y = (window_dim.y - rect_keys.height) / 2;
 
+    keys_font_size = static_cast<int>((rect_keys.width / rect_key_grid_dim.x) * (1.0f - percent_key_space_empty) * 0.5f);
+    keys_font = raylib::Font("assets/Montserrat-Light.ttf", keys_font_size);
+
     keys.emplace(KeyboardKey::KEY_Q, kee::key(0.05f, 0.125f));
     keys.emplace(KeyboardKey::KEY_W, kee::key(0.15f, 0.125f));
     keys.emplace(KeyboardKey::KEY_E, kee::key(0.25f, 0.125f));
@@ -76,7 +79,16 @@ void scene::render() const
         const raylib::Rectangle key_rect(key_x, key_y, key_w, key_h);
 
         const float key_thickness = key_h * percent_key_border;
-        DrawRectangleLinesEx(key_rect, key_thickness, WHITE);
+        key_rect.DrawLines(WHITE, key_thickness);
+
+        const std::string codepoint_str = val != KeyboardKey::KEY_SPACE ? std::string(1, static_cast<char>(val)) : "___";
+        const raylib::Vector2 key_text_size = keys_font.MeasureText(codepoint_str.c_str(), static_cast<float>(keys_font_size), 0.0f);
+        const raylib::Vector2 key_text_pos(
+            rect_keys.x + rect_keys.width * key.proportional_pos.x - key_text_size.x / 2,
+            rect_keys.y + rect_keys.height * key.proportional_pos.y - key_text_size.y / 2
+        );
+
+        keys_font.DrawText(codepoint_str.c_str(), key_text_pos, static_cast<float>(keys_font_size), 0.0f);
     }
 }
 
