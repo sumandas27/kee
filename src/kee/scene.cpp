@@ -8,8 +8,13 @@ key::key(float prop_pos_x, float prop_pos_y) :
 { }
 
 scene::scene(const raylib::Vector2& window_dim) :
+    window_dim(window_dim),
     rect_key_grid_dim(10, 4),
-    percent_key_space_empty(0.05f)
+    percent_key_space_empty(0.05f),
+    start_load_time(2.0f),
+    music("assets/lets-have-some-sip-of-cola/lets-have-some-sip-of-cola.mp3"),
+    load_time(start_load_time),
+    game_time(0.0f)
 {
     const float size_diff = window_dim.x * 0.2f;
     const raylib::Vector2 rect_keys_raw_size(window_dim.x - size_diff, window_dim.y - size_diff);
@@ -63,12 +68,29 @@ scene::scene(const raylib::Vector2& window_dim) :
 
 void scene::update(float dt)
 {
+    if (load_time > 0.0f)
+    {
+        load_time -= dt;
+        if (load_time <= 0.0f)
+            music.Play();
+    }
+    else
+        game_time += dt;
+
     for (auto& [val, key] : keys)
         key.is_pressed = raylib::Keyboard::IsKeyDown(val);
 }
 
 void scene::render() const
 {
+    if (load_time > 0.0f)
+    {
+        const float load_rect_h = window_dim.y * load_time / start_load_time;
+        const raylib::Rectangle load_rect(0, window_dim.y - load_rect_h, window_dim.x, load_rect_h);
+        const raylib::Color load_rect_color(255, 255, 255, 10);
+        load_rect.Draw(load_rect_color);
+    }
+
     for (const auto& [val, key] : keys)
     {
         static const raylib::Color key_color_regular = raylib::Color::White();

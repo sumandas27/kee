@@ -10,7 +10,7 @@ window::window()
         ConfigFlags::FLAG_WINDOW_TOPMOST |      /* Keep window correctly positioned while fullscreened */
         ConfigFlags::FLAG_WINDOW_UNDECORATED    /* Do not render anything else besides the window screen itself */
     );
-    impl.Init(GetScreenWidth(), GetScreenHeight());
+    impl.Init(raylib::Window::GetWidth(), raylib::Window::GetHeight());
 }
 
 game::game() :

@@ -2,6 +2,8 @@
 
 #include <unordered_map>
 
+#define SUPPORT_FILEFORMAT_MP3
+
 /**
  * Disabling a bunch of warnings on raylib's source code.
  */
@@ -33,13 +35,20 @@ public:
     void render() const;
 
 private:
+    const raylib::Vector2 window_dim;
     const raylib::Vector2 rect_key_grid_dim;
     const float percent_key_space_empty;
+    const float start_load_time;
+
+    raylib::Sound music;
 
     int keys_font_size;
     raylib::Font keys_font;
     raylib::Rectangle rect_keys;
     std::unordered_map<int, kee::key> keys;
+
+    float load_time;
+    float game_time;
 };
 
 } // namespace kee

@@ -21,6 +21,8 @@ public:
     void main_loop();
 
 private:
+    raylib::AudioDevice audio;
+
     kee::window window;
     kee::scene scene;
 };
