@@ -29,13 +29,13 @@ class scene
 public:
     scene(const raylib::Vector2& window_dim);
 
+    void update(float dt);
     void render() const;
 
 private:
     const raylib::Vector2 rect_key_grid_dim;
     const float percent_key_space_empty;
-    const float percent_key_border;
-    
+
     int keys_font_size;
     raylib::Font keys_font;
     raylib::Rectangle rect_keys;

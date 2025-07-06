@@ -1,7 +1,5 @@
 #include "kee/scene.hpp"
 
-#include <iostream>
-
 namespace kee {
 
 key::key(float prop_pos_x, float prop_pos_y) :
@@ -11,8 +9,7 @@ key::key(float prop_pos_x, float prop_pos_y) :
 
 scene::scene(const raylib::Vector2& window_dim) :
     rect_key_grid_dim(10, 4),
-    percent_key_space_empty(0.05f),
-    percent_key_border(0.03f)
+    percent_key_space_empty(0.05f)
 {
     const float size_diff = window_dim.x * 0.2f;
     const raylib::Vector2 rect_keys_raw_size(window_dim.x - size_diff, window_dim.y - size_diff);
@@ -64,10 +61,20 @@ scene::scene(const raylib::Vector2& window_dim) :
     keys.emplace(KeyboardKey::KEY_SPACE, kee::key(0.5f, 0.875f));
 }
 
+void scene::update(float dt)
+{
+    for (auto& [val, key] : keys)
+        key.is_pressed = raylib::Keyboard::IsKeyDown(val);
+}
+
 void scene::render() const
 {
     for (const auto& [val, key] : keys)
     {
+        static const raylib::Color key_color_regular = raylib::Color::White();
+        static const raylib::Color key_color_down = raylib::Color::Green();
+        const raylib::Color key_color = key.is_pressed ? key_color_down : key_color_regular;
+
         const float key_grid_size = rect_keys.width / rect_key_grid_dim.x;
         const float space_empty = percent_key_space_empty * key_grid_size;
 
@@ -78,18 +85,19 @@ void scene::render() const
         const float key_y = rect_keys.y + rect_keys.height * key.proportional_pos.y - key_h / 2;
         const raylib::Rectangle key_rect(key_x, key_y, key_w, key_h);
 
+        static constexpr float percent_key_border = 0.03f;
         const float key_thickness = key_h * percent_key_border;
-        key_rect.DrawLines(WHITE, key_thickness);
+        key_rect.DrawLines(key_color, key_thickness);
 
-        const std::string codepoint_str = val != KeyboardKey::KEY_SPACE ? std::string(1, static_cast<char>(val)) : "___";
-        const raylib::Vector2 key_text_size = keys_font.MeasureText(codepoint_str.c_str(), static_cast<float>(keys_font_size), 0.0f);
+        const std::string key_text_str = val != KeyboardKey::KEY_SPACE ? std::string(1, static_cast<char>(val)) : "___";
+        const raylib::Vector2 key_text_size = keys_font.MeasureText(key_text_str.c_str(), static_cast<float>(keys_font_size), 0.0f);
         const raylib::Vector2 key_text_pos(
             rect_keys.x + rect_keys.width * key.proportional_pos.x - key_text_size.x / 2,
             rect_keys.y + rect_keys.height * key.proportional_pos.y - key_text_size.y / 2
         );
 
-        keys_font.DrawText(codepoint_str.c_str(), key_text_pos, static_cast<float>(keys_font_size), 0.0f);
+        keys_font.DrawText(key_text_str.c_str(), key_text_pos, static_cast<float>(keys_font_size), 0.0f, key_color);
     }
 }
 
-}
+} // namespace kee

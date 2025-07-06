@@ -22,7 +22,7 @@ public:
 
 private:
     kee::window window;
-    const kee::scene scene;
+    kee::scene scene;
 };
 
 } // namespace kee
