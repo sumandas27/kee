@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <variant>
 
 /**
  * Disabling a bunch of warnings on raylib's source code.
@@ -15,13 +16,44 @@
 
 namespace kee {
 
+class tap
+{
+public:
+    tap(float beat);
+
+    float get_last_beat() const;
+
+    const float beat;
+};
+
+class hold
+{
+public:
+    hold(float beat, float duration);
+
+    float get_last_beat() const;
+
+    const float beat;
+    const float duration;
+};
+
+using hit_object = std::variant<
+    kee::tap,
+    kee::hold
+>;
+
 class key
 {
 public:
     key(float prop_pos_x, float prop_pos_y);
 
+    void push_hit_object(const kee::hit_object& object);
+
     const raylib::Vector2 proportional_pos;
     bool is_pressed;
+
+private:
+    std::vector<kee::hit_object> hit_objects;
 };
 
 class scene

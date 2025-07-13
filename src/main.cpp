@@ -1,6 +1,6 @@
 #include "kee/game.hpp"
 
-#include <iostream>
+#include <print>
 
 int main()
 {
@@ -11,12 +11,16 @@ int main()
     }
     catch (const raylib::RaylibException& e) 
     {
-        std::cerr << "Raylib Exception Caught: " << e.what() << std::endl;
-        return EXIT_FAILURE;
+        std::println(stderr, "Raylib Exception Caught: {}", e.what());
+    }
+    catch (const std::exception& e) 
+    {
+        std::println(stderr, "C++ Exception Caught: {}", e.what());
     }
     catch (...) 
     {
-        std::cerr << "General Exception Caught." << std::endl;
-        return EXIT_FAILURE;
+        std::println(stderr, "General Exception Caught");
     }
+
+    return EXIT_FAILURE;
 }

@@ -1,11 +1,49 @@
 #include "kee/scene.hpp"
-
+#include <iostream>
 namespace kee {
+
+tap::tap(float beat) :
+    beat(beat)
+{ }
+
+float tap::get_last_beat() const
+{
+    return beat;
+}
+
+hold::hold(float beat, float duration) :
+    beat(beat),
+    duration(duration)
+{ }
+
+float hold::get_last_beat() const
+{
+    return beat + duration;
+}
 
 key::key(float prop_pos_x, float prop_pos_y) :
     proportional_pos(prop_pos_x, prop_pos_y),
     is_pressed(false)
 { }
+
+void key::push_hit_object(const kee::hit_object& object)
+{
+    std::visit([this](auto&& obj)
+    {
+        if (hit_objects.empty())
+            return;
+
+        std::visit([this, &obj](auto&& back)
+        {
+            if (obj.beat <= back.get_last_beat())
+                throw std::invalid_argument("A new hit object must be strictly after all other ones in its key!");
+        }, 
+        hit_objects.back());
+    },
+    object);
+
+    hit_objects.push_back(object);
+}
 
 scene::scene(const raylib::Vector2& window_dim) :
     window_dim(window_dim),
@@ -75,6 +113,13 @@ scene::scene(const raylib::Vector2& window_dim) :
     keys.emplace(KeyboardKey::KEY_M, kee::key(0.75f, 0.625f));
     keys.emplace(KeyboardKey::KEY_COMMA, kee::key(0.85f, 0.625f));
     keys.emplace(KeyboardKey::KEY_SPACE, kee::key(0.5f, 0.875f));
+
+    /* TODO: replace with some file parser eventually */
+
+    keys.at(KeyboardKey::KEY_Q).push_hit_object(kee::tap(0.0f));
+    keys.at(KeyboardKey::KEY_W).push_hit_object(kee::tap(4.0f));
+    keys.at(KeyboardKey::KEY_P).push_hit_object(kee::tap(8.0f));
+    keys.at(KeyboardKey::KEY_O).push_hit_object(kee::tap(12.0f));
 }
 
 void scene::update(float dt)
