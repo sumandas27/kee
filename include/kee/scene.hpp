@@ -2,8 +2,6 @@
 
 #include <unordered_map>
 
-#define SUPPORT_FILEFORMAT_MP3
-
 /**
  * Disabling a bunch of warnings on raylib's source code.
  */
@@ -40,7 +38,15 @@ private:
     const float percent_key_space_empty;
     const float start_load_time;
 
-    raylib::Sound music;
+    const float beats_per_tick;
+
+    raylib::Music music;
+    raylib::Sound tick;
+
+    float music_start_offset;
+    float music_bpm;
+
+    float next_tick_beat;
 
     int keys_font_size;
     raylib::Font keys_font;

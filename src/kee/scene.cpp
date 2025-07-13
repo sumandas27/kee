@@ -11,11 +11,22 @@ scene::scene(const raylib::Vector2& window_dim) :
     window_dim(window_dim),
     rect_key_grid_dim(10, 4),
     percent_key_space_empty(0.05f),
-    start_load_time(2.0f),
-    music("assets/lets-have-some-sip-of-cola/lets-have-some-sip-of-cola.mp3"),
+    start_load_time(1.0f),
+    beats_per_tick(1.0f),
+    music("assets/daft-punk-something-about-us/daft-punk-something-about-us.mp3"),
+    tick("assets/sfx/tick.mp3"),
+    music_start_offset(1.0f),
+    music_bpm(100.0f),
     load_time(start_load_time),
     game_time(0.0f)
 {
+    const float start_beat = -music_start_offset * music_bpm / 60.0f;
+    next_tick_beat = std::min(std::ceil(start_beat / beats_per_tick) * beats_per_tick, 0.0f);
+
+    music.SetLooping(false);
+    music.SetVolume(0.1f);
+    tick.SetVolume(0.1f);
+
     const float size_diff = window_dim.x * 0.2f;
     const raylib::Vector2 rect_keys_raw_size(window_dim.x - size_diff, window_dim.y - size_diff);
 
@@ -75,7 +86,18 @@ void scene::update(float dt)
             music.Play();
     }
     else
+    {
         game_time += dt;
+
+        const float beat = (game_time - music_start_offset) * music_bpm / 60.0f;
+        if (beat > next_tick_beat)
+        {
+            tick.Play();
+            next_tick_beat += beats_per_tick;
+        }
+
+        music.Update();
+    }
 
     for (auto& [val, key] : keys)
         key.is_pressed = raylib::Keyboard::IsKeyDown(val);
