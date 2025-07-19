@@ -1,5 +1,6 @@
 #pragma once
 
+#include <print>
 #include <unordered_map>
 #include <variant>
 
@@ -15,6 +16,11 @@
 #endif
 
 namespace kee {
+
+/* TODO NEXT: merge `tap` and `hold` is best imo */
+/* TODO: handle input :))) */
+/* TODO: store combo logic */
+/* TODO: top progress bar */
 
 class tap
 {
@@ -47,6 +53,8 @@ class key
 public:
     key(float prop_pos_x, float prop_pos_y);
 
+    const std::vector<kee::hit_object>& get_hit_objects() const;
+
     void push_hit_object(const kee::hit_object& object);
 
     const raylib::Vector2 proportional_pos;
@@ -65,10 +73,12 @@ public:
     void render() const;
 
 private:
+    float get_beat() const;
+
     const raylib::Vector2 window_dim;
     const raylib::Vector2 rect_key_grid_dim;
     const float percent_key_space_empty;
-    const float start_load_time;
+    const float load_time;
 
     const float beats_per_tick;
 
@@ -78,6 +88,9 @@ private:
     float music_start_offset;
     float music_bpm;
 
+    float approach_beats;
+
+    /* TODO: remove this */
     float next_tick_beat;
 
     int keys_font_size;
@@ -85,7 +98,6 @@ private:
     raylib::Rectangle rect_keys;
     std::unordered_map<int, kee::key> keys;
 
-    float load_time;
     float game_time;
 };
 

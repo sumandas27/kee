@@ -1,7 +1,5 @@
 #include "kee/game.hpp"
 
-#include <print>
-
 int main()
 {
     try {

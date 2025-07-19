@@ -1,5 +1,5 @@
 #include "kee/scene.hpp"
-#include <iostream>
+
 namespace kee {
 
 tap::tap(float beat) :
@@ -26,6 +26,11 @@ key::key(float prop_pos_x, float prop_pos_y) :
     is_pressed(false)
 { }
 
+const std::vector<kee::hit_object>& key::get_hit_objects() const
+{
+    return hit_objects;
+}
+
 void key::push_hit_object(const kee::hit_object& object)
 {
     std::visit([this](auto&& obj)
@@ -49,13 +54,13 @@ scene::scene(const raylib::Vector2& window_dim) :
     window_dim(window_dim),
     rect_key_grid_dim(10, 4),
     percent_key_space_empty(0.05f),
-    start_load_time(1.0f),
+    load_time(2.0f),
+    approach_beats(2.0f),
     beats_per_tick(1.0f),
     music("assets/daft-punk-something-about-us/daft-punk-something-about-us.mp3"),
     tick("assets/sfx/tick.mp3"),
-    music_start_offset(1.0f),
+    music_start_offset(0.4f),
     music_bpm(100.0f),
-    load_time(start_load_time),
     game_time(0.0f)
 {
     const float start_beat = -music_start_offset * music_bpm / 60.0f;
@@ -124,18 +129,18 @@ scene::scene(const raylib::Vector2& window_dim) :
 
 void scene::update(float dt)
 {
-    if (load_time > 0.0f)
+    for (auto& [val, key] : keys)
+        key.is_pressed = raylib::Keyboard::IsKeyDown(val);
+
+    game_time += dt;
+    if (!music.IsPlaying())
     {
-        load_time -= dt;
-        if (load_time <= 0.0f)
+        if (game_time > load_time)
             music.Play();
     }
     else
     {
-        game_time += dt;
-
-        const float beat = (game_time - music_start_offset) * music_bpm / 60.0f;
-        if (beat > next_tick_beat)
+        if (get_beat() > next_tick_beat)
         {
             tick.Play();
             next_tick_beat += beats_per_tick;
@@ -143,16 +148,13 @@ void scene::update(float dt)
 
         music.Update();
     }
-
-    for (auto& [val, key] : keys)
-        key.is_pressed = raylib::Keyboard::IsKeyDown(val);
 }
 
 void scene::render() const
 {
     if (load_time > 0.0f)
     {
-        const float load_rect_h = window_dim.y * load_time / start_load_time;
+        const float load_rect_h = window_dim.y * (1.0f - game_time / load_time);
         const raylib::Rectangle load_rect(0, window_dim.y - load_rect_h, window_dim.x, load_rect_h);
         const raylib::Color load_rect_color(255, 255, 255, 10);
         load_rect.Draw(load_rect_color);
@@ -174,10 +176,43 @@ void scene::render() const
         const float key_y = rect_keys.y + rect_keys.height * key.proportional_pos.y - key_h / 2;
         const raylib::Rectangle key_rect(key_x, key_y, key_w, key_h);
 
-        static constexpr float percent_key_border = 0.03f;
+        static constexpr float percent_key_border = 0.02f;
         const float key_thickness = key_h * percent_key_border;
         key_rect.DrawLines(key_color, key_thickness);
 
+        for (const kee::hit_object& object : key.get_hit_objects())
+        {
+            bool should_continue;
+            bool should_break;
+
+            std::visit([this, &should_continue, &should_break](auto&& obj)
+            {
+                should_continue = (obj.get_last_beat() < this->get_beat());
+                should_break = (obj.beat > this->get_beat() + this->approach_beats);
+            },
+            object);
+
+            if (should_continue)
+                continue;
+            if (should_break)
+                break;
+
+            std::visit([&](auto&& obj)
+            {
+                const float start_progress = std::min(1.0f - ((obj.beat - this->get_beat()) / this->approach_beats), 1.0f);
+                const float hit_obj_h = key_h * start_progress; /* TODO: test for space */
+                const float hit_obj_x = rect_keys.x + rect_keys.width * key.proportional_pos.x - hit_obj_h / 2;
+                const float hit_obj_y = rect_keys.y + rect_keys.height * key.proportional_pos.y - hit_obj_h / 2;
+                const raylib::Rectangle hit_obj_rect(hit_obj_x, hit_obj_y, hit_obj_h, hit_obj_h);
+
+                const float end_progress = std::min(1.0f - ((obj.get_last_beat() - this->get_beat()) / this->approach_beats), 1.0f);
+                const float hit_obj_thickness = std::max((start_progress - end_progress) * hit_obj_h, key_thickness);
+
+                hit_obj_rect.DrawLines(raylib::Color::White(), hit_obj_thickness);
+            },
+            object);
+        }
+                
         const std::string key_text_str = val != KeyboardKey::KEY_SPACE ? std::string(1, static_cast<char>(val)) : "___";
         const raylib::Vector2 key_text_size = keys_font.MeasureText(key_text_str.c_str(), static_cast<float>(keys_font_size), 0.0f);
         const raylib::Vector2 key_text_pos(
@@ -187,6 +222,11 @@ void scene::render() const
 
         keys_font.DrawText(key_text_str.c_str(), key_text_pos, static_cast<float>(keys_font_size), 0.0f, key_color);
     }
+}
+
+float scene::get_beat() const
+{
+    return (game_time - load_time - music_start_offset) * music_bpm / 60.0f;
 }
 
 } // namespace kee
