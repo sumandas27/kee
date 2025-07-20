@@ -2,23 +2,19 @@
 
 namespace kee {
 
-tap::tap(float beat) :
-    beat(beat)
-{ }
-
-float tap::get_last_beat() const
-{
-    return beat;
-}
-
-hold::hold(float beat, float duration) :
+hit_object::hit_object(float beat) :
     beat(beat),
-    duration(duration)
+    duration(0.0f)
 { }
 
-float hold::get_last_beat() const
-{
-    return beat + duration;
+hit_object::hit_object(float beat, float duration) :
+    beat(beat),
+    duration(duration),
+    hold_is_held(false),
+    hold_press_complete(false)
+{ 
+    if (duration == 0.0f)
+        throw std::invalid_argument("A hold hit object must have non-zero hold duration!");
 }
 
 key::key(float prop_pos_x, float prop_pos_y) :
@@ -26,28 +22,27 @@ key::key(float prop_pos_x, float prop_pos_y) :
     is_pressed(false)
 { }
 
-const std::vector<kee::hit_object>& key::get_hit_objects() const
+const std::deque<kee::hit_object>& key::get_hit_objects() const
 {
     return hit_objects;
 }
 
-void key::push_hit_object(const kee::hit_object& object)
+void key::push(const kee::hit_object& object)
 {
-    std::visit([this](auto&& obj)
-    {
-        if (hit_objects.empty())
-            return;
-
-        std::visit([this, &obj](auto&& back)
-        {
-            if (obj.beat <= back.get_last_beat())
-                throw std::invalid_argument("A new hit object must be strictly after all other ones in its key!");
-        }, 
-        hit_objects.back());
-    },
-    object);
+    if (!hit_objects.empty() && object.beat <= hit_objects.back().beat + hit_objects.back().duration)
+        throw std::invalid_argument("A new hit object must be strictly after all other ones in its key!");
 
     hit_objects.push_back(object);
+}
+
+void key::pop()
+{
+    hit_objects.pop_front();
+}
+
+kee::hit_object& key::front()
+{
+    return hit_objects.front();
 }
 
 scene::scene(const raylib::Vector2& window_dim) :
@@ -56,19 +51,17 @@ scene::scene(const raylib::Vector2& window_dim) :
     percent_key_space_empty(0.05f),
     load_time(2.0f),
     approach_beats(2.0f),
+    input_tolerance(0.25f),
     beats_per_tick(1.0f),
     music("assets/daft-punk-something-about-us/daft-punk-something-about-us.mp3"),
-    tick("assets/sfx/tick.mp3"),
-    music_start_offset(0.4f),
+    tick("assets/sfx/tick.wav"),
+    music_start_offset(0.5f),
     music_bpm(100.0f),
     game_time(0.0f)
 {
-    const float start_beat = -music_start_offset * music_bpm / 60.0f;
-    next_tick_beat = std::min(std::ceil(start_beat / beats_per_tick) * beats_per_tick, 0.0f);
-
     music.SetLooping(false);
     music.SetVolume(0.1f);
-    tick.SetVolume(0.1f);
+    tick.SetVolume(0.01f);
 
     const float size_diff = window_dim.x * 0.2f;
     const raylib::Vector2 rect_keys_raw_size(window_dim.x - size_diff, window_dim.y - size_diff);
@@ -121,16 +114,100 @@ scene::scene(const raylib::Vector2& window_dim) :
 
     /* TODO: replace with some file parser eventually */
 
-    keys.at(KeyboardKey::KEY_Q).push_hit_object(kee::tap(0.0f));
-    keys.at(KeyboardKey::KEY_W).push_hit_object(kee::tap(4.0f));
-    keys.at(KeyboardKey::KEY_P).push_hit_object(kee::tap(8.0f));
-    keys.at(KeyboardKey::KEY_O).push_hit_object(kee::tap(12.0f));
+    keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(0.0f));
+    keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(4.0f));
+    keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(8.0f));
+    keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(12.0f));
+    keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(16.0f, 8.0f));
+    keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(28.0f));
+    keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(32.0f));
+    //keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(4.0f));
+    //keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(8.0f));
+    //keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(12.0f));
+    //keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(16.0f));
+    //keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(20.0f));
+    //keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(24.0f));
+    //keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(28.0f));
+
+    //keys.at(KeyboardKey::KEY_W).push(kee::hit_object(4.0f, 4.0f));
+    //keys.at(KeyboardKey::KEY_P).push(kee::hit_object(8.0f, 4.0f));
+    //keys.at(KeyboardKey::KEY_O).push(kee::hit_object(12.0f, 4.0f));
 }
+
+/* TODO: replace `std::println`s with combo updates */
 
 void scene::update(float dt)
 {
+    for (int key = raylib::Keyboard::GetKeyPressed(); key != 0; key = raylib::Keyboard::GetKeyPressed())
+    {
+        if (!keys.contains(key) || keys.at(key).get_hit_objects().empty())
+            continue;
+
+        kee::hit_object& front = keys.at(key).front();
+        const bool is_hold_active = (front.duration != 0.0f && front.hold_is_held);
+        if (get_beat() < front.beat - input_tolerance || is_hold_active)
+            continue;
+
+        if (std::abs(front.beat - get_beat()) <= input_tolerance)
+        {
+            /* TODO: increment combo here */
+            tick.Play();
+
+            if (front.duration == 0.0f)
+                keys.at(key).pop();
+        }
+    
+        if (front.duration != 0.0f)
+        {
+            front.hold_is_held = true;
+            front.hold_press_complete = true;
+        }
+    }
+
     for (auto& [val, key] : keys)
+    {
         key.is_pressed = raylib::Keyboard::IsKeyDown(val);
+
+        if (key.get_hit_objects().empty())
+            continue;
+    
+        if (key.front().duration == 0.0f || (!key.front().hold_press_complete && !key.front().hold_is_held))
+        {
+            if (get_beat() - key.front().beat > input_tolerance)
+            {
+                std::println("COMBO LOST: TAP EXPIRED");
+
+                if (key.front().duration == 0.0f)
+                    key.pop();
+                else
+                    key.front().hold_press_complete = true;
+            }
+        }
+        else if (key.front().hold_is_held && !raylib::Keyboard::IsKeyDown(val))
+        {
+            if (get_beat() < key.front().beat + key.front().duration - input_tolerance)
+            {
+                std::println("COMBO LOST: UNTIMELY RELEASE");
+                key.front().hold_is_held = false;   
+            }
+            else
+            {
+                tick.Play();
+                key.pop();
+            }
+        }
+        else if (key.front().hold_is_held && false)
+        {
+            /* TODO: check for combo update */
+        }
+        else if (get_beat() - (key.front().beat + key.front().duration) > input_tolerance)
+        {
+            if (key.front().hold_is_held)
+                std::println("COMBO LOST: HOLD EXPIRED");
+
+            key.pop();
+        }
+    }
 
     game_time += dt;
     if (!music.IsPlaying())
@@ -139,15 +216,7 @@ void scene::update(float dt)
             music.Play();
     }
     else
-    {
-        if (get_beat() > next_tick_beat)
-        {
-            tick.Play();
-            next_tick_beat += beats_per_tick;
-        }
-
         music.Update();
-    }
 }
 
 void scene::render() const
@@ -178,41 +247,26 @@ void scene::render() const
 
         static constexpr float percent_key_border = 0.02f;
         const float key_thickness = key_h * percent_key_border;
-        key_rect.DrawLines(key_color, key_thickness);
 
         for (const kee::hit_object& object : key.get_hit_objects())
         {
-            bool should_continue;
-            bool should_break;
-
-            std::visit([this, &should_continue, &should_break](auto&& obj)
-            {
-                should_continue = (obj.get_last_beat() < this->get_beat());
-                should_break = (obj.beat > this->get_beat() + this->approach_beats);
-            },
-            object);
-
-            if (should_continue)
+            if (object.beat + object.duration < get_beat())
                 continue;
-            if (should_break)
+
+            if (object.beat > get_beat() + approach_beats)
                 break;
 
-            std::visit([&](auto&& obj)
-            {
-                const float start_progress = std::min(1.0f - ((obj.beat - this->get_beat()) / this->approach_beats), 1.0f);
-                const float hit_obj_h = key_h * start_progress; /* TODO: test for space */
-                const float hit_obj_x = rect_keys.x + rect_keys.width * key.proportional_pos.x - hit_obj_h / 2;
-                const float hit_obj_y = rect_keys.y + rect_keys.height * key.proportional_pos.y - hit_obj_h / 2;
-                const raylib::Rectangle hit_obj_rect(hit_obj_x, hit_obj_y, hit_obj_h, hit_obj_h);
+            const float start_progress = std::min(1.0f - ((object.beat - this->get_beat()) / approach_beats), 1.0f);
+            const float hit_obj_h = key_h * start_progress; /* TODO: test for space */
+            const float hit_obj_x = rect_keys.x + rect_keys.width * key.proportional_pos.x - hit_obj_h / 2;
+            const float hit_obj_y = rect_keys.y + rect_keys.height * key.proportional_pos.y - hit_obj_h / 2;
+            const raylib::Rectangle hit_obj_rect(hit_obj_x, hit_obj_y, hit_obj_h, hit_obj_h);
 
-                const float end_progress = std::min(1.0f - ((obj.get_last_beat() - this->get_beat()) / this->approach_beats), 1.0f);
-                const float hit_obj_thickness = std::max((start_progress - end_progress) * hit_obj_h, key_thickness);
-
-                hit_obj_rect.DrawLines(raylib::Color::White(), hit_obj_thickness);
-            },
-            object);
+            const float end_progress = std::min(1.0f - ((object.beat + object.duration - this->get_beat()) / approach_beats), 1.0f);
+            const float hit_obj_thickness = std::max((start_progress - end_progress) * hit_obj_h, key_thickness);
+            hit_obj_rect.DrawLines(raylib::Color::White(), hit_obj_thickness);
         }
-                
+          
         const std::string key_text_str = val != KeyboardKey::KEY_SPACE ? std::string(1, static_cast<char>(val)) : "___";
         const raylib::Vector2 key_text_size = keys_font.MeasureText(key_text_str.c_str(), static_cast<float>(keys_font_size), 0.0f);
         const raylib::Vector2 key_text_pos(
@@ -220,6 +274,7 @@ void scene::render() const
             rect_keys.y + rect_keys.height * key.proportional_pos.y - key_text_size.y / 2
         );
 
+        key_rect.DrawLines(key_color, key_thickness);
         keys_font.DrawText(key_text_str.c_str(), key_text_pos, static_cast<float>(keys_font_size), 0.0f, key_color);
     }
 }
