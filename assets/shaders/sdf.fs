@@ -11,8 +11,7 @@ void main()
 {
     float distanceFromOutline = texture(texture0, fragTexCoord).a - 0.5;
     float distanceChangePerFragment = length(vec2(dFdx(distanceFromOutline), dFdy(distanceFromOutline)));
-    float smoothing = 1.0 * distanceChangePerFragment;
-    float alpha = smoothstep(-smoothing, smoothing, distanceFromOutline);
+    float alpha = smoothstep(-distanceChangePerFragment, distanceChangePerFragment, distanceFromOutline);
 
     finalColor = vec4(fragColor.rgb, fragColor.a*alpha);
 }
