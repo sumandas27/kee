@@ -21,9 +21,10 @@ public:
     void main_loop();
 
 private:
-    raylib::AudioDevice audio;
-
     kee::window window;
+    raylib::AudioDevice audio;
+    raylib::Shader font_sdf_shader;
+
     kee::scene scene;
 };
 

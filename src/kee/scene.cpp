@@ -52,16 +52,28 @@ scene::scene(const raylib::Vector2& window_dim) :
     load_time(2.0f),
     approach_beats(2.0f),
     input_tolerance(0.25f),
-    beats_per_tick(1.0f),
     music("assets/daft-punk-something-about-us/daft-punk-something-about-us.mp3"),
-    tick("assets/sfx/tick.wav"),
+    hitsound("assets/sfx/hitsound.wav"),
     music_start_offset(0.5f),
     music_bpm(100.0f),
-    game_time(0.0f)
+    game_time(0.0f),
+    combo(0)
 {
     music.SetLooping(false);
     music.SetVolume(0.1f);
-    tick.SetVolume(0.01f);
+    hitsound.SetVolume(0.01f);
+
+    font.baseSize = 72;
+    font.glyphCount = 95;
+    font.glyphPadding = 0;
+    font.recs = nullptr;
+    
+    raylib::FileData font_file("assets/fonts/Montserrat-Light.ttf");
+    font.glyphs = LoadFontData(font_file.GetData(), font_file.GetBytesRead(), font.baseSize, nullptr, font.glyphCount, FontType::FONT_SDF);
+
+    raylib::Image font_atlas = GenImageFontAtlas(font.glyphs, &font.recs, font.glyphCount, font.baseSize, font.glyphPadding, 1);
+    font.SetTexture(font_atlas.LoadTexture());
+    font.GetTexture().SetFilter(TextureFilter::TEXTURE_FILTER_BILINEAR);
 
     const float size_diff = window_dim.x * 0.2f;
     const raylib::Vector2 rect_keys_raw_size(window_dim.x - size_diff, window_dim.y - size_diff);
@@ -81,7 +93,6 @@ scene::scene(const raylib::Vector2& window_dim) :
     rect_keys.y = (window_dim.y - rect_keys.height) / 2;
 
     keys_font_size = static_cast<int>((rect_keys.width / rect_key_grid_dim.x) * (1.0f - percent_key_space_empty) * 0.5f);
-    keys_font = raylib::Font("assets/Montserrat-Light.ttf", keys_font_size);
 
     keys.emplace(KeyboardKey::KEY_Q, kee::key(0.05f, 0.125f));
     keys.emplace(KeyboardKey::KEY_W, kee::key(0.15f, 0.125f));
@@ -115,23 +126,9 @@ scene::scene(const raylib::Vector2& window_dim) :
     /* TODO: replace with some file parser eventually */
 
     keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(0.0f));
-    keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(4.0f));
-    keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(8.0f));
-    keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(12.0f));
-    keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(16.0f, 8.0f));
-    keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(28.0f));
-    keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(32.0f));
-    //keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(4.0f));
-    //keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(8.0f));
-    //keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(12.0f));
-    //keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(16.0f));
-    //keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(20.0f));
-    //keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(24.0f));
-    //keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(28.0f));
-
-    //keys.at(KeyboardKey::KEY_W).push(kee::hit_object(4.0f, 4.0f));
-    //keys.at(KeyboardKey::KEY_P).push(kee::hit_object(8.0f, 4.0f));
-    //keys.at(KeyboardKey::KEY_O).push(kee::hit_object(12.0f, 4.0f));
+    keys.at(KeyboardKey::KEY_W).push(kee::hit_object(4.0f));
+    keys.at(KeyboardKey::KEY_P).push(kee::hit_object(8.0f));
+    keys.at(KeyboardKey::KEY_O).push(kee::hit_object(12.0f));
 }
 
 /* TODO: replace `std::println`s with combo updates */
@@ -150,8 +147,8 @@ void scene::update(float dt)
 
         if (std::abs(front.beat - get_beat()) <= input_tolerance)
         {
-            /* TODO: increment combo here */
-            tick.Play();
+            combo++;
+            hitsound.Play();
 
             if (front.duration == 0.0f)
                 keys.at(key).pop();
@@ -175,6 +172,7 @@ void scene::update(float dt)
         {
             if (get_beat() - key.front().beat > input_tolerance)
             {
+                combo = 0;
                 std::println("COMBO LOST: TAP EXPIRED");
 
                 if (key.front().duration == 0.0f)
@@ -187,12 +185,14 @@ void scene::update(float dt)
         {
             if (get_beat() < key.front().beat + key.front().duration - input_tolerance)
             {
+                combo = 0;
                 std::println("COMBO LOST: UNTIMELY RELEASE");
                 key.front().hold_is_held = false;   
             }
             else
             {
-                tick.Play();
+                combo++;
+                hitsound.Play();
                 key.pop();
             }
         }
@@ -203,8 +203,11 @@ void scene::update(float dt)
         else if (get_beat() - (key.front().beat + key.front().duration) > input_tolerance)
         {
             if (key.front().hold_is_held)
+            {
+                combo = 0;
                 std::println("COMBO LOST: HOLD EXPIRED");
-
+            }
+            
             key.pop();
         }
     }
@@ -268,15 +271,23 @@ void scene::render() const
         }
           
         const std::string key_text_str = val != KeyboardKey::KEY_SPACE ? std::string(1, static_cast<char>(val)) : "___";
-        const raylib::Vector2 key_text_size = keys_font.MeasureText(key_text_str.c_str(), static_cast<float>(keys_font_size), 0.0f);
+        const raylib::Vector2 key_text_size = font.MeasureText(key_text_str.c_str(), static_cast<float>(keys_font_size), 0.0f);
         const raylib::Vector2 key_text_pos(
             rect_keys.x + rect_keys.width * key.proportional_pos.x - key_text_size.x / 2,
             rect_keys.y + rect_keys.height * key.proportional_pos.y - key_text_size.y / 2
         );
 
         key_rect.DrawLines(key_color, key_thickness);
-        keys_font.DrawText(key_text_str.c_str(), key_text_pos, static_cast<float>(keys_font_size), 0.0f, key_color);
+        font.DrawText(key_text_str.c_str(), key_text_pos, static_cast<float>(keys_font_size), 0.0f, key_color);
     }
+
+    static constexpr float font_cap_height_multiplier_approx = 0.9f;
+    static constexpr float combo_str_offset = 40.0f;
+    const std::string combo_str = std::to_string(combo) + "x";
+    const raylib::Vector2 combo_text_size = font.MeasureText(combo_str.c_str(), static_cast<float>(keys_font_size * 2), 0.0f);
+    const raylib::Vector2 combo_text_pos(combo_str_offset, window_dim.y - combo_str_offset - (combo_text_size.y * font_cap_height_multiplier_approx));
+    
+    font.DrawText(combo_str.c_str(), combo_text_pos, static_cast<float>(keys_font_size * 2), 0.0f, raylib::Color::White());
 }
 
 float scene::get_beat() const

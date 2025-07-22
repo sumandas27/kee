@@ -20,7 +20,7 @@ namespace kee {
 
 /* TODO: store combo logic */
 /* TODO: top progress bar */
-/* TODO: make game */
+/* TODO: make level */
 
 class hit_object
 {
@@ -75,21 +75,20 @@ private:
     const float approach_beats;
     const float input_tolerance;
 
-    const float beats_per_tick;
-
     raylib::Music music;
-    /* TODO: rename this to hitsound */
-    raylib::Sound tick;
+    raylib::Sound hitsound;
 
     float music_start_offset;
     float music_bpm;
 
+    raylib::Font font;
     int keys_font_size;
-    raylib::Font keys_font;
+
     raylib::Rectangle rect_keys;
     std::unordered_map<int, kee::key> keys;
 
     float game_time;
+    unsigned int combo;
 };
 
 } // namespace kee
