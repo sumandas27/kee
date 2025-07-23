@@ -95,6 +95,7 @@ private:
     raylib::Rectangle rect_keys;
     std::unordered_map<int, kee::key> keys;
 
+    float end_beat;
     float combo_time;
 
     float game_time;

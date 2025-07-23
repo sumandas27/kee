@@ -63,6 +63,7 @@ scene::scene(const raylib::Vector2& window_dim) :
     combo_lost_sfx("assets/sfx/combo_lost.wav"),
     music_start_offset(0.5f),
     music_bpm(100.0f),
+    end_beat(0.0f),
     combo_time(0.0f),
     game_time(0.0f),
     combo(0)
@@ -138,6 +139,16 @@ scene::scene(const raylib::Vector2& window_dim) :
     //keys.at(KeyboardKey::KEY_W).push(kee::hit_object(4.0f));
     //keys.at(KeyboardKey::KEY_P).push(kee::hit_object(8.0f));
     //keys.at(KeyboardKey::KEY_O).push(kee::hit_object(12.0f));
+
+    for (const auto& [val, key] : keys)
+    {
+        if (key.get_hit_objects().empty())
+            continue;
+
+        const kee::hit_object& last_hit_object = key.get_hit_objects().back();
+        if (end_beat < last_hit_object.beat + last_hit_object.duration)
+            end_beat = last_hit_object.beat + last_hit_object.duration;
+    }
 }
 
 /* TODO: replace `std::println`s with combo updates */
@@ -251,8 +262,14 @@ void scene::render() const
     {
         const float load_rect_h = window_dim.y * (1.0f - game_time / load_time);
         const raylib::Rectangle load_rect(0, window_dim.y - load_rect_h, window_dim.x, load_rect_h);
-        const raylib::Color load_rect_color(255, 255, 255, 10);
-        load_rect.Draw(load_rect_color);
+        load_rect.Draw(raylib::Color(255, 255, 255, 10));
+    }
+
+    if (end_beat > 0.0f)
+    {
+        const float progress = std::min(get_beat() / end_beat, 1.0f);
+        const raylib::Rectangle progress_rect(0, 0, window_dim.x * progress, 10);
+        progress_rect.Draw(raylib::Color(255, 255, 255, 255));
     }
 
     for (const auto& [val, key] : keys)
