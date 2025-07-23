@@ -15,11 +15,15 @@ hit_object::hit_object(float beat, float duration) :
 { 
     if (duration == 0.0f)
         throw std::invalid_argument("A hold hit object must have non-zero hold duration!");
+
+    if (std::floor(beat + 1.0f) < beat + duration)
+        hold_next_combo = std::floor(beat + 1.0f);
 }
 
 key::key(float prop_pos_x, float prop_pos_y) :
     proportional_pos(prop_pos_x, prop_pos_y),
-    is_pressed(false)
+    is_pressed(false),
+    combo_lost_time(0.0f)
 { }
 
 const std::deque<kee::hit_object>& key::get_hit_objects() const
@@ -50,18 +54,23 @@ scene::scene(const raylib::Vector2& window_dim) :
     rect_key_grid_dim(10, 4),
     percent_key_space_empty(0.05f),
     load_time(2.0f),
+    max_combo_time(0.25f),
+    max_combo_lost_time(1.0f),
     approach_beats(2.0f),
     input_tolerance(0.25f),
     music("assets/daft-punk-something-about-us/daft-punk-something-about-us.mp3"),
     hitsound("assets/sfx/hitsound.wav"),
+    combo_lost_sfx("assets/sfx/combo_lost.wav"),
     music_start_offset(0.5f),
     music_bpm(100.0f),
+    combo_time(0.0f),
     game_time(0.0f),
     combo(0)
 {
     music.SetLooping(false);
     music.SetVolume(0.1f);
     hitsound.SetVolume(0.01f);
+    combo_lost_sfx.SetVolume(0.05f);
 
     font.baseSize = 72;
     font.glyphCount = 95;
@@ -125,10 +134,10 @@ scene::scene(const raylib::Vector2& window_dim) :
 
     /* TODO: replace with some file parser eventually */
 
-    keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(0.0f));
-    keys.at(KeyboardKey::KEY_W).push(kee::hit_object(4.0f));
-    keys.at(KeyboardKey::KEY_P).push(kee::hit_object(8.0f));
-    keys.at(KeyboardKey::KEY_O).push(kee::hit_object(12.0f));
+    keys.at(KeyboardKey::KEY_Q).push(kee::hit_object(0.0f, 16.0f));
+    //keys.at(KeyboardKey::KEY_W).push(kee::hit_object(4.0f));
+    //keys.at(KeyboardKey::KEY_P).push(kee::hit_object(8.0f));
+    //keys.at(KeyboardKey::KEY_O).push(kee::hit_object(12.0f));
 }
 
 /* TODO: replace `std::println`s with combo updates */
@@ -145,11 +154,14 @@ void scene::update(float dt)
         if (get_beat() < front.beat - input_tolerance || is_hold_active)
             continue;
 
+        bool gain_tap_combo = false;
         if (std::abs(front.beat - get_beat()) <= input_tolerance)
         {
+            gain_tap_combo = true;
             combo++;
-            hitsound.Play();
+            combo_time = max_combo_time;
 
+            hitsound.Play();
             if (front.duration == 0.0f)
                 keys.at(key).pop();
         }
@@ -158,12 +170,19 @@ void scene::update(float dt)
         {
             front.hold_is_held = true;
             front.hold_press_complete = true;
+
+            if (!gain_tap_combo)
+                front.hold_next_combo = (std::floor(get_beat() + 1.0f) < front.beat + front.duration)
+                    ? std::make_optional(std::floor(get_beat() + 1.0f))
+                    : std::nullopt;
         }
     }
 
     for (auto& [val, key] : keys)
     {
         key.is_pressed = raylib::Keyboard::IsKeyDown(val);
+        if (key.combo_lost_time > 0.0f)
+            key.combo_lost_time -= dt;
 
         if (key.get_hit_objects().empty())
             continue;
@@ -172,9 +191,7 @@ void scene::update(float dt)
         {
             if (get_beat() - key.front().beat > input_tolerance)
             {
-                combo = 0;
-                std::println("COMBO LOST: TAP EXPIRED");
-
+                lose_combo(key);
                 if (key.front().duration == 0.0f)
                     key.pop();
                 else
@@ -185,32 +202,38 @@ void scene::update(float dt)
         {
             if (get_beat() < key.front().beat + key.front().duration - input_tolerance)
             {
-                combo = 0;
-                std::println("COMBO LOST: UNTIMELY RELEASE");
+                lose_combo(key);
                 key.front().hold_is_held = false;   
             }
             else
             {
                 combo++;
+                combo_time = max_combo_time;
+
                 hitsound.Play();
                 key.pop();
             }
         }
-        else if (key.front().hold_is_held && false)
+        else if (key.front().hold_is_held && key.front().hold_next_combo.has_value() && get_beat() >= key.front().hold_next_combo.value())
         {
-            /* TODO: check for combo update */
+            combo++;
+            combo_time = max_combo_time;
+
+            key.front().hold_next_combo = (key.front().hold_next_combo.value() + 1.0f < key.front().beat + key.front().duration)
+                ? std::make_optional(key.front().hold_next_combo.value() + 1.0f)
+                : std::nullopt;
         }
         else if (get_beat() - (key.front().beat + key.front().duration) > input_tolerance)
         {
             if (key.front().hold_is_held)
-            {
-                combo = 0;
-                std::println("COMBO LOST: HOLD EXPIRED");
-            }
+                lose_combo(key);
             
             key.pop();
         }
     }
+
+    if (combo_time > 0.0f)
+        combo_time -= dt;
 
     game_time += dt;
     if (!music.IsPlaying())
@@ -279,20 +302,46 @@ void scene::render() const
 
         key_rect.DrawLines(key_color, key_thickness);
         font.DrawText(key_text_str.c_str(), key_text_pos, static_cast<float>(keys_font_size), 0.0f, key_color);
+
+        if (key.combo_lost_time > 0.0f)
+        {
+            const unsigned char combo_lost_alpha = static_cast<unsigned char>(255 * 0.5 * key.combo_lost_time / max_combo_lost_time);
+            key_rect.Draw(raylib::Color(255, 0, 0, combo_lost_alpha));
+        }
     }
 
     static constexpr float font_cap_height_multiplier_approx = 0.9f;
     static constexpr float combo_str_offset = 40.0f;
     const std::string combo_str = std::to_string(combo) + "x";
-    const raylib::Vector2 combo_text_size = font.MeasureText(combo_str.c_str(), static_cast<float>(keys_font_size * 2), 0.0f);
+
+    if (combo_time > 0.0f)
+    {
+        const float bg_combo_font_size = static_cast<float>((1.0f + 0.5f * combo_time / max_combo_time) * keys_font_size * 1.5);
+        const raylib::Vector2 bg_combo_text_size = font.MeasureText(combo_str.c_str(), bg_combo_font_size, 0.0f);
+        const raylib::Vector2 bg_combo_text_pos(combo_str_offset, window_dim.y - combo_str_offset - (bg_combo_text_size.y * font_cap_height_multiplier_approx));
+        const raylib::Color bg_combo_color = raylib::Color(255, 255, 255, static_cast<unsigned char>(255 * 0.5 * combo_time / max_combo_time));
+        font.DrawText(combo_str.c_str(), bg_combo_text_pos, bg_combo_font_size, 0.0f, bg_combo_color);
+    }
+
+    const float combo_font_size_multipler = (combo_time > 0.0f) ? 1.0f + 0.1f * combo_time / max_combo_time : 1.0f;
+    const float combo_font_size = static_cast<float>(keys_font_size * 1.5) * combo_font_size_multipler;
+    const raylib::Vector2 combo_text_size = font.MeasureText(combo_str.c_str(), combo_font_size, 0.0f);
     const raylib::Vector2 combo_text_pos(combo_str_offset, window_dim.y - combo_str_offset - (combo_text_size.y * font_cap_height_multiplier_approx));
-    
-    font.DrawText(combo_str.c_str(), combo_text_pos, static_cast<float>(keys_font_size * 2), 0.0f, raylib::Color::White());
+    font.DrawText(combo_str.c_str(), combo_text_pos, combo_font_size, 0.0f, raylib::Color::White());
 }
 
 float scene::get_beat() const
 {
     return (game_time - load_time - music_start_offset) * music_bpm / 60.0f;
+}
+
+void scene::lose_combo(kee::key& key)
+{
+    combo = 0;
+    combo_lost_sfx.Play();
+    combo_time = 0.0f;
+
+    key.combo_lost_time = max_combo_lost_time;
 }
 
 } // namespace kee

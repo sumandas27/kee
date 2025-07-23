@@ -1,6 +1,7 @@
 #pragma once
 
 #include <deque>
+#include <optional>
 #include <print>
 #include <unordered_map>
 #include <variant>
@@ -18,7 +19,6 @@
 
 namespace kee {
 
-/* TODO: store combo logic */
 /* TODO: top progress bar */
 /* TODO: make level */
 
@@ -36,6 +36,7 @@ public:
 
     bool hold_is_held;
     bool hold_press_complete;
+    std::optional<float> hold_next_combo;
 };
 
 class key
@@ -52,6 +53,8 @@ public:
     const raylib::Vector2 proportional_pos;
     bool is_pressed;
 
+    float combo_lost_time;
+
 private:
     std::deque<kee::hit_object> hit_objects;
 };
@@ -67,16 +70,21 @@ public:
 private:
     float get_beat() const;
 
+    void lose_combo(kee::key& key);
+
     const raylib::Vector2 window_dim;
     const raylib::Vector2 rect_key_grid_dim;
     const float percent_key_space_empty;
     const float load_time;
+    const float max_combo_time;
+    const float max_combo_lost_time;
 
     const float approach_beats;
     const float input_tolerance;
 
     raylib::Music music;
     raylib::Sound hitsound;
+    raylib::Sound combo_lost_sfx;
 
     float music_start_offset;
     float music_bpm;
@@ -86,6 +94,8 @@ private:
 
     raylib::Rectangle rect_keys;
     std::unordered_map<int, kee::key> keys;
+
+    float combo_time;
 
     float game_time;
     unsigned int combo;
