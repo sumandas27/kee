@@ -258,7 +258,7 @@ void scene::update(float dt)
 
 void scene::render() const
 {
-    if (load_time > 0.0f)
+    if (game_time < load_time)
     {
         const float load_rect_h = window_dim.y * (1.0f - game_time / load_time);
         const raylib::Rectangle load_rect(0, window_dim.y - load_rect_h, window_dim.x, load_rect_h);

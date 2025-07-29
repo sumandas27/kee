@@ -7,7 +7,7 @@
 #include <variant>
 
 /**
- * Disabling a bunch of warnings on raylib's source code.
+ * Disabling MSVC warnings on raylib's source code.
  */
 #ifdef _MSC_VER
     #pragma warning(disable: 4458)
@@ -19,7 +19,6 @@
 
 namespace kee {
 
-/* TODO: top progress bar */
 /* TODO: make level */
 
 class hit_object
