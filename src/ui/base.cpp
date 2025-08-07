@@ -1,7 +1,5 @@
 #include "kee/ui/base.hpp"
 
-#include <algorithm>
-
 /* TODO: am i getting z order ordering correct ?? */
 
 namespace kee {
@@ -37,6 +35,8 @@ float border::get_raw_size(const raylib::Rectangle& rect) const
         return rect.width * val;
     case kee::ui::border::type::rel_h:
         return rect.height * val;
+    default:
+        std::unreachable();
     }
 }
 
@@ -116,7 +116,7 @@ void base::remove_child(unsigned int id)
         z_order_refs.end());
 }
 
-void base::update_element(float dt) { }
+void base::update_element([[maybe_unused]] float dt) { }
 
 void base::render_element() const { }
 

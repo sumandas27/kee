@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+#include <optional>
 #include <print>
 #include <variant>
 

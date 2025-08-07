@@ -41,8 +41,8 @@ beatmap::beatmap(const kee::ui::scene::window& window) :
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         dims(
-            dim(dim::type::rel, 0.9),
-            dim(dim::type::rel, 0.9)
+            dim(dim::type::rel, 0.9f),
+            dim(dim::type::rel, 0.9f)
         ),
         true, 0, false
     );
@@ -60,6 +60,8 @@ beatmap::beatmap(const kee::ui::scene::window& window) :
     for (const auto& [id, rel_pos] : key_ui_data)
         child_at(id_window_border)->child_at(id_key_frame)->add_child_with_id<kee::ui::key>(id, id, rel_pos);
 
+    music.SetVolume(0.1f);
+
     /* TODO: temp just for test */
     end_beat = 4.0f;
 }
@@ -72,7 +74,7 @@ void beatmap::update_element(float dt)
         if (!key_frame_ui->has_child(key))
             continue;
 
-        kee::ui::key& key_ui = *dynamic_cast<kee::ui::key*>(key_frame_ui->child_at(key).get());
+        [[maybe_unused]] kee::ui::key& key_ui = *dynamic_cast<kee::ui::key*>(key_frame_ui->child_at(key).get());
         // TODO: continue
     }
 

@@ -11,7 +11,7 @@ key::key(kee::ui::base& parent, int key_id, const raylib::Vector2& relative_pos)
         pos(pos::type::rel, relative_pos.x),
         pos(pos::type::rel, relative_pos.y),
         dims(
-            dim(dim::type::aspect, key_id == KeyboardKey::KEY_SPACE ? 7 : 1),
+            dim(dim::type::aspect, key_id == KeyboardKey::KEY_SPACE ? 7.0f : 1.0f),
             dim(dim::type::rel, 0.25)
         ),
         true, std::nullopt, false
@@ -27,8 +27,8 @@ key::key(kee::ui::base& parent, int key_id, const raylib::Vector2& relative_pos)
         std::nullopt,
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
-        border(border::type::rel_h, 0.05),
-        border(border::type::rel_h, 0.02), 
+        border(border::type::rel_h, 0.05f),
+        border(border::type::rel_h, 0.02f), 
         true, std::nullopt, false
     );
 
@@ -45,7 +45,7 @@ key::key(kee::ui::base& parent, int key_id, const raylib::Vector2& relative_pos)
     );
 }
 
-void key::update_element(float dt)
+void key::update_element([[maybe_unused]] float dt)
 {
     set_color(raylib::Keyboard::IsKeyDown(keycode) ? raylib::Color::Green() : raylib::Color::White());
 }
