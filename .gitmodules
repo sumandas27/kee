@@ -4,3 +4,6 @@
 [submodule "externals/raylib-cpp"]
 	path = externals/raylib-cpp
 	url = https://github.com/RobLoach/raylib-cpp.git
+[submodule "externals/boost"]
+	path = externals/boost
+	url = https://github.com/boostorg/boost.git

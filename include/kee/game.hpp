@@ -1,17 +1,8 @@
 #pragma once
 
-#include "kee/scene.hpp"
+#include "kee/ui/scene/base.hpp"
 
 namespace kee {
-
-class window
-{
-public:
-    window();
-
-    raylib::Window impl;
-};
-
 
 class game
 {
@@ -21,11 +12,11 @@ public:
     void main_loop();
 
 private:
-    kee::window window;
+    kee::ui::scene::window window;
     raylib::AudioDevice audio;
     raylib::Shader font_sdf_shader;
 
-    kee::scene scene;
+    std::unique_ptr<kee::ui::scene::base> curr_scene;
 };
 
 } // namespace kee
