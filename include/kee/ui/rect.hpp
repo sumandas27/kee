@@ -5,16 +5,36 @@
 namespace kee {
 namespace ui {
 
+class rect_border
+{
+public:
+    enum class type;
+
+    rect_border(rect_border::type rect_border_type, float val);
+
+    const rect_border::type rect_border_type;
+    const float val;
+};
+
+enum class rect_border::type
+{
+    abs,
+    rel_w,
+    rel_w_parent,
+    rel_h,
+    rel_h_parent
+};
+
 class rect final : public kee::ui::base
 {
 public:
     rect(
-        kee::ui::base& parent, 
+        const kee::ui::base& parent, 
         const std::optional<raylib::Color>& color, 
-        kee::ui::pos x, 
-        kee::ui::pos y, 
-        const std::variant<kee::ui::dims, kee::ui::border>& dims, 
-        std::optional<kee::ui::border> border, 
+        kee::pos x, 
+        kee::pos y, 
+        const std::variant<kee::dims, kee::border>& dims, 
+        std::optional<const kee::ui::rect_border> border, 
         bool centered,
         std::optional<int> z_order,
         bool children_z_order_enabled
@@ -23,7 +43,7 @@ public:
 private:
     void render_element() const override;
 
-    std::optional<kee::ui::border> border;
+    const std::optional<const kee::ui::rect_border> border;
 };
 
 } // namespace ui

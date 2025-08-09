@@ -1,50 +1,15 @@
 #include "kee/ui/base.hpp"
 
-/* TODO: am i getting z order ordering correct ?? */
+#include "kee/ui/rect.hpp"
 
 namespace kee {
 namespace ui {
 
-pos::pos(pos::type pos_type, float val) :
-    pos_type(pos_type),
-    val(val)
-{ }
-
-dim::dim(dim::type dim_type, float val) :
-    dim_type(dim_type),
-    val(val)
-{ }
-
-dims::dims(dim w, dim h) :
-    w(w),
-    h(h)
-{ }
-
-border::border(border::type border_type, float val) :
-    border_type(border_type),
-    val(val)
-{ }
-
-float border::get_raw_size(const raylib::Rectangle& rect) const
-{
-    switch (border_type)
-    {
-    case kee::ui::border::type::abs:
-        return val;
-    case kee::ui::border::type::rel_w:
-        return rect.width * val;
-    case kee::ui::border::type::rel_h:
-        return rect.height * val;
-    default:
-        std::unreachable();
-    }
-}
-
 base::base(
-    kee::ui::base& parent, 
-    kee::ui::pos x, 
-    kee::ui::pos y, 
-    const std::variant<kee::ui::dims, kee::ui::border>& dimensions, 
+    const kee::ui::base& parent, 
+    kee::pos x, 
+    kee::pos y, 
+    const std::variant<kee::dims, kee::border>& dimensions, 
     bool centered,
     std::optional<int> z_order,
     bool children_z_order_enabled
@@ -60,18 +25,18 @@ base::base(
     set_color(raylib::Color(0, 0, 0, 0));
 }
 
-base::base(boost::optional<kee::ui::base&> parent) :
+base::base(boost::optional<const kee::ui::base&> parent) :
     parent(parent)
 { }
 
 void base::update(float dt) 
 {
     update_element(dt);
-    
+    for (auto& [_, transition] : transitions)
+        transition->update(dt);
+
     for (auto& [_, child] : children)
         child->update(dt);
-
-    /* TODO: dont think i need to check for sorted, trusting stl impl to be basically free if sorted, check tho */
 
     if (children_z_order_enabled)
         std::sort(z_order_refs.begin(), z_order_refs.end(),
@@ -100,6 +65,11 @@ bool base::has_child(unsigned int id) const
     return children.contains(id);
 }
 
+const std::unique_ptr<kee::ui::base>& base::child_at(unsigned int id) const
+{
+    return children.at(id);
+}
+
 std::unique_ptr<kee::ui::base>& base::child_at(unsigned int id)
 {
     return children.at(id);
@@ -116,10 +86,6 @@ void base::remove_child(unsigned int id)
         z_order_refs.end());
 }
 
-void base::update_element([[maybe_unused]] float dt) { }
-
-void base::render_element() const { }
-
 void base::set_color(const std::optional<raylib::Color>& color_input)
 {
     if (!color_input.has_value() && !parent.has_value())
@@ -132,6 +98,10 @@ raylib::Color base::get_color() const
 {
     return color.has_value() ? color.value() : parent.value().get_color();
 }
+
+void base::update_element([[maybe_unused]] float dt) { }
+
+void base::render_element() const { }
 
 raylib::Rectangle base::get_raw_rect() const
 {
@@ -185,9 +155,26 @@ raylib::Rectangle base::get_raw_rect_parent() const
 raylib::Vector2 base::get_dims(const raylib::Rectangle& parent_raw_rect) const
 {
     raylib::Vector2 res;
-    if (std::holds_alternative<kee::ui::border>(dimensions))
+    if (std::holds_alternative<kee::border>(dimensions))
     {
-        float border_size = std::get<kee::ui::border>(dimensions).get_raw_size(parent_raw_rect);
+        const kee::border& border = std::get<kee::border>(dimensions);
+
+        float border_size;
+        switch (border.border_type)
+        {
+        case kee::border::type::abs:
+            border_size = border.val;
+            break;
+        case kee::border::type::rel_w:
+            border_size = parent_raw_rect.width * border.val;
+            break;
+        case kee::border::type::rel_h:
+            border_size = parent_raw_rect.height * border.val;
+            break;
+        default:
+            std::unreachable();
+        }
+
         res = raylib::Vector2(
             parent_raw_rect.width - 2 * border_size, 
             parent_raw_rect.height - 2 * border_size
@@ -195,7 +182,7 @@ raylib::Vector2 base::get_dims(const raylib::Rectangle& parent_raw_rect) const
         return res;
     }
     
-    const auto& [w, h] = std::get<kee::ui::dims>(dimensions);
+    const auto& [w, h] = std::get<kee::dims>(dimensions);
     if (w.dim_type == dim::type::aspect && h.dim_type == dim::type::aspect)
     {
         if (w.val * parent_raw_rect.height >= h.val * parent_raw_rect.width)

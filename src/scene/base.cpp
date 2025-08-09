@@ -1,7 +1,6 @@
-#include "kee/ui/scene/base.hpp"
+#include "kee/scene/base.hpp"
 
 namespace kee {
-namespace ui {
 namespace scene {
 
 window::window()
@@ -15,7 +14,7 @@ window::window()
     impl.SetTargetFPS(window_fps);
 }
 
-base::base(const kee::ui::scene::window& window) :
+base::base(const kee::scene::window& window) :
     kee::ui::base(boost::none),
     window(window)
 {
@@ -35,11 +34,10 @@ base::base(const kee::ui::scene::window& window) :
 
 void base::update_element([[maybe_unused]] float dt)
 {
-    auto& [w, h] = std::get<kee::ui::dims>(dimensions);
+    auto& [w, h] = std::get<kee::dims>(dimensions);
     w.val = static_cast<float>(window.impl.GetWidth());
     h.val = static_cast<float>(window.impl.GetHeight());
 }
 
 } // namespace scene
-} // namespace ui
 } // namespace kee

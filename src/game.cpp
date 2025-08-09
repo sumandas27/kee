@@ -1,13 +1,20 @@
 #include "kee/game.hpp"
 
-#include "kee/ui/scene/beatmap.hpp"
+#include "kee/scene/beatmap.hpp"
 
 namespace kee {
 
 game::game() :
     font_sdf_shader(nullptr, "assets/shaders/sdf.fs"),
-    curr_scene(std::make_unique<kee::ui::scene::beatmap>(window))
-{ }
+    curr_scene(std::make_unique<kee::scene::beatmap>(window))
+{ 
+    font_sdf_shader.BeginMode();
+}
+
+game::~game()
+{
+    font_sdf_shader.EndMode();
+}
 
 void game::main_loop()
 {
@@ -18,11 +25,7 @@ void game::main_loop()
 
         window.impl.BeginDrawing();
         window.impl.ClearBackground(raylib::Color::Black());
-
-        font_sdf_shader.BeginMode();
         curr_scene->render();
-        font_sdf_shader.EndMode();
-
         window.impl.EndDrawing();
     }
 }

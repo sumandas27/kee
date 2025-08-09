@@ -28,26 +28,34 @@ class text final : public kee::ui::base
 {
 public:
     text(
-        kee::ui::base& parent, 
+        const kee::ui::base& parent, 
         const std::optional<raylib::Color>& color, 
-        kee::ui::pos p_x, 
-        kee::ui::pos p_y, 
+        kee::pos p_x, 
+        kee::pos p_y, 
         kee::ui::text_size p_str_size, 
-        std::string_view p_string, 
+        std::string_view p_string,
+        bool font_cap_height_only,
         bool centered,
         std::optional<int> z_order,
         bool children_z_order_enabled
     );
+
+    void set_string(std::string_view new_str);
+    void set_scale(float new_scale);
 
 private:
     class global;
 
     void render_element() const override;
 
-    void update_dims(std::optional<std::string_view> new_str, std::optional<kee::ui::text_size> new_str_size);
+    void update_dims(std::optional<std::string_view> new_str, std::optional<kee::ui::text_size> new_str_size, std::optional<float> new_scale);
+
+    static constexpr float font_cap_height_multiplier_approx = 0.9f;
+    const bool font_cap_height_only;
 
     std::string str;
     float str_size;
+    float scale;
 };
 
 class text::global

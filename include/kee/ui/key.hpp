@@ -1,45 +1,65 @@
 #pragma once
 
 #include <array>
+#include <deque>
 
 #include "kee/ui/base.hpp"
 
 namespace kee {
+
+/* TODO: next fix */
+namespace scene { class beatmap; }
+
 namespace ui {
 
-/* TODO: worry about later */
-//class hit_object
-//{
-//public:
-//    hit_object(float beat);
-//    hit_object(float beat, float duration);
-//
-//    const float beat;
-//    /**
-//     * hit_objects with duration zero are taps, otherwise they are holds
-//     */
-//    const float duration;
-//
-//    bool hold_is_held;
-//    bool hold_press_complete;
-//    std::optional<float> hold_next_combo;
-//};
+class hit_object
+{
+public:
+    hit_object(float beat);
+    hit_object(float beat, float duration);
+
+    const float beat;
+    /**
+     * hit_objects with duration zero are taps, otherwise they are holds
+     */
+    const float duration;
+
+    bool hold_is_held;
+    bool hold_press_complete;
+    std::optional<float> hold_next_combo;
+};
 
 class key final : public base
 {
 public:
     class ui_data;
 
-    key(kee::ui::base& parent, int key_id, const raylib::Vector2& relative_pos);
+    key(const kee::ui::base& parent, kee::scene::beatmap& beatmap_scene, int key_id, const raylib::Vector2& relative_pos);
 
-    bool is_pressed;
+    const std::deque<kee::ui::hit_object>& get_hit_objects() const;
+
+    kee::ui::hit_object& front();
+    void push(const kee::ui::hit_object& object);
+    void pop();
 
 private:
     void update_element(float dt) override;
+    void render_element() const override;
+
+    void combo_lose();
+
+    kee::scene::beatmap& beatmap_scene;
+
+    static constexpr float border_width = 0.02f;
 
     const int keycode;
+    const unsigned int id_trans_combo_lost_alpha;
 
     unsigned int id_rect;
+    unsigned int id_combo_lost_rect;
+
+    float combo_lost_time;
+    std::deque<kee::ui::hit_object> hit_objects;
 };
 
 class key::ui_data

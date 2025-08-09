@@ -9,12 +9,13 @@ text_size::text_size(text_size::type text_size_type, float val) :
 { }
 
 text::text(
-    kee::ui::base& parent, 
+    const kee::ui::base& parent, 
     const std::optional<raylib::Color>& color, 
-    kee::ui::pos p_x, 
-    kee::ui::pos p_y, 
+    kee::pos p_x, 
+    kee::pos p_y, 
     kee::ui::text_size p_str_size, 
     std::string_view p_string, 
+    bool font_cap_height_only,
     bool centered,
     std::optional<int> z_order,
     bool children_z_order_enabled
@@ -26,18 +27,33 @@ text::text(
             dim(dim::type::abs, 0)
         ), 
         centered, z_order, children_z_order_enabled
-    )
+    ),
+    font_cap_height_only(font_cap_height_only)
 { 
     set_color(color);
-    update_dims(p_string, p_str_size);
+    update_dims(p_string, p_str_size, 1.0f);
+}
+
+void text::set_string(std::string_view new_str)
+{
+    update_dims(new_str, std::nullopt, std::nullopt);
+}
+
+void text::set_scale(float new_scale)
+{
+    update_dims(std::nullopt, std::nullopt, new_scale);
 }
 
 void text::render_element() const
 {
-    text::global::get_font().DrawText(str.c_str(), get_raw_rect().GetPosition(), str_size, 0.0f, get_color());
+    raylib::Rectangle raw_rect = get_raw_rect();
+    if (font_cap_height_only)
+        raw_rect.y += raw_rect.height * (1.0f - font_cap_height_multiplier_approx);
+
+    text::global::get_font().DrawText(str.c_str(), raw_rect.GetPosition(), str_size * scale, 0.0f, get_color());
 }
 
-void text::update_dims(std::optional<std::string_view> new_str, std::optional<kee::ui::text_size> new_str_size)
+void text::update_dims(std::optional<std::string_view> new_str, std::optional<kee::ui::text_size> new_str_size, std::optional<float> new_scale)
 {
     if (new_str.has_value())
         str = new_str.value();
@@ -53,8 +69,11 @@ void text::update_dims(std::optional<std::string_view> new_str, std::optional<ke
             break;
         }
 
-    const raylib::Vector2 ui_text_dims = text::global::get_font().MeasureText(str.data(), str_size, 0.0f);
-    auto& [w, h] = std::get<kee::ui::dims>(dimensions);
+    if (new_scale.has_value())
+        scale = new_scale.value();
+
+    const raylib::Vector2 ui_text_dims = text::global::get_font().MeasureText(str.data(), str_size * scale, 0.0f);
+    auto& [w, h] = std::get<kee::dims>(dimensions);
     w.val = ui_text_dims.x;
     h.val = ui_text_dims.y;
 }
