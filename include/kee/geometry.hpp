@@ -2,7 +2,7 @@
 
 namespace kee {
 
-    class pos
+class pos
 {
 public:
     enum class type;
