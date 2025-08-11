@@ -1,7 +1,6 @@
 #pragma once
 
 #include "kee/scene/base.hpp"
-#include "kee/ui/key.hpp"
 
 namespace kee {
 namespace scene {
@@ -22,8 +21,6 @@ public:
 
 private:
     void update_element(float dt) override;
-
-    kee::ui::key& get_key(int keycode);
 
     const float load_time;
     const float max_combo_time;

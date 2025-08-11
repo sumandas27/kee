@@ -23,7 +23,7 @@ editor::editor(const kee::scene::window& window) :
         kee::ui::common(true, std::nullopt, false)
     );
 
-    kee::ui::button& pause_play = *dynamic_cast<kee::ui::button*>(child_at(id_pause_play).get());
+    auto& pause_play = *dynamic_cast<kee::ui::button*>(child_at(id_pause_play).get());
     pause_play.transitions[id_trans_pause_play_color] = std::make_unique<kee::transition<kee::color>>(kee::color::white());
     pause_play.transitions[id_trans_pause_play_scale] = std::make_unique<kee::transition<float>>(1.0f);
 
@@ -41,31 +41,33 @@ editor::editor(const kee::scene::window& window) :
 
     pause_play.on_hot = [&]()
     {
-        kee::transition<kee::color>& pause_play_color_trans = *dynamic_cast<kee::transition<kee::color>*>(this->child_at(id_pause_play)->transitions[id_trans_pause_play_color].get());
-        kee::transition<float>& pause_play_scale_trans = *dynamic_cast<kee::transition<float>*>(this->child_at(id_pause_play)->transitions[id_trans_pause_play_scale].get());
+        std::unordered_map<unsigned int, std::unique_ptr<kee::transition_base>>& transitions = this->child_at(id_pause_play)->transitions;
+        auto& color_transition = *dynamic_cast<kee::transition<kee::color>*>(transitions[id_trans_pause_play_color].get());
+        auto& scale_transition = *dynamic_cast<kee::transition<float>*>(transitions[id_trans_pause_play_scale].get());
 
-        pause_play_color_trans.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
-        pause_play_scale_trans.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
+        color_transition.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
+        scale_transition.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
     };
 
     pause_play.on_down = [&]()
     {
-        kee::transition<float>& pause_play_scale_trans = *dynamic_cast<kee::transition<float>*>(this->child_at(id_pause_play)->transitions[id_trans_pause_play_scale].get());
-        pause_play_scale_trans.set(std::nullopt, 0.9f, 0.5f, kee::transition_type::exp);
+        auto& scale_transition = *dynamic_cast<kee::transition<float>*>(this->child_at(id_pause_play)->transitions[id_trans_pause_play_scale].get());
+        scale_transition.set(std::nullopt, 0.9f, 0.5f, kee::transition_type::exp);
     };
 
     pause_play.on_leave = [&]()
     {
-        kee::transition<kee::color>& pause_play_color_trans = *dynamic_cast<kee::transition<kee::color>*>(this->child_at(id_pause_play)->transitions[id_trans_pause_play_color].get());
-        kee::transition<float>& pause_play_scale_trans = *dynamic_cast<kee::transition<float>*>(this->child_at(id_pause_play)->transitions[id_trans_pause_play_scale].get());
+        std::unordered_map<unsigned int, std::unique_ptr<kee::transition_base>>& transitions = this->child_at(id_pause_play)->transitions;
+        auto& color_transition = *dynamic_cast<kee::transition<kee::color>*>(transitions[id_trans_pause_play_color].get());
+        auto& scale_transition = *dynamic_cast<kee::transition<float>*>(transitions[id_trans_pause_play_scale].get());
 
-        pause_play_color_trans.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
-        pause_play_scale_trans.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
+        color_transition.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
+        scale_transition.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
     };
 
     pause_play.on_click = [&]()
     { 
-        kee::ui::image& pause_play_img = *dynamic_cast<kee::ui::image*>(this->child_at(id_pause_play)->child_at(id_pause_play_png).get());
+        auto& pause_play_img = *dynamic_cast<kee::ui::image*>(this->child_at(id_pause_play)->child_at(id_pause_play_png).get());
         if (music.IsPlaying())
         {
             music.Pause();
@@ -80,11 +82,11 @@ editor::editor(const kee::scene::window& window) :
 
     pause_play.on_update = [&]([[maybe_unused]] float dt)
     {
-        kee::ui::button& pause_play = *dynamic_cast<kee::ui::button*>(this->child_at(id_pause_play).get());
-        kee::transition<kee::color>& pause_play_color_trans = *dynamic_cast<kee::transition<kee::color>*>(pause_play.transitions[id_trans_pause_play_color].get());
-        kee::transition<float>& pause_play_scale_trans = *dynamic_cast<kee::transition<float>*>(pause_play.transitions[id_trans_pause_play_scale].get());
+        auto& pause_play = *dynamic_cast<kee::ui::button*>(this->child_at(id_pause_play).get());
+        auto& pause_play_color_trans = *dynamic_cast<kee::transition<kee::color>*>(pause_play.transitions[id_trans_pause_play_color].get());
+        auto& pause_play_scale_trans = *dynamic_cast<kee::transition<float>*>(pause_play.transitions[id_trans_pause_play_scale].get());
         
-        kee::ui::image& pause_play_png = *dynamic_cast<kee::ui::image*>(pause_play.child_at(id_pause_play_png).get());
+        auto& pause_play_png = *dynamic_cast<kee::ui::image*>(pause_play.child_at(id_pause_play_png).get());
         pause_play_png.set_color(pause_play_color_trans.get().to_color());
         
         auto& [w, h] = std::get<kee::dims>(pause_play_png.dimensions);

@@ -3,13 +3,10 @@
 #include <array>
 #include <deque>
 
+#include "kee/scene/beatmap.hpp"
 #include "kee/ui/base.hpp"
 
 namespace kee {
-
-/* TODO: next fix */
-namespace scene { class beatmap; }
-
 namespace ui {
 
 class hit_object

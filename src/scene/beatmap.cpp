@@ -96,6 +96,15 @@ beatmap::beatmap(const kee::scene::window& window) :
     hitsound.SetVolume(0.01f);
     combo_lost_sfx.SetVolume(0.05f);
 
+    /**
+     * Ideally would have this as class member function, but doing so creates circular references between `kee::scene::beatmap` 
+     * and `kee::ui::key` that's only resolvable with dirty forward declarations, so I store it locally here instead.
+     */
+    auto get_key = [&](int keycode) -> kee::ui::key& 
+    {
+        return *dynamic_cast<kee::ui::key*>(this->child_at(id_window_border)->child_at(id_key_frame)->child_at(keycode).get());
+    };
+
     /* TODO: replace with some file parser eventually */
     get_key(KeyboardKey::KEY_Q).push(kee::ui::hit_object(0.0f, 16.0f));
 
@@ -129,7 +138,7 @@ void beatmap::combo_increment_no_sound()
 {
     combo++;
     
-    kee::transition<float>& combo_gain = *dynamic_cast<kee::transition<float>*>(transitions.at(id_trans_combo_gain).get());
+    auto& combo_gain = *dynamic_cast<kee::transition<float>*>(transitions.at(id_trans_combo_gain).get());
     combo_gain.set(1.0f, 0.0f, 0.25f, transition_type::lin);
 }
 
@@ -138,19 +147,19 @@ void beatmap::combo_lose()
     combo = 0;
     combo_lost_sfx.Play();
     
-    kee::transition<float>& combo_gain = *dynamic_cast<kee::transition<float>*>(transitions.at(id_trans_combo_gain).get());
+    auto& combo_gain = *dynamic_cast<kee::transition<float>*>(transitions.at(id_trans_combo_gain).get());
     combo_gain.set(0.0f);
 }
 
 void beatmap::update_element(float dt)
 {
-    kee::transition<float>& combo_gain = *dynamic_cast<kee::transition<float>*>(transitions.at(id_trans_combo_gain).get());
+    auto& combo_gain = *dynamic_cast<kee::transition<float>*>(transitions.at(id_trans_combo_gain).get());
+    auto& combo_text = *dynamic_cast<kee::ui::text*>(child_at(id_combo_text).get());
+    auto& combo_text_bg = *dynamic_cast<kee::ui::text*>(child_at(id_combo_text_bg).get());
 
-    kee::ui::text& combo_text = *dynamic_cast<kee::ui::text*>(child_at(id_combo_text).get());
     combo_text.set_string(std::to_string(combo) + "x");
     combo_text.set_scale(1.0f + 0.1f * combo_gain.get());
 
-    kee::ui::text& combo_text_bg = *dynamic_cast<kee::ui::text*>(child_at(id_combo_text_bg).get());
     combo_text_bg.set_color(raylib::Color(255, 255, 255, static_cast<unsigned char>(127.5f * combo_gain.get())));
     combo_text_bg.set_string(std::to_string(combo) + "x");
     combo_text_bg.set_scale(1.0f + 0.5f * combo_gain.get());
@@ -160,7 +169,7 @@ void beatmap::update_element(float dt)
         if (!child_at(id_window_border)->child_at(id_key_frame)->has_child(key))
             continue;
 
-        kee::ui::key& key_ui = get_key(key);
+        auto& key_ui = *dynamic_cast<kee::ui::key*>(child_at(id_window_border)->child_at(id_key_frame)->child_at(key).get());
         if (key_ui.get_hit_objects().empty())
             continue;
 
@@ -213,11 +222,6 @@ void beatmap::update_element(float dt)
     }
     else
         music.Update();
-}
-
-kee::ui::key& beatmap::get_key(int keycode)
-{
-    return *dynamic_cast<kee::ui::key*>(child_at(id_window_border)->child_at(id_key_frame)->child_at(keycode).get());
 }
 
 } // namespace scene
