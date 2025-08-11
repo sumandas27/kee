@@ -35,9 +35,7 @@ public:
         kee::pos y, 
         const std::variant<kee::dims, kee::border>& dims, 
         std::optional<const kee::ui::rect_border> border, 
-        bool centered,
-        std::optional<int> z_order,
-        bool children_z_order_enabled
+        const kee::ui::common& common
     );
 
 private:

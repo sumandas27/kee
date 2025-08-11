@@ -5,28 +5,35 @@
 namespace kee {
 namespace ui {
 
+common::common(bool centered, std::optional<int> z_order, bool children_z_order_enabled) :
+    centered(centered),
+    z_order(z_order),
+    children_z_order_enabled(children_z_order_enabled)
+{ }
+
 base::base(
     const kee::ui::base& parent, 
     kee::pos x, 
     kee::pos y, 
     const std::variant<kee::dims, kee::border>& dimensions, 
-    bool centered,
-    std::optional<int> z_order,
-    bool children_z_order_enabled
+    const kee::ui::common& common
 ) :
     x(x),
     y(y),
     dimensions(dimensions),
-    centered(centered),
-    z_order(z_order),
-    children_z_order_enabled(children_z_order_enabled),
+    centered(common.centered),
+    z_order(common.z_order),
+    children_z_order_enabled(common.children_z_order_enabled),
     parent(parent)
 { 
     set_color(raylib::Color(0, 0, 0, 0));
 }
 
-base::base(boost::optional<const kee::ui::base&> parent) :
-    parent(parent)
+base::base(boost::optional<const kee::ui::base&> parent, const kee::ui::common& common) :
+    parent(parent),
+    centered(common.centered),
+    z_order(common.z_order),
+    children_z_order_enabled(common.children_z_order_enabled)
 { }
 
 void base::update(float dt) 

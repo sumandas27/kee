@@ -17,7 +17,7 @@ window::window()
 }
 
 base::base(const kee::scene::window& window) :
-    kee::ui::base(boost::none),
+    kee::ui::base(boost::none, kee::ui::common(false, std::nullopt, true)),
     window(window)
 {
     x = pos(pos::type::beg, 0);
@@ -26,10 +26,6 @@ base::base(const kee::scene::window& window) :
         dim(dim::type::abs, static_cast<float>(window.impl.GetWidth())),
         dim(dim::type::abs, static_cast<float>(window.impl.GetHeight()))
     );
-    centered = false;
-
-    z_order = std::nullopt;
-    children_z_order_enabled = true;
 
     set_color(raylib::Color(0, 0, 0, 0));
 }

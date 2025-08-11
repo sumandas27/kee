@@ -34,7 +34,8 @@ beatmap::beatmap(const kee::scene::window& window) :
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
-        std::nullopt, false, 1, false
+        std::nullopt, 
+        kee::ui::common(false, 1, false)
     );
 
     id_progress_rect = add_child_no_id<kee::ui::rect>(
@@ -45,7 +46,8 @@ beatmap::beatmap(const kee::scene::window& window) :
             dim(dim::type::rel, 0),
             dim(dim::type::abs, 10)
         ),
-        std::nullopt, false, 0, false
+        std::nullopt, 
+        kee::ui::common(false, 0, false)
     );
 
     id_combo_text = add_child_no_id<kee::ui::text>(
@@ -53,7 +55,8 @@ beatmap::beatmap(const kee::scene::window& window) :
         pos(pos::type::beg, 40),
         pos(pos::type::end, 40),
         ui::text_size(ui::text_size::type::rel_h, 0.1f),
-        "0x", true, false, 0, false
+        "0x", true, 
+        kee::ui::common(false, 0, false)
     );
 
     id_combo_text_bg = add_child_no_id<kee::ui::text>(
@@ -61,7 +64,8 @@ beatmap::beatmap(const kee::scene::window& window) :
         pos(pos::type::beg, 40),
         pos(pos::type::end, 40),
         ui::text_size(ui::text_size::type::rel_h, 0.1f),
-        "0x", true, false, 0, false
+        "0x", true, 
+        kee::ui::common(false, 0, false)
     );
 
     id_window_border = add_child_no_id<kee::ui::base>(
@@ -71,7 +75,7 @@ beatmap::beatmap(const kee::scene::window& window) :
             dim(dim::type::rel, 0.9f),
             dim(dim::type::rel, 0.9f)
         ),
-        true, 0, false
+        kee::ui::common(true, 0, false)
     );
 
     id_key_frame = child_at(id_window_border)->add_child_no_id<kee::ui::base>(
@@ -81,7 +85,7 @@ beatmap::beatmap(const kee::scene::window& window) :
             dim(dim::type::aspect, 10),
             dim(dim::type::aspect, 4)
         ),
-        true, 0, false
+        kee::ui::common(true, 0, false)
     );
 
     for (const auto& [id, rel_pos] : kee::ui::key_ui_data)

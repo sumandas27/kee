@@ -18,7 +18,7 @@ editor::editor(const kee::scene::window& window) :
             dim(dim::type::abs, 50),
             dim(dim::type::abs, 50)
         ),
-        true, std::nullopt, false
+        kee::ui::common(true, std::nullopt, false)
     );
 
     kee::ui::button& pause_play = *dynamic_cast<kee::ui::button*>(child_at(id_pause_play).get());
@@ -33,7 +33,7 @@ editor::editor(const kee::scene::window& window) :
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
-        true, std::nullopt, false
+        kee::ui::common(true, std::nullopt, false)
     );
 
     /*pause_play.on_hot = [&]()

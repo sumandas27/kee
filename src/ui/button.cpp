@@ -8,11 +8,9 @@ button::button(
     kee::pos x, 
     kee::pos y, 
     const std::variant<kee::dims, kee::border>& dimensions, 
-    bool centered,
-    std::optional<int> z_order,
-    bool children_z_order_enabled
+    const kee::ui::common& common
 ) :
-    kee::ui::base(parent, x, y, dimensions, centered, z_order, children_z_order_enabled),
+    kee::ui::base(parent, x, y, dimensions, common),
     on_hot([](){}),
     on_down([](){}),
     on_leave([](){}),

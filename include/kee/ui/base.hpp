@@ -5,6 +5,8 @@
 
 #include <boost/optional.hpp>
 
+/* TODO: create common structure */
+
 /**
  * Disabling MSVC warnings on raylib's source code.
  */
@@ -22,6 +24,16 @@
 namespace kee {
 namespace ui {
 
+class common
+{
+public:
+    common(bool centered, std::optional<int> z_order, bool children_z_order_enabled);
+
+    const bool centered;
+    const std::optional<int> z_order;
+    const bool children_z_order_enabled;
+};
+
 /**
  * Contractually the first parameter of any non-scene subclass's constructor must be 
  * of type `kee::ui::base&` containing its parent element
@@ -34,9 +46,7 @@ public:
         kee::pos x, 
         kee::pos y, 
         const std::variant<kee::dims, kee::border>& dimensions, 
-        bool centered,
-        std::optional<int> z_order,
-        bool children_z_order_enabled
+        const kee::ui::common& common
     );
     virtual ~base() = default;
 
@@ -80,7 +90,7 @@ protected:
     /**
      * Scene subclasses do *NOT* specify a `parent`, non-scene subclasses do.
      */
-    base(boost::optional<const kee::ui::base&> parent);
+    base(boost::optional<const kee::ui::base&> parent, const kee::ui::common& common);
 
     virtual void update_element(float dt);
     virtual void render_element() const;

@@ -16,9 +16,7 @@ text::text(
     kee::ui::text_size p_str_size, 
     std::string_view p_string, 
     bool font_cap_height_only,
-    bool centered,
-    std::optional<int> z_order,
-    bool children_z_order_enabled
+    const kee::ui::common& common
 ) :
     kee::ui::base(
         parent, p_x, p_y, 
@@ -26,7 +24,7 @@ text::text(
             dim(dim::type::abs, 0), 
             dim(dim::type::abs, 0)
         ), 
-        centered, z_order, children_z_order_enabled
+        common
     ),
     font_cap_height_only(font_cap_height_only)
 { 

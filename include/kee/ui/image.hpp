@@ -25,9 +25,7 @@ public:
         kee::pos x, 
         kee::pos y,
         const std::variant<kee::dims, kee::border>& dimensions, 
-        bool centered,
-        std::optional<int> z_order,
-        bool children_z_order_enabled
+        const kee::ui::common& common
     );
 
     void set_image(const kee::ui::image_texture& new_img_texture);

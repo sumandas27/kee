@@ -35,9 +35,7 @@ public:
         kee::ui::text_size p_str_size, 
         std::string_view p_string,
         bool font_cap_height_only,
-        bool centered,
-        std::optional<int> z_order,
-        bool children_z_order_enabled
+        const kee::ui::common& common
     );
 
     void set_string(std::string_view new_str);

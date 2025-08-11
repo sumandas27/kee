@@ -33,7 +33,7 @@ key::key(const kee::ui::base& parent, kee::scene::beatmap& beatmap_scene, int ke
             dim(dim::type::aspect, key_id == KeyboardKey::KEY_SPACE ? 7.0f : 1.0f),
             dim(dim::type::rel, 0.25)
         ),
-        true, std::nullopt, false
+        kee::ui::common(true, std::nullopt, false)
     ),
     beatmap_scene(beatmap_scene),
     keycode(key_id),
@@ -52,7 +52,7 @@ key::key(const kee::ui::base& parent, kee::scene::beatmap& beatmap_scene, int ke
         pos(pos::type::rel, 0.5),
         border(border::type::rel_h, 0.05f),
         rect_border(rect_border::type::rel_h, key::border_width), 
-        true, std::nullopt, true
+        kee::ui::common(true, std::nullopt, true)
     );
 
     id_combo_lost_rect = child_at(id_rect)->add_child_no_id<kee::ui::rect>(
@@ -63,7 +63,8 @@ key::key(const kee::ui::base& parent, kee::scene::beatmap& beatmap_scene, int ke
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
-        std::nullopt, false, -1, false
+        std::nullopt, 
+        kee::ui::common(false, -1, false)
     );
 
     const std::string key_str = (key_id != KeyboardKey::KEY_SPACE) 
@@ -75,7 +76,8 @@ key::key(const kee::ui::base& parent, kee::scene::beatmap& beatmap_scene, int ke
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         text_size(text_size::type::rel_h, 0.5),
-        key_str, false, true, 0, false
+        key_str, false, 
+        kee::ui::common(true, 0, false)
     );
 }
 
@@ -171,7 +173,7 @@ void key::render_element() const
             pos(pos::type::rel, 0.5),
             border(border::type::rel_h, start_progress),
             rect_border(rect_border::type::rel_h_parent, std::max(end_progress - start_progress, key::border_width)),
-            true, std::nullopt, false
+            kee::ui::common(true, std::nullopt, false)
         );
 
         hit_obj_rect.render();
