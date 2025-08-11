@@ -74,6 +74,8 @@ public:
     std::variant<kee::dims, kee::border> dimensions;
     bool centered;
 
+    std::unordered_map<unsigned int, std::unique_ptr<kee::transition_base>> transitions;
+
 protected:
     /**
      * Scene subclasses do *NOT* specify a `parent`, non-scene subclasses do.
@@ -92,8 +94,6 @@ protected:
 
     std::optional<int> z_order;
     bool children_z_order_enabled;
-
-    std::unordered_map<unsigned int, std::unique_ptr<kee::transition_base>> transitions;
 
 private:
     class ref;

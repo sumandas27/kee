@@ -62,6 +62,7 @@ class text::global
 {
 public:
     static const raylib::Font& get_font();
+    static raylib::Shader& get_sdf_shader();
 
 private:
     static text::global& singleton();
@@ -69,6 +70,7 @@ private:
     global();
 
     raylib::Font font;
+    raylib::Shader sdf_shader;
 };
 
 } // namespace ui

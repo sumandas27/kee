@@ -179,6 +179,7 @@ raylib::Vector2 base::get_dims(const raylib::Rectangle& parent_raw_rect) const
             parent_raw_rect.width - 2 * border_size, 
             parent_raw_rect.height - 2 * border_size
         );
+        
         return res;
     }
     

@@ -6,11 +6,13 @@ namespace scene {
 window::window()
 {
     static constexpr int window_fps = 60;
-    impl.SetConfigFlags(
-        ConfigFlags::FLAG_WINDOW_TOPMOST |      /* Keep window correctly positioned while fullscreened */
-        ConfigFlags::FLAG_WINDOW_UNDECORATED    /* Do not render anything else besides the window screen itself */
-    );
-    impl.Init(raylib::Window::GetWidth(), raylib::Window::GetHeight());
+    //impl.SetConfigFlags(
+    //    ConfigFlags::FLAG_WINDOW_TOPMOST |      /* Keep window correctly positioned while fullscreened */
+    //    ConfigFlags::FLAG_WINDOW_UNDECORATED    /* Do not render anything else besides the window screen itself */
+    //);
+    //impl.Init(raylib::Window::GetWidth(), raylib::Window::GetHeight());
+    //impl.SetConfigFlags();
+    impl.Init(800, 450);
     impl.SetTargetFPS(window_fps);
 }
 

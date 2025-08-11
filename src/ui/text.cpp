@@ -50,7 +50,9 @@ void text::render_element() const
     if (font_cap_height_only)
         raw_rect.y += raw_rect.height * (1.0f - font_cap_height_multiplier_approx);
 
+    text::global::get_sdf_shader().BeginMode();
     text::global::get_font().DrawText(str.c_str(), raw_rect.GetPosition(), str_size * scale, 0.0f, get_color());
+    text::global::get_sdf_shader().EndMode();
 }
 
 void text::update_dims(std::optional<std::string_view> new_str, std::optional<kee::ui::text_size> new_str_size, std::optional<float> new_scale)
@@ -83,6 +85,11 @@ const raylib::Font& text::global::get_font()
     return singleton().font;
 }
 
+raylib::Shader& text::global::get_sdf_shader()
+{
+    return singleton().sdf_shader;
+}
+
 text::global& text::global::singleton()
 {
     static text::global instance;
@@ -102,6 +109,8 @@ text::global::global()
     const raylib::Image font_atlas = GenImageFontAtlas(font.glyphs, &font.recs, font.glyphCount, font.baseSize, font.glyphPadding, 1);
     font.SetTexture(font_atlas.LoadTexture());
     font.GetTexture().SetFilter(TextureFilter::TEXTURE_FILTER_BILINEAR);
+
+    sdf_shader = raylib::Shader(nullptr, "assets/shaders/sdf.fs");
 }
 
 } // namespace ui

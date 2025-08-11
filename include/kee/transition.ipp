@@ -21,12 +21,6 @@ T transition<T>::get() const
     case transition_type::lin:
         interpolation = transition_progress;
         break;
-    case transition_type::quad:
-        interpolation = 1.0f - (1.0f - transition_progress) * (1.0f - transition_progress);
-        break;
-    case transition_type::cubic:
-        interpolation = 1.0f - (1.0f - transition_progress) * (1.0f - transition_progress) * (1.0f - transition_progress);
-        break;
     case transition_type::exp:
         interpolation = 1.0f - std::powf(2.0f, -10.0f * transition_progress);
         break;
@@ -43,7 +37,7 @@ void transition<T>::set(const T& new_default_val)
 }
 
 template <typename T>
-void transition<T>::set(const T& new_start, const T& new_end, float new_duration, kee::transition_type new_type)
+void transition<T>::set(const std::optional<T>& new_start, const T& new_end, float new_duration, kee::transition_type new_type)
 {
     if (new_duration < 0.0f)
         throw std::invalid_argument("Input duration must be non-negative!");
@@ -52,7 +46,7 @@ void transition<T>::set(const T& new_start, const T& new_end, float new_duration
     timer = new_duration;
     type = new_type;
 
-    start = new_start;
+    start = new_start.has_value() ? new_start.value() : default_val;
     end = new_end;
     default_val = new_end;
 }
