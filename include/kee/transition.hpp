@@ -3,6 +3,17 @@
 #include <optional>
 #include <print>
 
+/**
+ * Disabling MSVC warnings on raylib's source code.
+ */
+#ifdef _MSC_VER
+    #pragma warning(disable: 4458)
+#endif
+#include <raylib-cpp.hpp>
+#ifdef _MSC_VER
+    #pragma warning(default: 4458)
+#endif
+
 namespace kee {
 
 enum class transition_type
@@ -47,22 +58,53 @@ private:
  * multiplication operator overloads (unlike `raylib::Vector2` and `raylib::Vector3` which makes zero sense), 
  * making them unsuitable for our transition system. We use this helper class instead for color interpolation.
  * 
- * TODO: open issue on github
+ * NOTE: Remove this when this issue is resolved. Check out this relevant open issue here: 
+ *  https://github.com/RobLoach/raylib-cpp/issues/367
  */
 class color
 {
+public:
+    static constexpr kee::color dark_orange();
+    static constexpr kee::color white();
 
-/* TODO: implement */
+    constexpr color();
+    constexpr color(float r, float g, float b, float a);
 
-/*public:
-    color(float r, float g, float b, float a);
+    raylib::Color to_color() const;
+
+    kee::color operator*(float scalar) const;
+    kee::color operator+(const kee::color& other) const;
 
 private:
-    const float r;
-    const float g;
-    const float b;
-    const float a;*/
+    /**
+     * Color attributes are scaled from 0.0f to 255.0f
+     */
+    float r;
+    float g;
+    float b;
+    float a;
 };
+
+constexpr kee::color color::dark_orange()
+{
+    return kee::color(255, 140, 0, 255);
+}
+
+constexpr kee::color color::white()
+{
+    return kee::color(255, 255, 255, 255);
+}
+
+constexpr color::color() :
+    color(0, 0, 0, 0)
+{ }
+
+constexpr color::color(float r, float g, float b, float a) :
+    r(r),
+    g(g),
+    b(b),
+    a(a)
+{ }
 
 } // namespace kee
 

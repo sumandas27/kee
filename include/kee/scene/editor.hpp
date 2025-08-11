@@ -15,6 +15,7 @@ private:
     void update_element(float dt) override;
 
     unsigned int id_trans_pause_play_color;
+    unsigned int id_trans_pause_play_scale;
 
     unsigned int id_pause_play;
     unsigned int id_pause_play_png;
