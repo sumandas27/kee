@@ -6,13 +6,11 @@ namespace scene {
 window::window()
 {
     static constexpr int window_fps = 60;
-    //impl.SetConfigFlags(
-    //    ConfigFlags::FLAG_WINDOW_TOPMOST |      /* Keep window correctly positioned while fullscreened */
-    //    ConfigFlags::FLAG_WINDOW_UNDECORATED    /* Do not render anything else besides the window screen itself */
-    //);
-    //impl.Init(raylib::Window::GetWidth(), raylib::Window::GetHeight());
-    //impl.SetConfigFlags();
-    impl.Init(800, 450);
+    impl.SetConfigFlags(
+        ConfigFlags::FLAG_BORDERLESS_WINDOWED_MODE |    /* Make window take up the entire screen */
+        ConfigFlags::FLAG_WINDOW_UNDECORATED            /* Remove toolbars when displaying the game */
+    );
+    impl.Init(raylib::Window::GetWidth(), raylib::Window::GetHeight());
     impl.SetTargetFPS(window_fps);
 }
 

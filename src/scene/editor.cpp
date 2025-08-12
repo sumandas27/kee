@@ -1,6 +1,9 @@
 #include "kee/scene/editor.hpp"
 
 #include "kee/ui/button.hpp"
+#include "kee/ui/rect.hpp"
+#include "kee/ui/slider.hpp"
+#include "kee/ui/text.hpp"
 
 namespace kee {
 namespace scene {
@@ -94,6 +97,41 @@ editor::editor(const kee::scene::window& window) :
         h.val = pause_play_scale_trans.get();
     };
 
+    const unsigned int music_length = static_cast<unsigned int>(music.GetTimeLength());
+    const std::string music_length_str = std::format("0:00 / {}:{:02}", music_length / 60, music_length % 60);
+
+    id_music_time_text = add_child_no_id<kee::ui::text>(
+        raylib::Color::White(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.75f),
+        ui::text_size(ui::text_size::type::abs, 48),
+        music_length_str, false,
+        kee::ui::common(true, std::nullopt, false)
+    );
+
+    id_music_slider = add_child_no_id<kee::ui::slider>(
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.05f),
+        dims(
+            dim(dim::type::rel, 0.95f),
+            dim(dim::type::rel, 0.01f)
+        ),
+        true, std::nullopt
+    );
+
+    add_child_no_id<kee::ui::rect>(
+        raylib::Color::Red(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.9f),
+        dims(
+            dim(dim::type::aspect, 1),
+            dim(dim::type::rel, 0.1f)
+        ),
+        std::nullopt,
+        kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5),
+        kee::ui::common(true, std::nullopt, false)
+    );
+
     music.SetLooping(false);
     music.SetVolume(0.1f);
     music.Play();
@@ -103,6 +141,16 @@ void editor::update_element([[maybe_unused]] float dt)
 {
     if (music.IsPlaying())
         music.Update();
+
+    const unsigned int music_played = static_cast<unsigned int>(music.GetTimePlayed());
+    const unsigned int music_length = static_cast<unsigned int>(music.GetTimeLength());
+    const std::string music_time_str = std::format("{}:{:02} / {}:{:02}", music_played / 60, music_played % 60, music_length / 60, music_length % 60);
+
+    auto& music_time_text = *dynamic_cast<kee::ui::text*>(child_at(id_music_time_text).get());
+    music_time_text.set_string(music_time_str);
+
+    auto& music_slider = *dynamic_cast<kee::ui::slider*>(child_at(id_music_slider).get());
+    music_slider.progress = music.GetTimePlayed() / music.GetTimeLength();
 }
 
 } // namespace scene

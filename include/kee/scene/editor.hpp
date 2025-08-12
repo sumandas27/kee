@@ -19,6 +19,8 @@ private:
 
     unsigned int id_pause_play;
     unsigned int id_pause_play_png;
+    unsigned int id_music_time_text;
+    unsigned int id_music_slider;
 
     kee::ui::image_texture play_png;
     kee::ui::image_texture pause_png;

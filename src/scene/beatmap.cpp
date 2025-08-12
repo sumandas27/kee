@@ -34,7 +34,7 @@ beatmap::beatmap(const kee::scene::window& window) :
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
-        std::nullopt, 
+        std::nullopt, std::nullopt,
         kee::ui::common(false, 1, false)
     );
 
@@ -46,7 +46,7 @@ beatmap::beatmap(const kee::scene::window& window) :
             dim(dim::type::rel, 0),
             dim(dim::type::abs, 10)
         ),
-        std::nullopt, 
+        std::nullopt, std::nullopt,
         kee::ui::common(false, 0, false)
     );
 

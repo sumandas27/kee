@@ -25,6 +25,24 @@ enum class rect_border::type
     rel_h_parent
 };
 
+class rect_roundness
+{
+public:
+    enum class type;
+
+    rect_roundness(rect_roundness::type rect_roundness_type, float val);
+
+    const rect_roundness::type rect_roundness_type;
+    const float val;
+};
+
+enum class rect_roundness::type
+{
+    abs,
+    rel_w,
+    rel_h
+};
+
 class rect final : public kee::ui::base
 {
 public:
@@ -34,14 +52,16 @@ public:
         kee::pos x, 
         kee::pos y, 
         const std::variant<kee::dims, kee::border>& dims, 
-        std::optional<const kee::ui::rect_border> border, 
+        std::optional<kee::ui::rect_border> border,
+        std::optional<kee::ui::rect_roundness> roundness, 
         const kee::ui::common& common
     );
 
 private:
     void render_element() const override;
 
-    const std::optional<const kee::ui::rect_border> border;
+    const std::optional<kee::ui::rect_border> border;
+    const std::optional<kee::ui::rect_roundness> roundness;
 };
 
 } // namespace ui

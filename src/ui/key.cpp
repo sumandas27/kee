@@ -52,6 +52,7 @@ key::key(const kee::ui::base& parent, kee::scene::beatmap& beatmap_scene, int ke
         pos(pos::type::rel, 0.5),
         border(border::type::rel_h, 0.05f),
         rect_border(rect_border::type::rel_h, key::border_width), 
+        std::nullopt,
         kee::ui::common(true, std::nullopt, true)
     );
 
@@ -63,7 +64,7 @@ key::key(const kee::ui::base& parent, kee::scene::beatmap& beatmap_scene, int ke
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
-        std::nullopt, 
+        std::nullopt, std::nullopt, 
         kee::ui::common(false, -1, false)
     );
 
@@ -173,6 +174,7 @@ void key::render_element() const
             pos(pos::type::rel, 0.5),
             border(border::type::rel_h, start_progress),
             rect_border(rect_border::type::rel_h_parent, std::max(end_progress - start_progress, key::border_width)),
+            std::nullopt,
             kee::ui::common(true, std::nullopt, false)
         );
 

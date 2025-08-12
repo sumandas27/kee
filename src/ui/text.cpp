@@ -108,7 +108,7 @@ text::global::global()
     font.SetTexture(font_atlas.LoadTexture());
     font.GetTexture().SetFilter(TextureFilter::TEXTURE_FILTER_BILINEAR);
 
-    sdf_shader = raylib::Shader(nullptr, "assets/shaders/sdf.fs");
+    sdf_shader = raylib::Shader(nullptr, "assets/shaders/sdf_text.fs");
 }
 
 } // namespace ui

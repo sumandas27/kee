@@ -22,7 +22,7 @@ int main()
     {
         std::println(stderr, "C++ Exception Caught: {}", e.what());
     }
-    catch (...) 
+    catch (...)
     {
         std::println(stderr, "General Exception Caught");
     }

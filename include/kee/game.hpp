@@ -2,6 +2,8 @@
 
 #include "kee/scene/base.hpp"
 
+/* TODO: create asset manager */
+
 namespace kee {
 
 class game
