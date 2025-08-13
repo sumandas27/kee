@@ -14,8 +14,11 @@ window::window()
     impl.SetTargetFPS(window_fps);
 }
 
-base::base(const kee::scene::window& window) :
-    kee::ui::base(boost::none, kee::ui::common(false, std::nullopt, true)),
+base::base(const kee::scene::window& window, kee::global_assets& assets) :
+    kee::ui::base(
+        kee::ui::base::required(boost::none, assets), 
+        kee::ui::common(false, std::nullopt, true)
+    ),
     window(window)
 {
     x = pos(pos::type::beg, 0);
@@ -25,7 +28,7 @@ base::base(const kee::scene::window& window) :
         dim(dim::type::abs, static_cast<float>(window.impl.GetHeight()))
     );
 
-    set_color(raylib::Color(0, 0, 0, 0));
+    set_opt_color(raylib::Color::Blank());
 }
 
 void base::update_element([[maybe_unused]] float dt)

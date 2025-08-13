@@ -6,14 +6,14 @@ namespace kee {
 namespace ui {
 
 slider::slider(
-    const kee::ui::base& parent,
+    const kee::ui::base::required& reqs,
     kee::pos x, 
     kee::pos y, 
     const std::variant<kee::dims, kee::border>& dimensions, 
     bool centered,
     std::optional<int> z_order
 ) :
-    kee::ui::base(parent, x, y, dimensions, kee::ui::common(centered, z_order, true))
+    kee::ui::base(reqs, x, y, dimensions, kee::ui::common(centered, z_order, true))
 { 
     add_child_no_id<kee::ui::rect>(
         raylib::Color(255, 255, 255, 40),

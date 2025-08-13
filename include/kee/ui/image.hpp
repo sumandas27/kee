@@ -19,7 +19,7 @@ class image final : public kee::ui::base
 {
 public:
     image(
-        const kee::ui::base& parent,
+        const kee::ui::base::required& reqs,
         const kee::ui::image_texture& img_texture,
         const raylib::Color& color,
         kee::pos x, 
@@ -31,7 +31,7 @@ public:
     void set_image(const kee::ui::image_texture& new_img_texture);
 
 private:
-    void render_element() const override;
+    void render_element_behind_children() const override;
 
     std::reference_wrapper<const kee::ui::image_texture> img_texture_ref;
 };

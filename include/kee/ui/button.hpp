@@ -9,7 +9,7 @@ class button final : public kee::ui::base
 {
 public:
     button(
-        const kee::ui::base& parent, 
+        const kee::ui::base::required& reqs, 
         kee::pos x, 
         kee::pos y, 
         const std::variant<kee::dims, kee::border>& dimensions, 

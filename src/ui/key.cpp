@@ -25,8 +25,8 @@ hit_object::hit_object(float beat, float duration) :
         hold_next_combo = std::floor(beat + 1.0f);
 }
 
-key::key(const kee::ui::base& parent, kee::scene::beatmap& beatmap_scene, int key_id, const raylib::Vector2& relative_pos) :
-    kee::ui::base(parent,
+key::key(const kee::ui::base::required& reqs, kee::scene::beatmap& beatmap_scene, int key_id, const raylib::Vector2& relative_pos) :
+    kee::ui::base(reqs,
         pos(pos::type::rel, relative_pos.x),
         pos(pos::type::rel, relative_pos.y),
         dims(
@@ -42,16 +42,16 @@ key::key(const kee::ui::base& parent, kee::scene::beatmap& beatmap_scene, int ke
 {
     /* TODO: parent dimension verification ??? */
 
-    set_color(raylib::Color::White());
+    set_opt_color(raylib::Color::White());
 
     transitions[id_trans_combo_lost_alpha] = std::make_unique<kee::transition<float>>(0.0f);
 
     id_rect = add_child_no_id<kee::ui::rect>(
-        std::nullopt,
+        raylib::Color::Blank(),
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
-        border(border::type::rel_h, 0.05f),
-        rect_border(rect_border::type::rel_h, key::border_width), 
+        border(border::type::rel_h, key::border_parent_h),
+        rect_outline(rect_outline::type::rel_h, key::border_width, std::nullopt), 
         std::nullopt,
         kee::ui::common(true, std::nullopt, true)
     );
@@ -72,11 +72,11 @@ key::key(const kee::ui::base& parent, kee::scene::beatmap& beatmap_scene, int ke
         ? std::string(1, static_cast<char>(key_id)) 
         : "___";
 
-    child_at(id_rect)->add_child_no_id<kee::ui::text>(
+    add_child_no_id<kee::ui::text>(
         std::nullopt,
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
-        text_size(text_size::type::rel_h, 0.5),
+        text_size(text_size::type::rel_h, 0.5 * (1.0f - 2 * key::border_parent_h)),
         key_str, false, 
         kee::ui::common(true, 0, false)
     );
@@ -107,10 +107,10 @@ void key::pop()
 
 void key::update_element([[maybe_unused]] float dt)
 {
-    set_color(raylib::Keyboard::IsKeyDown(keycode) ? raylib::Color::Green() : raylib::Color::White());
+    set_opt_color(raylib::Keyboard::IsKeyDown(keycode) ? raylib::Color::Green() : raylib::Color::White());
 
     kee::transition<float>& combo_lost_alpha = *dynamic_cast<kee::transition<float>*>(transitions.at(id_trans_combo_lost_alpha).get());
-    child_at(id_rect)->child_at(id_combo_lost_rect)->set_color(raylib::Color(255, 0, 0, static_cast<unsigned char>(combo_lost_alpha.get())));
+    child_at(id_rect)->child_at(id_combo_lost_rect)->set_opt_color(raylib::Color(255, 0, 0, static_cast<unsigned char>(combo_lost_alpha.get())));
 
     if (hit_objects.empty())
         return;
@@ -156,7 +156,7 @@ void key::update_element([[maybe_unused]] float dt)
     }
 }
 
-void key::render_element() const
+void key::render_element_ahead_children() const
 {
     for (const kee::ui::hit_object& object : hit_objects)
     {
@@ -168,12 +168,12 @@ void key::render_element() const
 
         const float start_progress = std::max((object.beat - beatmap_scene.get_beat()) / (2 * beatmap_scene.approach_beats), 0.0f);
         const float end_progress = std::max((object.beat + object.duration - beatmap_scene.get_beat()) / (2 * beatmap_scene.approach_beats), 0.0f);
-        const kee::ui::rect hit_obj_rect = child_at(id_rect)->make_temp_child<kee::ui::rect>(
-            std::nullopt,
+        const kee::ui::rect hit_obj_rect = make_temp_child<kee::ui::rect>(
+            raylib::Color::Blank(),
             pos(pos::type::rel, 0.5),
             pos(pos::type::rel, 0.5),
-            border(border::type::rel_h, start_progress),
-            rect_border(rect_border::type::rel_h_parent, std::max(end_progress - start_progress, key::border_width)),
+            border(border::type::rel_h, start_progress + key::border_parent_h),
+            rect_outline(rect_outline::type::rel_h_parent, std::max(end_progress - start_progress, key::border_width), std::nullopt),
             std::nullopt,
             kee::ui::common(true, std::nullopt, false)
         );

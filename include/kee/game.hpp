@@ -1,8 +1,7 @@
 #pragma once
 
 #include "kee/scene/base.hpp"
-
-/* TODO: create asset manager */
+#include "kee/global_assets.hpp"
 
 namespace kee {
 
@@ -15,6 +14,7 @@ public:
 
 private:
     kee::scene::window window;
+    kee::global_assets assets;
     raylib::AudioDevice audio;
 
     std::unique_ptr<kee::scene::base> curr_scene;

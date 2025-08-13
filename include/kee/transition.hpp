@@ -1,18 +1,9 @@
 #pragma once
 
+#include "kee/global_assets.hpp"
+
 #include <optional>
 #include <print>
-
-/**
- * Disabling MSVC warnings on raylib's source code.
- */
-#ifdef _MSC_VER
-    #pragma warning(disable: 4458)
-#endif
-#include <raylib-cpp.hpp>
-#ifdef _MSC_VER
-    #pragma warning(default: 4458)
-#endif
 
 namespace kee {
 

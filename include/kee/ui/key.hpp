@@ -31,7 +31,7 @@ class key final : public base
 public:
     class ui_data;
 
-    key(const kee::ui::base& parent, kee::scene::beatmap& beatmap_scene, int key_id, const raylib::Vector2& relative_pos);
+    key(const kee::ui::base::required& reqs, kee::scene::beatmap& beatmap_scene, int key_id, const raylib::Vector2& relative_pos);
 
     const std::deque<kee::ui::hit_object>& get_hit_objects() const;
 
@@ -41,13 +41,14 @@ public:
 
 private:
     void update_element(float dt) override;
-    void render_element() const override;
+    void render_element_ahead_children() const override;
 
     void combo_lose();
 
     kee::scene::beatmap& beatmap_scene;
 
     static constexpr float border_width = 0.02f;
+    static constexpr float border_parent_h = 0.05f;
 
     const int keycode;
     const unsigned int id_trans_combo_lost_alpha;

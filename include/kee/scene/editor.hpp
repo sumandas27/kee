@@ -9,7 +9,7 @@ namespace scene {
 class editor final : public kee::scene::base
 {
 public:
-    editor(const kee::scene::window& window);
+    editor(const kee::scene::window& window, kee::global_assets& assets);
 
 private:
     void update_element(float dt) override;

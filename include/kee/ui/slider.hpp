@@ -9,7 +9,7 @@ class slider final : public kee::ui::base
 {
 public:
     slider(
-        const kee::ui::base& parent,
+        const kee::ui::base::required& reqs,
         kee::pos x, 
         kee::pos y, 
         const std::variant<kee::dims, kee::border>& dimensions,

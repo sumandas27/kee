@@ -5,18 +5,19 @@
 namespace kee {
 namespace ui {
 
-class rect_border
+class rect_outline
 {
 public:
     enum class type;
 
-    rect_border(rect_border::type rect_border_type, float val);
+    rect_outline(rect_outline::type rect_outline_type, float val, const std::optional<raylib::Color>& opt_color);
 
-    const rect_border::type rect_border_type;
+    const std::optional<raylib::Color> opt_color;
+    const rect_outline::type rect_outline_type;
     const float val;
 };
 
-enum class rect_border::type
+enum class rect_outline::type
 {
     abs,
     rel_w,
@@ -47,20 +48,20 @@ class rect final : public kee::ui::base
 {
 public:
     rect(
-        const kee::ui::base& parent, 
+        const kee::ui::base::required& reqs, 
         const std::optional<raylib::Color>& color, 
         kee::pos x, 
         kee::pos y, 
         const std::variant<kee::dims, kee::border>& dims, 
-        std::optional<kee::ui::rect_border> border,
+        std::optional<kee::ui::rect_outline> border,
         std::optional<kee::ui::rect_roundness> roundness, 
         const kee::ui::common& common
     );
 
 private:
-    void render_element() const override;
+    void render_element_behind_children() const override;
 
-    const std::optional<kee::ui::rect_border> border;
+    const std::optional<kee::ui::rect_outline> border;
     const std::optional<kee::ui::rect_roundness> roundness;
 };
 

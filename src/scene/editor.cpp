@@ -8,8 +8,8 @@
 namespace kee {
 namespace scene {
 
-editor::editor(const kee::scene::window& window) :
-    kee::scene::base(window),
+editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
+    kee::scene::base(window, assets),
     id_trans_pause_play_color(0),
     id_trans_pause_play_scale(1),
     play_png("assets/img/play.png"),
@@ -90,7 +90,7 @@ editor::editor(const kee::scene::window& window) :
         auto& pause_play_scale_trans = *dynamic_cast<kee::transition<float>*>(pause_play.transitions[id_trans_pause_play_scale].get());
         
         auto& pause_play_png = *dynamic_cast<kee::ui::image*>(pause_play.child_at(id_pause_play_png).get());
-        pause_play_png.set_color(pause_play_color_trans.get().to_color());
+        pause_play_png.set_opt_color(pause_play_color_trans.get().to_color());
         
         auto& [w, h] = std::get<kee::dims>(pause_play_png.dimensions);
         w.val = pause_play_scale_trans.get();

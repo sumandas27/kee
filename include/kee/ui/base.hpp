@@ -6,12 +6,13 @@
 #include <boost/optional.hpp>
 
 #include "kee/geometry.hpp"
+#include "kee/global_assets.hpp"
 #include "kee/transition.hpp"
 
 namespace kee {
 namespace ui {
 
-class common
+    class common
 {
 public:
     common(bool centered, std::optional<int> z_order, bool children_z_order_enabled);
@@ -22,14 +23,16 @@ public:
 };
 
 /**
- * Contractually the first parameter of any non-scene subclass's constructor must be 
- * of type `kee::ui::base&` containing its parent element
+ * Contractually the first parameter of any non-scene subclass's constructor must be of 
+ * type `const kee::base::required&` containing all required references for a UI element.
  */
 class base
 {
 public:
+    class required;
+
     base(
-        const kee::ui::base& parent, 
+        const kee::ui::base::required& reqs, 
         kee::pos x, 
         kee::pos y, 
         const std::variant<kee::dims, kee::border>& dimensions, 
@@ -42,7 +45,7 @@ public:
 
     /**
      * When adding a UI element as a child, pass in the element type's constructor params
-     * to `typename... Args` *EXCLUDING* its first constructor parameter of type `kee::ui::base&`!
+     * to `typename... Args` *EXCLUDING* its first constructor parameter of type `kee::ui::base::required&`!
      * These functions will populate the first parameter for you.
      */
     template <std::derived_from<kee::ui::base> T, typename... Args>
@@ -58,8 +61,9 @@ public:
     std::unique_ptr<kee::ui::base>& child_at(unsigned int id);
     void remove_child(unsigned int key);
 
-    void set_color(const std::optional<raylib::Color>& color_input);
-    raylib::Color get_color() const;
+    void set_opt_color(const std::optional<raylib::Color>& opt_color);
+    const std::optional<raylib::Color>& get_opt_color() const;
+    raylib::Color get_color_from_opt(const std::optional<raylib::Color>& opt_color) const;
 
     kee::pos x;
     kee::pos y;
@@ -77,10 +81,11 @@ protected:
     /**
      * Scene subclasses do *NOT* specify a `parent`, non-scene subclasses do.
      */
-    base(boost::optional<const kee::ui::base&> parent, const kee::ui::common& common);
+    base(const kee::ui::base::required& reqs, const kee::ui::common& common);
 
     virtual void update_element(float dt);
-    virtual void render_element() const;
+    virtual void render_element_behind_children() const;
+    virtual void render_element_ahead_children() const;
 
     /**
      * NOTE: We climb up UI hierarchy every time we render a UI element every frame. 
@@ -88,6 +93,8 @@ protected:
      */
     raylib::Rectangle get_raw_rect() const;
     raylib::Rectangle get_raw_rect_parent() const;
+
+    kee::global_assets& assets;
 
     std::optional<int> z_order;
     bool children_z_order_enabled;
@@ -100,9 +107,18 @@ private:
     const boost::optional<const kee::ui::base&> parent;
 
     std::optional<raylib::Color> color;
-    std::unordered_map<unsigned int, std::unique_ptr<kee::ui::base>> children;
 
+    std::unordered_map<unsigned int, std::unique_ptr<kee::ui::base>> children;
     std::vector<kee::ui::base::ref> z_order_refs;
+};
+
+class base::required
+{
+public:
+    required(boost::optional<const kee::ui::base&> parent, kee::global_assets& assets);
+
+    boost::optional<const kee::ui::base&> parent;
+    kee::global_assets& assets;
 };
 
 class base::ref

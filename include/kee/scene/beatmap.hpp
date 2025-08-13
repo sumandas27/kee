@@ -8,7 +8,7 @@ namespace scene {
 class beatmap final : public kee::scene::base
 {
 public:
-    beatmap(const kee::scene::window& window);
+    beatmap(const kee::scene::window& window, kee::global_assets& assets);
 
     float get_beat() const;
 

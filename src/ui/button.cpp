@@ -4,13 +4,13 @@ namespace kee {
 namespace ui {
 
 button::button(
-    const kee::ui::base& parent, 
+    const kee::ui::base::required& reqs, 
     kee::pos x, 
     kee::pos y, 
     const std::variant<kee::dims, kee::border>& dimensions, 
     const kee::ui::common& common
 ) :
-    kee::ui::base(parent, x, y, dimensions, common),
+    kee::ui::base(reqs, x, y, dimensions, common),
     on_hot([](){}),
     on_down([](){}),
     on_leave([](){}),

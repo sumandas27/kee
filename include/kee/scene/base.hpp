@@ -16,7 +16,7 @@ public:
 class base : public kee::ui::base
 {
 public:
-    base(const kee::scene::window& window);
+    base(const kee::scene::window& window, kee::global_assets& assets);
 
 private:
     void update_element(float dt) override;

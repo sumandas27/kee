@@ -7,8 +7,8 @@
 namespace kee {
 namespace scene {
 
-beatmap::beatmap(const kee::scene::window& window) :
-    kee::scene::base(window),
+beatmap::beatmap(const kee::scene::window& window, kee::global_assets& assets) :
+    kee::scene::base(window, assets),
     input_tolerance(0.25f),
     approach_beats(2.0f),
     load_time(2.0f),
@@ -160,7 +160,7 @@ void beatmap::update_element(float dt)
     combo_text.set_string(std::to_string(combo) + "x");
     combo_text.set_scale(1.0f + 0.1f * combo_gain.get());
 
-    combo_text_bg.set_color(raylib::Color(255, 255, 255, static_cast<unsigned char>(127.5f * combo_gain.get())));
+    combo_text_bg.set_opt_color(raylib::Color(255, 255, 255, static_cast<unsigned char>(127.5f * combo_gain.get())));
     combo_text_bg.set_string(std::to_string(combo) + "x");
     combo_text_bg.set_scale(1.0f + 0.5f * combo_gain.get());
 

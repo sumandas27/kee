@@ -12,7 +12,7 @@ common::common(bool centered, std::optional<int> z_order, bool children_z_order_
 { }
 
 base::base(
-    const kee::ui::base& parent, 
+    const kee::ui::base::required& reqs, 
     kee::pos x, 
     kee::pos y, 
     const std::variant<kee::dims, kee::border>& dimensions, 
@@ -22,18 +22,20 @@ base::base(
     y(y),
     dimensions(dimensions),
     centered(common.centered),
+    assets(reqs.assets),
     z_order(common.z_order),
     children_z_order_enabled(common.children_z_order_enabled),
-    parent(parent)
+    parent(reqs.parent)
 { 
-    set_color(raylib::Color(0, 0, 0, 0));
+    set_opt_color(raylib::Color(0, 0, 0, 0));
 }
 
-base::base(boost::optional<const kee::ui::base&> parent, const kee::ui::common& common) :
-    parent(parent),
+base::base(const kee::ui::base::required& reqs, const kee::ui::common& common) :
     centered(common.centered),
     z_order(common.z_order),
-    children_z_order_enabled(common.children_z_order_enabled)
+    assets(reqs.assets),
+    children_z_order_enabled(common.children_z_order_enabled),
+    parent(reqs.parent)
 { }
 
 void base::update(float dt) 
@@ -57,7 +59,7 @@ void base::update(float dt)
 
 void base::render() const 
 { 
-    render_element();
+    render_element_behind_children();
 
     if (!children_z_order_enabled)
         for (const auto& [_, child] : children)
@@ -65,6 +67,8 @@ void base::render() const
     else
         for (const kee::ui::base::ref& child_ref : z_order_refs)
             child_ref.get().render();
+
+    render_element_ahead_children();
 }
 
 bool base::has_child(unsigned int id) const
@@ -93,22 +97,29 @@ void base::remove_child(unsigned int id)
         z_order_refs.end());
 }
 
-void base::set_color(const std::optional<raylib::Color>& color_input)
+void base::set_opt_color(const std::optional<raylib::Color>& opt_color)
 {
-    if (!color_input.has_value() && !parent.has_value())
+    if (!opt_color.has_value() && !parent.has_value())
         throw std::invalid_argument("Cannot set color source to parent when UI element has no parent!");
 
-    color = color_input;
+    color = opt_color;
 }
 
-raylib::Color base::get_color() const
+const std::optional<raylib::Color>& base::get_opt_color() const
 {
-    return color.has_value() ? color.value() : parent.value().get_color();
+    return color;
+}
+
+raylib::Color base::get_color_from_opt(const std::optional<raylib::Color>& opt_color) const
+{
+    return opt_color.has_value() ? opt_color.value() : parent.value().get_color_from_opt(parent.value().get_opt_color());
 }
 
 void base::update_element([[maybe_unused]] float dt) { }
 
-void base::render_element() const { }
+void base::render_element_behind_children() const { }
+
+void base::render_element_ahead_children() const { }
 
 raylib::Rectangle base::get_raw_rect() const
 {
@@ -238,6 +249,11 @@ raylib::Vector2 base::get_dims(const raylib::Rectangle& parent_raw_rect) const
 
     return res;
 }
+
+base::required::required(boost::optional<const kee::ui::base&> parent, kee::global_assets& assets) :
+    parent(parent),
+    assets(assets)
+{ }
 
 base::ref::ref(unsigned int id, const kee::ui::base& ui_ref) :
     id(id),

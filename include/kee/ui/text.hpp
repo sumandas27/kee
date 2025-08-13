@@ -28,7 +28,7 @@ class text final : public kee::ui::base
 {
 public:
     text(
-        const kee::ui::base& parent, 
+        const kee::ui::base::required& reqs, 
         const std::optional<raylib::Color>& color, 
         kee::pos p_x, 
         kee::pos p_y, 
@@ -44,7 +44,7 @@ public:
 private:
     class global;
 
-    void render_element() const override;
+    void render_element_behind_children() const override;
 
     void update_dims(std::optional<std::string_view> new_str, std::optional<kee::ui::text_size> new_str_size, std::optional<float> new_scale);
 
@@ -54,21 +54,6 @@ private:
     std::string str;
     float str_size;
     float scale;
-};
-
-class text::global
-{
-public:
-    static const raylib::Font& get_font();
-    static raylib::Shader& get_sdf_shader();
-
-private:
-    static text::global& singleton();
-
-    global();
-
-    raylib::Font font;
-    raylib::Shader sdf_shader;
 };
 
 } // namespace ui
