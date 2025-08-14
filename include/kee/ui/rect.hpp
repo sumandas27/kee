@@ -50,11 +50,11 @@ public:
     rect(
         const kee::ui::base::required& reqs, 
         const std::optional<raylib::Color>& color, 
-        kee::pos x, 
-        kee::pos y, 
+        kee::pos x,
+        kee::pos y,
         const std::variant<kee::dims, kee::border>& dims, 
         std::optional<kee::ui::rect_outline> border,
-        std::optional<kee::ui::rect_roundness> roundness, 
+        std::optional<kee::ui::rect_roundness> roundness,
         const kee::ui::common& common
     );
 

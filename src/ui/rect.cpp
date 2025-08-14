@@ -70,7 +70,7 @@ void rect::render_element_behind_children() const
         uniform_roundness_size = 0;
 
     float uniform_outline_thickness = 0;
-    std::array<float, 4> uniform_outline_color;    
+    std::array<float, 4> uniform_outline_color = { 0.0f, 0.0f, 0.0f, 0.0f };    
     if (border.has_value())
     {
         switch (border.value().rect_outline_type)

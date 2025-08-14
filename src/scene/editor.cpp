@@ -14,6 +14,8 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     id_trans_pause_play_scale(1),
     play_png("assets/img/play.png"),
     pause_png("assets/img/pause.png"),
+    is_music_playing(true),
+    is_music_stopped(!is_music_playing),
     music("assets/daft-punk-something-about-us/daft-punk-something-about-us.mp3")
 {
     id_pause_play = add_child_no_id<kee::ui::button>(
@@ -70,16 +72,18 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
 
     pause_play.on_click = [&]()
     { 
+        this->is_music_playing = !this->is_music_playing;
+
         auto& pause_play_img = *dynamic_cast<kee::ui::image*>(this->child_at(id_pause_play)->child_at(id_pause_play_png).get());
-        if (music.IsPlaying())
+        if (this->is_music_playing)
         {
-            music.Pause();
-            pause_play_img.set_image(play_png);
+            this->is_music_stopped ? this->music.Play() : this->music.Resume();
+            pause_play_img.set_image(pause_png);
         }
         else
         {
-            music.Resume();
-            pause_play_img.set_image(pause_png);
+            this->music.Pause();
+            pause_play_img.set_image(play_png);
         }
     };
 
@@ -119,38 +123,56 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         true, std::nullopt
     );
 
-    add_child_no_id<kee::ui::rect>(
-        raylib::Color::Red(),
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.9f),
-        dims(
-            dim(dim::type::aspect, 1),
-            dim(dim::type::rel, 0.1f)
-        ),
-        std::nullopt,
-        kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5),
-        kee::ui::common(true, std::nullopt, false)
-    );
+    auto& music_slider = *dynamic_cast<kee::ui::slider*>(child_at(id_music_slider).get());
+    music_slider.on_down = [&]()
+    {
+        /* TODO: make slider active elem */
+        this->music.Pause();
+    };
+
+    music_slider.on_release = [&]()
+    {
+        /* TODO: make slider non-active */
+
+        this->music.Seek(music_slider.progress * this->music.GetTimeLength());
+        if (this->is_music_playing)
+            this->music.Resume();
+    };
 
     music.SetLooping(false);
     music.SetVolume(0.1f);
-    music.Play();
+
+    if (is_music_playing)
+        music.Play();
 }
 
 void editor::update_element([[maybe_unused]] float dt)
 {
-    if (music.IsPlaying())
-        music.Update();
+    /* TODO: pause when end is reached */
 
-    const unsigned int music_played = static_cast<unsigned int>(music.GetTimePlayed());
+    if (music.IsPlaying())
+    {
+        music.Update();
+        if (!music.IsPlaying())
+        {
+            is_music_playing = false;
+            is_music_stopped = true;
+
+            auto& pause_play_img = *dynamic_cast<kee::ui::image*>(this->child_at(id_pause_play)->child_at(id_pause_play_png).get());
+            pause_play_img.set_image(play_png);
+        }
+    }
+
+    auto& music_slider = *dynamic_cast<kee::ui::slider*>(child_at(id_music_slider).get());
+    if (!music_slider.is_down())
+        music_slider.progress = music.GetTimePlayed() / music.GetTimeLength();
+
     const unsigned int music_length = static_cast<unsigned int>(music.GetTimeLength());
-    const std::string music_time_str = std::format("{}:{:02} / {}:{:02}", music_played / 60, music_played % 60, music_length / 60, music_length % 60);
+    const unsigned int music_time = static_cast<unsigned int>(music_slider.progress * music.GetTimeLength());
+    const std::string music_time_str = std::format("{}:{:02} / {}:{:02}", music_time / 60, music_time % 60, music_length / 60, music_length % 60);
 
     auto& music_time_text = *dynamic_cast<kee::ui::text*>(child_at(id_music_time_text).get());
     music_time_text.set_string(music_time_str);
-
-    auto& music_slider = *dynamic_cast<kee::ui::slider*>(child_at(id_music_slider).get());
-    music_slider.progress = music.GetTimePlayed() / music.GetTimeLength();
 }
 
 } // namespace scene

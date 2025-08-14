@@ -24,18 +24,9 @@ public:
     std::function<void(float)> on_update;
 
 private:
-    enum class state;
-
     void update_element(float dt) override;
 
-    button::state button_state;
-};
-
-enum class button::state
-{
-    off,
-    hot,
-    down
+    kee::ui::mouse_state button_state;
 };
 
 } // namespace ui

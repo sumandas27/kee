@@ -12,7 +12,7 @@
 namespace kee {
 namespace ui {
 
-    class common
+class common
 {
 public:
     common(bool centered, std::optional<int> z_order, bool children_z_order_enabled);
@@ -20,6 +20,13 @@ public:
     const bool centered;
     const std::optional<int> z_order;
     const bool children_z_order_enabled;
+};
+
+enum class mouse_state
+{
+    off,
+    hot,
+    down
 };
 
 /**
@@ -65,6 +72,13 @@ public:
     const std::optional<raylib::Color>& get_opt_color() const;
     raylib::Color get_color_from_opt(const std::optional<raylib::Color>& opt_color) const;
 
+    /**
+     * NOTE: We climb up UI hierarchy every time we render a UI element every frame. 
+     * Inefficient, if performance is a problem investigate and fix if applicable.
+     */
+    raylib::Rectangle get_raw_rect() const;
+    raylib::Rectangle get_raw_rect_parent() const;
+
     kee::pos x;
     kee::pos y;
     /**
@@ -86,13 +100,6 @@ protected:
     virtual void update_element(float dt);
     virtual void render_element_behind_children() const;
     virtual void render_element_ahead_children() const;
-
-    /**
-     * NOTE: We climb up UI hierarchy every time we render a UI element every frame. 
-     * Inefficient, if performance is a problem investigate and fix if applicable.
-     */
-    raylib::Rectangle get_raw_rect() const;
-    raylib::Rectangle get_raw_rect_parent() const;
 
     kee::global_assets& assets;
 

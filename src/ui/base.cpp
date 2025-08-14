@@ -115,12 +115,6 @@ raylib::Color base::get_color_from_opt(const std::optional<raylib::Color>& opt_c
     return opt_color.has_value() ? opt_color.value() : parent.value().get_color_from_opt(parent.value().get_opt_color());
 }
 
-void base::update_element([[maybe_unused]] float dt) { }
-
-void base::render_element_behind_children() const { }
-
-void base::render_element_ahead_children() const { }
-
 raylib::Rectangle base::get_raw_rect() const
 {
     const raylib::Rectangle parent_raw_rect = parent.has_value() 
@@ -169,6 +163,12 @@ raylib::Rectangle base::get_raw_rect_parent() const
 {
     return parent.value().get_raw_rect();
 }
+
+void base::update_element([[maybe_unused]] float dt) { }
+
+void base::render_element_behind_children() const { }
+
+void base::render_element_ahead_children() const { }
 
 raylib::Vector2 base::get_dims(const raylib::Rectangle& parent_raw_rect) const
 {

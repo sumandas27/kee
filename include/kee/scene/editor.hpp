@@ -25,6 +25,8 @@ private:
     kee::ui::image_texture play_png;
     kee::ui::image_texture pause_png;
 
+    bool is_music_playing;
+    bool is_music_stopped;
     raylib::Music music;
 };
 
