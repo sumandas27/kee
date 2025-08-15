@@ -17,6 +17,8 @@ class common
 public:
     common(bool centered, std::optional<int> z_order, bool children_z_order_enabled);
 
+    /* TODO: implement centered_x and centered_y */
+
     const bool centered;
     const std::optional<int> z_order;
     const bool children_z_order_enabled;

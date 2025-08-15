@@ -5,7 +5,7 @@ namespace scene {
 
 window::window()
 {
-    static constexpr int window_fps = 60;
+    static constexpr int window_fps = 144;
     impl.SetConfigFlags(
         ConfigFlags::FLAG_BORDERLESS_WINDOWED_MODE |    /* Make window take up the entire screen */
         ConfigFlags::FLAG_WINDOW_UNDECORATED            /* Remove toolbars when displaying the game */

@@ -13,6 +13,8 @@
 
 namespace kee {
 
+/* TODO: add different fonts */
+
 class global_assets
 {
 public:

@@ -16,7 +16,7 @@ global_assets::global_assets() :
     font.glyphPadding = 0;
     font.recs = nullptr;
 
-    const raylib::FileData font_file("assets/fonts/Montserrat-Light.ttf");
+    const raylib::FileData font_file("assets/fonts/Montserrat-SemiBold.ttf");
     font.glyphs = LoadFontData(font_file.GetData(), font_file.GetBytesRead(), font.baseSize, nullptr, font.glyphCount, FontType::FONT_SDF);
 
     const raylib::Image font_atlas = GenImageFontAtlas(font.glyphs, &font.recs, font.glyphCount, font.baseSize, font.glyphPadding, 1);
