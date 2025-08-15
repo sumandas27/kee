@@ -111,9 +111,11 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         switch (slider_event)
         {
         case ui::slider::event::on_down:
+            this->active_child = music_slider;
             this->music.Pause();
             break;
         case ui::slider::event::on_release:
+            this->active_child = boost::none;
             this->music.Seek(music_slider.progress * this->music.GetTimeLength());
             if (this->is_music_playing)
                 this->music.Resume();

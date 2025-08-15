@@ -41,8 +41,12 @@ base::base(const kee::ui::base::required& reqs, const kee::ui::common& common) :
 void base::handle_events()
 {
     handle_element_events();
-    for (auto& [_, child] : children)
-        child->handle_events();
+    
+    if (active_child.has_value())
+        active_child.value().handle_events();
+    else
+        for (auto& [_, child] : children)
+            child->handle_events();
 }
 
 void base::update(float dt) 

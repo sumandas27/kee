@@ -105,6 +105,8 @@ protected:
 
     kee::global_assets& assets;
 
+    boost::optional<kee::ui::base&> active_child;
+
     std::optional<int> z_order;
     bool children_z_order_enabled;
 
