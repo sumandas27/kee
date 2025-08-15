@@ -1,17 +1,19 @@
 #include "kee/game.hpp"
 
-#include "kee/scene/editor.hpp"
+#include "kee/scene/beatmap.hpp"
 
 namespace kee {
 
 game::game() :
-    curr_scene(std::make_unique<kee::scene::editor>(window, assets))
+    curr_scene(std::make_unique<kee::scene::beatmap>(window, assets))
 { }
 
 void game::main_loop()
 {
     while (!window.impl.ShouldClose())
     {
+        curr_scene->handle_events();
+
         const float dt = window.impl.GetFrameTime();
         curr_scene->update(dt);
 

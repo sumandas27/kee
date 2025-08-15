@@ -38,6 +38,13 @@ base::base(const kee::ui::base::required& reqs, const kee::ui::common& common) :
     parent(reqs.parent)
 { }
 
+void base::handle_events()
+{
+    handle_element_events();
+    for (auto& [_, child] : children)
+        child->handle_events();
+}
+
 void base::update(float dt) 
 {
     update_element(dt);
@@ -163,6 +170,8 @@ raylib::Rectangle base::get_raw_rect_parent() const
 {
     return parent.value().get_raw_rect();
 }
+
+void base::handle_element_events() { }
 
 void base::update_element([[maybe_unused]] float dt) { }
 

@@ -20,6 +20,7 @@ public:
     const float approach_beats;
 
 private:
+    void handle_element_events() override;
     void update_element(float dt) override;
 
     const float load_time;

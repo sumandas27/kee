@@ -22,7 +22,7 @@ public:
     std::function<void()> on_click;
 
 private:
-    void update_element(float dt) override;
+    void handle_element_events() override;
 
     kee::ui::mouse_state button_state;
 };

@@ -47,6 +47,7 @@ public:
     );
     virtual ~base() = default;
 
+    void handle_events();
     void update(float dt);
     void render() const;
 
@@ -97,6 +98,7 @@ protected:
      */
     base(const kee::ui::base::required& reqs, const kee::ui::common& common);
 
+    virtual void handle_element_events();
     virtual void update_element(float dt);
     virtual void render_element_behind_children() const;
     virtual void render_element_ahead_children() const;

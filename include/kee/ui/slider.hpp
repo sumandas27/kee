@@ -29,6 +29,7 @@ public:
     float progress;
 
 private:
+    void handle_element_events() override;
     void update_element(float dt) override;
 
     kee::ui::mouse_state slider_state;

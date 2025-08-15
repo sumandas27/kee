@@ -105,7 +105,7 @@ void key::pop()
     hit_objects.pop_front();
 }
 
-void key::update_element([[maybe_unused]] float dt)
+void key::handle_element_events()
 {
     set_opt_color(raylib::Keyboard::IsKeyDown(keycode) ? raylib::Color::Green() : raylib::Color::White());
 

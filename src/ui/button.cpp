@@ -16,7 +16,7 @@ button::button(
     button_state(mouse_state::off)
 { }
 
-void button::update_element(float dt)
+void button::handle_element_events()
 {
     const raylib::Vector2 mouse_pos = raylib::Mouse::GetPosition();
     const raylib::Rectangle raw_rect = get_raw_rect();

@@ -68,17 +68,11 @@ bool slider::is_down() const
     return slider_state == mouse_state::down;
 }
 
-void slider::update_element([[maybe_unused]] float dt)
+void slider::handle_element_events()
 {
     auto& fill_color = *dynamic_cast<kee::transition<kee::color>*>(transitions.at(id_trans_fill_color).get());
-    auto& fill = *dynamic_cast<kee::ui::rect*>(child_at(id_fill).get());
-
-    fill.set_opt_color(fill_color.get().to_color());
-    std::get<kee::dims>(fill.dimensions).w.val = progress;
-
     auto& thumb_scale = *dynamic_cast<kee::transition<float>*>(transitions.at(id_trans_thumb_scale).get());
     auto& thumb = *dynamic_cast<kee::ui::rect*>(child_at(id_fill)->child_at(id_thumb).get());
-    std::get<kee::dims>(thumb.dimensions).h.val = thumb_scale.get();
 
     const raylib::Vector2 mouse_pos = raylib::Mouse::GetPosition();
     const raylib::Rectangle raw_rect = get_raw_rect();
@@ -126,6 +120,19 @@ void slider::update_element([[maybe_unused]] float dt)
 
         slider_state = mouse_state::down;
     }
+}
+
+void slider::update_element([[maybe_unused]] float dt)
+{
+    auto& fill_color = *dynamic_cast<kee::transition<kee::color>*>(transitions.at(id_trans_fill_color).get());
+    auto& fill = *dynamic_cast<kee::ui::rect*>(child_at(id_fill).get());
+
+    fill.set_opt_color(fill_color.get().to_color());
+    std::get<kee::dims>(fill.dimensions).w.val = progress;
+
+    auto& thumb_scale = *dynamic_cast<kee::transition<float>*>(transitions.at(id_trans_thumb_scale).get());
+    auto& thumb = *dynamic_cast<kee::ui::rect*>(child_at(id_fill)->child_at(id_thumb).get());
+    std::get<kee::dims>(thumb.dimensions).h.val = thumb_scale.get();
 }
 
 } // namespace ui

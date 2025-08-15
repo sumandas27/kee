@@ -151,19 +151,8 @@ void beatmap::combo_lose()
     combo_gain.set(0.0f);
 }
 
-void beatmap::update_element(float dt)
+void beatmap::handle_element_events()
 {
-    auto& combo_gain = *dynamic_cast<kee::transition<float>*>(transitions.at(id_trans_combo_gain).get());
-    auto& combo_text = *dynamic_cast<kee::ui::text*>(child_at(id_combo_text).get());
-    auto& combo_text_bg = *dynamic_cast<kee::ui::text*>(child_at(id_combo_text_bg).get());
-
-    combo_text.set_string(std::to_string(combo) + "x");
-    combo_text.set_scale(1.0f + 0.1f * combo_gain.get());
-
-    combo_text_bg.set_opt_color(raylib::Color(255, 255, 255, static_cast<unsigned char>(127.5f * combo_gain.get())));
-    combo_text_bg.set_string(std::to_string(combo) + "x");
-    combo_text_bg.set_scale(1.0f + 0.5f * combo_gain.get());
-
     for (int key = raylib::Keyboard::GetKeyPressed(); key != 0; key = raylib::Keyboard::GetKeyPressed())
     {
         if (!child_at(id_window_border)->child_at(id_key_frame)->has_child(key))
@@ -202,6 +191,20 @@ void beatmap::update_element(float dt)
                     : std::nullopt;
         }
     }
+}
+
+void beatmap::update_element(float dt)
+{
+    auto& combo_gain = *dynamic_cast<kee::transition<float>*>(transitions.at(id_trans_combo_gain).get());
+    auto& combo_text = *dynamic_cast<kee::ui::text*>(child_at(id_combo_text).get());
+    auto& combo_text_bg = *dynamic_cast<kee::ui::text*>(child_at(id_combo_text_bg).get());
+
+    combo_text.set_string(std::to_string(combo) + "x");
+    combo_text.set_scale(1.0f + 0.1f * combo_gain.get());
+
+    combo_text_bg.set_opt_color(raylib::Color(255, 255, 255, static_cast<unsigned char>(127.5f * combo_gain.get())));
+    combo_text_bg.set_string(std::to_string(combo) + "x");
+    combo_text_bg.set_scale(1.0f + 0.5f * combo_gain.get());
 
     game_time += dt;
     if (game_time < load_time)
