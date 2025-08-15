@@ -8,6 +8,8 @@ namespace ui {
 class slider final : public kee::ui::base
 {
 public:
+    enum class event;
+
     slider(
         const kee::ui::base::required& reqs,
         kee::pos x, 
@@ -19,8 +21,7 @@ public:
 
     bool is_down() const;
 
-    std::function<void()> on_down;
-    std::function<void()> on_release;
+    std::function<void(slider::event)> on_event;
 
     /**
      * Scaled from 0.0f to 1.0f.
@@ -37,6 +38,12 @@ private:
 
     unsigned int id_fill;
     unsigned int id_thumb;
+};
+
+enum class slider::event
+{
+    on_down,
+    on_release
 };
 
 } // namespace ui

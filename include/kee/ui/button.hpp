@@ -8,6 +8,8 @@ namespace ui {
 class button final : public kee::ui::base
 {
 public:
+    enum class event;
+
     button(
         const kee::ui::base::required& reqs, 
         kee::pos x, 
@@ -16,17 +18,20 @@ public:
         const kee::ui::common& common
     );
 
-    std::function<void()> on_hot;
-    std::function<void()> on_down;
-    std::function<void()> on_leave;
+    std::function<void(button::event)> on_event;
     std::function<void()> on_click;
-
-    std::function<void(float)> on_update;
 
 private:
     void update_element(float dt) override;
 
     kee::ui::mouse_state button_state;
+};
+
+enum class button::event
+{
+    on_hot,
+    on_down,
+    on_leave
 };
 
 } // namespace ui

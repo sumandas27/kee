@@ -11,18 +11,13 @@ button::button(
     const kee::ui::common& common
 ) :
     kee::ui::base(reqs, x, y, dimensions, common),
-    on_hot([](){}),
-    on_down([](){}),
-    on_leave([](){}),
+    on_event([]([[maybe_unused]] button::event button_event){}),
     on_click([](){}),
-    on_update([]([[maybe_unused]] float dt){}),
     button_state(mouse_state::off)
 { }
 
 void button::update_element(float dt)
 {
-    on_update(dt);
-
     const raylib::Vector2 mouse_pos = raylib::Mouse::GetPosition();
     const raylib::Rectangle raw_rect = get_raw_rect();
     const bool is_mouse_on_button =
@@ -31,23 +26,23 @@ void button::update_element(float dt)
 
     if (!is_mouse_on_button && button_state != mouse_state::off)
     {
-        on_leave();
+        on_event(button::event::on_leave);
         button_state = mouse_state::off;
     }
     else if (is_mouse_on_button && button_state == mouse_state::off)
     {
-        on_hot();
+        on_event(button::event::on_hot);
         button_state = mouse_state::hot;
     }
     else if (raylib::Mouse::IsButtonPressed(MouseButton::MOUSE_BUTTON_LEFT) && button_state == mouse_state::hot)
     {
-        on_down();
+        on_event(button::event::on_down);
         button_state = mouse_state::down;
     }
     else if (raylib::Mouse::IsButtonReleased(MouseButton::MOUSE_BUTTON_LEFT) && button_state == mouse_state::down)
     {
         on_click();
-        on_hot();
+        on_event(button::event::on_hot);
         button_state = mouse_state::hot;
     }
 }

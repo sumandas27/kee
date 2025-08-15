@@ -14,8 +14,7 @@ slider::slider(
     std::optional<int> z_order
 ) :
     kee::ui::base(reqs, x, y, dimensions, kee::ui::common(centered, z_order, true)),
-    on_down([](){}),
-    on_release([](){}),
+    on_event([]([[maybe_unused]] slider::event slider_event){}),
     progress(0.0f),
     slider_state(mouse_state::off),
     id_trans_fill_color(0),
@@ -98,7 +97,7 @@ void slider::update_element([[maybe_unused]] float dt)
     {
         if (raylib::Mouse::IsButtonReleased(MouseButton::MOUSE_BUTTON_LEFT))
         {
-            on_release();
+            on_event(slider::event::on_release);
             thumb_scale.set(std::nullopt, 1.75f, 0.5f, kee::transition_type::exp);
 
             fill_color.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
@@ -122,7 +121,7 @@ void slider::update_element([[maybe_unused]] float dt)
     }
     else if (raylib::Mouse::IsButtonPressed(MouseButton::MOUSE_BUTTON_LEFT) && slider_state == mouse_state::hot)
     {
-        on_down();
+        on_event(slider::event::on_down);
         thumb_scale.set(std::nullopt, 1.5f, 0.5f, kee::transition_type::exp);
 
         slider_state = mouse_state::down;
