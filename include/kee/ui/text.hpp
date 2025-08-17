@@ -32,7 +32,8 @@ public:
         const std::optional<raylib::Color>& color, 
         kee::pos p_x, 
         kee::pos p_y, 
-        kee::ui::text_size p_str_size, 
+        kee::ui::text_size p_str_size,
+        const raylib::Font& font,
         std::string_view p_string,
         bool font_cap_height_only,
         const kee::ui::common& common
@@ -47,6 +48,8 @@ private:
     void render_element_behind_children() const override;
 
     void update_dims(std::optional<std::string_view> new_str, std::optional<kee::ui::text_size> new_str_size, std::optional<float> new_scale);
+
+    const raylib::Font& font;
 
     static constexpr float font_cap_height_multiplier_approx = 0.9f;
     const bool font_cap_height_only;

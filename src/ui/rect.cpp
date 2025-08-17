@@ -1,7 +1,5 @@
 #include "kee/ui/rect.hpp"
 
-#include <array>
-
 namespace kee {
 namespace ui {
 

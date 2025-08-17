@@ -55,7 +55,7 @@ beatmap::beatmap(const kee::scene::window& window, kee::global_assets& assets) :
         pos(pos::type::beg, 40),
         pos(pos::type::end, 40),
         ui::text_size(ui::text_size::type::rel_h, 0.1f),
-        "0x", true, 
+        assets.font_light, "0x", true, 
         kee::ui::common(false, 0, false)
     );
 
@@ -64,7 +64,7 @@ beatmap::beatmap(const kee::scene::window& window, kee::global_assets& assets) :
         pos(pos::type::beg, 40),
         pos(pos::type::end, 40),
         ui::text_size(ui::text_size::type::rel_h, 0.1f),
-        "0x", true, 
+        assets.font_light, "0x", true, 
         kee::ui::common(false, 0, false)
     );
 

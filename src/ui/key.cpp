@@ -77,7 +77,7 @@ key::key(const kee::ui::base::required& reqs, kee::scene::beatmap& beatmap_scene
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         text_size(text_size::type::rel_h, 0.5 * (1.0f - 2 * key::border_parent_h)),
-        key_str, false, 
+        assets.font_light, key_str, false, 
         kee::ui::common(true, 0, false)
     );
 }

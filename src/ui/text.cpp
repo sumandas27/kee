@@ -14,6 +14,7 @@ text::text(
     kee::pos p_x, 
     kee::pos p_y, 
     kee::ui::text_size p_str_size, 
+    const raylib::Font& font,
     std::string_view p_string, 
     bool font_cap_height_only,
     const kee::ui::common& common
@@ -26,6 +27,7 @@ text::text(
         ), 
         common
     ),
+    font(font),
     font_cap_height_only(font_cap_height_only)
 { 
     set_opt_color(color);
@@ -49,7 +51,7 @@ void text::render_element_behind_children() const
         raw_rect.y += raw_rect.height * (1.0f - font_cap_height_multiplier_approx);
 
     assets.shader_sdf_font.BeginMode();
-    assets.font.DrawText(str.c_str(), raw_rect.GetPosition(), str_size * scale, 0.0f, get_color_from_opt(get_opt_color()));
+    font.DrawText(str.c_str(), raw_rect.GetPosition(), str_size * scale, 0.0f, get_color_from_opt(get_opt_color()));
     assets.shader_sdf_font.EndMode();
 }
 
@@ -72,7 +74,7 @@ void text::update_dims(std::optional<std::string_view> new_str, std::optional<ke
     if (new_scale.has_value())
         scale = new_scale.value();
 
-    const raylib::Vector2 ui_text_dims = assets.font.MeasureText(str.data(), str_size * scale, 0.0f);
+    const raylib::Vector2 ui_text_dims = font.MeasureText(str.data(), str_size * scale, 0.0f);
     auto& [w, h] = std::get<kee::dims>(dimensions);
     w.val = ui_text_dims.x;
     h.val = ui_text_dims.y;

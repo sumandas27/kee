@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+
 /**
  * Disabling MSVC warnings on raylib's source code.
  */
@@ -13,8 +15,6 @@
 
 namespace kee {
 
-/* TODO: add different fonts */
-
 class global_assets
 {
 public:
@@ -22,10 +22,13 @@ public:
 
     global_assets();
 
-    raylib::Font font;
-    raylib::Shader shader_sdf_font;
+    const raylib::Font font_light;
+    const raylib::Font font_regular;
+    const raylib::Font font_semi_bold;
 
+    raylib::Shader shader_sdf_font;
     raylib::Shader shader_sdf_rect;
+    raylib::Shader shader_sdf_triangle;
     raylib::Texture texture_empty;
 
     const int sdf_rect_loc_color;
@@ -33,6 +36,15 @@ public:
     const int sdf_rect_loc_roundness_size;
     const int sdf_rect_loc_outline_color;
     const int sdf_rect_loc_outline_thickness;
+
+    const int sdf_triangle_loc_color;
+    const int sdf_triangle_loc_size;
+    const int sdf_triangle_loc_p0;
+    const int sdf_triangle_loc_p1;
+    const int sdf_triangle_loc_p2;
+
+private:
+    static raylib::Font gen_sdf_font(const std::filesystem::path& font_path);
 };
 
 } // namespace kee

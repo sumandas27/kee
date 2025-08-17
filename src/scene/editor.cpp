@@ -4,12 +4,14 @@
 #include "kee/ui/rect.hpp"
 #include "kee/ui/slider.hpp"
 #include "kee/ui/text.hpp"
+#include "kee/ui/triangle.hpp"
 
 namespace kee {
 namespace scene {
 
 editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     kee::scene::base(window, assets),
+    beat_step(0.25f),
     music_start_offset(0.5f),
     music_bpm(100.0f),
     id_trans_pause_play_color(0),
@@ -17,9 +19,22 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     play_png("assets/img/play.png"),
     pause_png("assets/img/pause.png"),
     is_music_playing(true),
-    is_music_stopped(!is_music_playing),
     music("assets/daft-punk-something-about-us/daft-punk-something-about-us.mp3")
 {
+    id_beat_indicator = add_child_no_id<kee::ui::triangle>(
+        raylib::Color::Red(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.02f),
+        dims(
+            dim(dim::type::rel, 0.02f),
+            dim(dim::type::rel, 0.02f)
+        ),
+        raylib::Vector2(0, 0),
+        raylib::Vector2(1, 0),
+        raylib::Vector2(0.5, 1),
+        kee::ui::common(true, 0, false)
+    );
+
     id_beat_ticks_frame = add_child_no_id<kee::ui::base>(
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.05f),
@@ -27,7 +42,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             dim(dim::type::rel, 0.95f),
             dim(dim::type::rel, 0.05f)
         ),
-        kee::ui::common(true, std::nullopt, false)
+        kee::ui::common(true, 1, false)
     );
 
     id_music_slider = add_child_no_id<kee::ui::slider>(
@@ -113,7 +128,8 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         auto& pause_play_img = *dynamic_cast<kee::ui::image*>(this->child_at(id_music_slider)->child_at(id_pause_play)->child_at(id_pause_play_png).get());
         if (this->is_music_playing)
         {
-            this->is_music_stopped ? this->music.Play() : this->music.Resume();
+            this->music.Seek(music_slider.progress * this->music.GetTimeLength());
+            this->music.Resume();
             pause_play_img.set_image(pause_png);
         }
         else
@@ -131,30 +147,72 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         pos(pos::type::end, 0),
         pos(pos::type::beg, 50),
         ui::text_size(ui::text_size::type::abs, 80),
-        music_length_str, false,
+        assets.font_semi_bold, music_length_str, false,
         kee::ui::common(false, std::nullopt, false)
     );
 
-    music.SetLooping(false);
+    music.SetLooping(true);
     music.SetVolume(0.1f);
 
     if (is_music_playing)
         music.Play();
 }
 
+void editor::handle_element_events()
+{
+    if (raylib::Keyboard::IsKeyPressed(KeyboardKey::KEY_SPACE))
+    {
+        auto& pause_play = *dynamic_cast<kee::ui::button*>(child_at(id_music_slider)->child_at(id_pause_play).get());
+        pause_play.on_click();
+    }
+
+    const bool is_move_cancelled =
+        raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_LEFT) && 
+        raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_RIGHT);
+
+    if (is_music_playing || is_move_cancelled)
+        return;
+
+    const bool is_move_left =
+        raylib::Keyboard::IsKeyPressed(KeyboardKey::KEY_LEFT) ||
+        raylib::Keyboard::IsKeyPressedRepeat(KeyboardKey::KEY_LEFT);
+
+    const bool is_move_right =
+        raylib::Keyboard::IsKeyPressed(KeyboardKey::KEY_RIGHT) ||
+        raylib::Keyboard::IsKeyPressedRepeat(KeyboardKey::KEY_RIGHT);
+
+    auto& music_slider = *dynamic_cast<kee::ui::slider*>(child_at(id_music_slider).get());
+    const float music_time = music_slider.progress * music.GetTimeLength();
+    const float beat = (music_time - music_start_offset) * music_bpm / 60.0f;
+
+    float new_beat = beat;
+    if (is_move_left)
+    {
+        const float beat_floor = std::ceilf(beat / beat_step) * beat_step - beat_step;
+        new_beat = (std::abs(beat_floor - beat) < editor::beat_epsilon) ? beat_floor - beat_step : beat_floor;
+    }
+    else if (is_move_right)
+    {
+        const float beat_ceil = std::ceilf(beat / beat_step) * beat_step;
+        new_beat = (std::abs(beat_ceil - beat) < editor::beat_epsilon) ? beat_ceil + beat_step : beat_ceil;
+    }
+
+    if (new_beat != beat)
+    {
+        const float new_music_time = music_start_offset + new_beat * 60.0f / music_bpm;
+        const float new_progress = (new_music_time / music.GetTimeLength());
+        music_slider.progress = std::clamp(new_progress, 0.0f, 1.0f);
+    }
+}
+
 void editor::update_element([[maybe_unused]] float dt)
 {
+    auto& music_slider = *dynamic_cast<kee::ui::slider*>(child_at(id_music_slider).get());
+
     if (music.IsPlaying())
     {
         music.Update();
-        if (!music.IsPlaying())
-        {
-            is_music_playing = false;
-            is_music_stopped = true;
-
-            auto& pause_play_img = *dynamic_cast<kee::ui::image*>(this->child_at(id_music_slider)->child_at(id_pause_play)->child_at(id_pause_play_png).get());
-            pause_play_img.set_image(play_png);
-        }
+        music_slider.progress = music.GetTimePlayed() / music.GetTimeLength();
     }
 
     auto& pause_play = *dynamic_cast<kee::ui::button*>(this->child_at(id_music_slider)->child_at(id_pause_play).get());
@@ -168,10 +226,6 @@ void editor::update_element([[maybe_unused]] float dt)
     w.val = pause_play_scale_trans.get();
     h.val = pause_play_scale_trans.get();
 
-    auto& music_slider = *dynamic_cast<kee::ui::slider*>(child_at(id_music_slider).get());
-    if (!music_slider.is_down())
-        music_slider.progress = music.GetTimePlayed() / music.GetTimeLength();
-
     const unsigned int music_length = static_cast<unsigned int>(music.GetTimeLength());
     const unsigned int music_time = static_cast<unsigned int>(music_slider.progress * music.GetTimeLength());
     const std::string music_time_str = std::format("{}:{:02} / {}:{:02}", music_time / 60, music_time % 60, music_length / 60, music_length % 60);
@@ -182,7 +236,7 @@ void editor::update_element([[maybe_unused]] float dt)
 
 void editor::render_element_behind_children() const
 {
-    static constexpr float beat_step = 0.25f;
+    static constexpr float fade_percent = 0.05f;
     static constexpr float beat_delta = 5.0f;
 
     const auto& music_slider = *dynamic_cast<const kee::ui::slider*>(child_at(id_music_slider).get());
@@ -195,12 +249,18 @@ void editor::render_element_behind_children() const
     {
         const float render_rel_x = (beat_render - (beat - beat_delta)) / (2 * beat_delta);
 
+        float opacity = 1.0f;
+        if (render_rel_x <= fade_percent)
+            opacity = render_rel_x / fade_percent;
+        else if (render_rel_x >= 1.0f - fade_percent)
+            opacity = (1.0f - render_rel_x) / fade_percent;
+
         const bool is_whole_beat = std::floorf(beat_render) == beat_render;
         const float render_rel_y = is_whole_beat ? 0.25f : 0.125f;
         const float render_rel_h = is_whole_beat ? 0.5f : 0.25f;
 
         const kee::ui::rect beat_render_rect = child_at(id_beat_ticks_frame)->make_temp_child<kee::ui::rect>(
-            raylib::Color(255, 255, 255, 125),
+            raylib::Color(255, 255, 255, static_cast<unsigned char>(255 * opacity)),
             pos(pos::type::rel, render_rel_x),
             pos(pos::type::rel, render_rel_y),
             dims(
@@ -218,11 +278,11 @@ void editor::render_element_behind_children() const
         {
             const int whole_beat = static_cast<int>(std::floorf(beat_render));
             const kee::ui::text whole_beat_text = child_at(id_beat_ticks_frame)->make_temp_child<kee::ui::text>(
-                raylib::Color::White(),
+                raylib::Color(255, 255, 255, static_cast<unsigned char>(255 * opacity)),
                 pos(pos::type::rel, render_rel_x),
                 pos(pos::type::rel, 0.95f),
                 ui::text_size(ui::text_size::type::rel_h, 0.75f),
-                std::to_string(whole_beat), false,
+                assets.font_semi_bold, std::to_string(whole_beat), false,
                 kee::ui::common(true, std::nullopt, false)
             );
 

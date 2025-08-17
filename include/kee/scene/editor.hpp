@@ -14,18 +14,21 @@ public:
     editor(const kee::scene::window& window, kee::global_assets& assets);
 
 private:
+    void handle_element_events() override;
     void update_element(float dt) override;
     void render_element_behind_children() const override;
+
+    static constexpr float beat_epsilon = 0.001f;
 
     const float music_start_offset;
     const float music_bpm;
 
+    const float beat_step;
+
     unsigned int id_trans_pause_play_color;
     unsigned int id_trans_pause_play_scale;
 
-    /* TODO: add music player frame base element to resolve active mechanism */
-    /* TODO: add red triangle beat indicator */
-
+    unsigned int id_beat_indicator;
     unsigned int id_beat_ticks_frame;
     unsigned int id_music_slider;
     unsigned int id_pause_play;
