@@ -1,14 +1,12 @@
 #pragma once
 
 #include <algorithm>
-#include <array>
 #include <variant>
 
 #include <boost/optional.hpp>
 
-#include "kee/geometry.hpp"
 #include "kee/global_assets.hpp"
-#include "kee/transition.hpp"
+#include "kee/ui_common.hpp"
 
 namespace kee {
 namespace ui {

@@ -50,7 +50,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         pos(pos::type::rel, 0.125f),
         dims(
             dim(dim::type::rel, 0.95f),
-            dim(dim::type::rel, 0.01f)
+            dim(dim::type::rel, 0.005f)
         ),
         true, std::nullopt
     );
@@ -147,9 +147,32 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         pos(pos::type::end, 0),
         pos(pos::type::beg, 50),
         ui::text_size(ui::text_size::type::abs, 80),
-        assets.font_semi_bold, music_length_str, false,
+        assets.font_regular, music_length_str, false,
         kee::ui::common(false, std::nullopt, false)
     );
+
+    id_key_border = add_child_no_id<kee::ui::base>(
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.55f),
+        dims(
+            dim(dim::type::rel, 0.9f),
+            dim(dim::type::rel, 0.6f)
+        ),
+        kee::ui::common(true, std::nullopt, false)
+    );
+
+    id_key_frame = child_at(id_key_border)->add_child_no_id<kee::ui::base>(
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        dims(
+            dim(dim::type::aspect, 10),
+            dim(dim::type::aspect, 4)
+        ),
+        kee::ui::common(true, std::nullopt, false)
+    );
+
+    for (const auto& [id, rel_pos] : kee::key_ui_data)
+        child_at(id_key_border)->child_at(id_key_frame)->add_child_with_id<editor_key>(id, *this, id, rel_pos);
 
     music.SetLooping(true);
     music.SetVolume(0.1f);
@@ -189,12 +212,12 @@ void editor::handle_element_events()
     if (is_move_left)
     {
         const float beat_floor = std::ceilf(beat / beat_step) * beat_step - beat_step;
-        new_beat = (std::abs(beat_floor - beat) < editor::beat_epsilon) ? beat_floor - beat_step : beat_floor;
+        new_beat = (std::abs(beat_floor - beat) < editor::beat_lock_threshold) ? beat_floor - beat_step : beat_floor;
     }
     else if (is_move_right)
     {
         const float beat_ceil = std::ceilf(beat / beat_step) * beat_step;
-        new_beat = (std::abs(beat_ceil - beat) < editor::beat_epsilon) ? beat_ceil + beat_step : beat_ceil;
+        new_beat = (std::abs(beat_ceil - beat) < editor::beat_lock_threshold) ? beat_ceil + beat_step : beat_ceil;
     }
 
     if (new_beat != beat)
@@ -256,15 +279,15 @@ void editor::render_element_behind_children() const
             opacity = (1.0f - render_rel_x) / fade_percent;
 
         const bool is_whole_beat = std::floorf(beat_render) == beat_render;
-        const float render_rel_y = is_whole_beat ? 0.25f : 0.125f;
+        const float render_rel_w = is_whole_beat ? 0.003f : 0.001f;
         const float render_rel_h = is_whole_beat ? 0.5f : 0.25f;
 
         const kee::ui::rect beat_render_rect = child_at(id_beat_ticks_frame)->make_temp_child<kee::ui::rect>(
             raylib::Color(255, 255, 255, static_cast<unsigned char>(255 * opacity)),
             pos(pos::type::rel, render_rel_x),
-            pos(pos::type::rel, render_rel_y),
+            pos(pos::type::rel, 0.25f),
             dims(
-                dim(dim::type::rel, 0.002f),
+                dim(dim::type::rel, render_rel_w),
                 dim(dim::type::rel, render_rel_h)
             ),
             std::nullopt,
@@ -289,6 +312,43 @@ void editor::render_element_behind_children() const
             whole_beat_text.render();
         }
     }
+}
+
+editor_key::editor_key(const kee::ui::base::required& reqs, kee::scene::editor& editor_scene, int key_id, const raylib::Vector2& relative_pos) :
+    kee::ui::base(reqs,
+        pos(pos::type::rel, relative_pos.x),
+        pos(pos::type::rel, relative_pos.y),
+        dims(
+            dim(dim::type::aspect, key_id == KeyboardKey::KEY_SPACE ? 7.0f : 1.0f),
+            dim(dim::type::rel, 0.25)
+        ),
+        kee::ui::common(true, std::nullopt, false)
+    )
+{
+    set_opt_color(raylib::Color::White());
+
+    add_child_no_id<kee::ui::rect>(
+        raylib::Color::Blank(),
+        pos(pos::type::rel, 0.5),
+        pos(pos::type::rel, 0.5),
+        border(border::type::rel_h, kee::key_border_parent_h),
+        ui::rect_outline(ui::rect_outline::type::rel_h, kee::key_border_width, std::nullopt), 
+        std::nullopt,
+        kee::ui::common(true, std::nullopt, true)
+    );
+
+    const std::string key_str = (key_id != KeyboardKey::KEY_SPACE) 
+        ? std::string(1, static_cast<char>(key_id)) 
+        : "___";
+
+    add_child_no_id<kee::ui::text>(
+        std::nullopt,
+        pos(pos::type::rel, 0.5),
+        pos(pos::type::rel, 0.5),
+        ui::text_size(ui::text_size::type::rel_h, 0.5 * (1.0f - 2 * kee::key_border_parent_h)),
+        assets.font_light, key_str, false, 
+        kee::ui::common(true, 0, false)
+    );
 }
 
 } // namespace scene

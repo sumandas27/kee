@@ -18,7 +18,7 @@ private:
     void update_element(float dt) override;
     void render_element_behind_children() const override;
 
-    static constexpr float beat_epsilon = 0.001f;
+    static constexpr float beat_lock_threshold = 0.001f;
 
     const float music_start_offset;
     const float music_bpm;
@@ -34,13 +34,20 @@ private:
     unsigned int id_pause_play;
     unsigned int id_pause_play_png;
     unsigned int id_music_time_text;
+    unsigned int id_key_border;
+    unsigned int id_key_frame;
 
     kee::ui::image_texture play_png;
     kee::ui::image_texture pause_png;
 
     bool is_music_playing;
-    bool is_music_stopped;
     raylib::Music music;
+};
+
+class editor_key : public kee::ui::base
+{
+public:
+    editor_key(const kee::ui::base::required& reqs, kee::scene::editor& editor_scene, int key_id, const raylib::Vector2& relative_pos);
 };
 
 } // namespace scene
