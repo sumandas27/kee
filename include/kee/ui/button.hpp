@@ -5,7 +5,7 @@
 namespace kee {
 namespace ui {
 
-class button final : public kee::ui::base
+class button : public kee::ui::base
 {
 public:
     enum class event;
@@ -21,9 +21,10 @@ public:
     std::function<void(button::event)> on_event;
     std::function<void()> on_click;
 
-private:
+protected:
     void handle_element_events() override;
 
+private:
     kee::ui::mouse_state button_state;
 };
 

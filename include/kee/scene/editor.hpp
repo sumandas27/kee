@@ -1,6 +1,7 @@
 #pragma once
 
 #include "kee/scene/base.hpp"
+#include "kee/ui/button.hpp"
 #include "kee/ui/image.hpp"
 
 /* TODO: abstract shared info between `editor` and `beatmap` scene */
@@ -12,6 +13,8 @@ class editor final : public kee::scene::base
 {
 public:
     editor(const kee::scene::window& window, kee::global_assets& assets);
+
+    void select_key(int id, bool clear);
 
 private:
     void handle_element_events() override;
@@ -36,18 +39,32 @@ private:
     unsigned int id_music_time_text;
     unsigned int id_key_border;
     unsigned int id_key_frame;
+    unsigned int id_editor_key;
 
     kee::ui::image_texture play_png;
     kee::ui::image_texture pause_png;
 
+    float mouse_wheel_move;
+
     bool is_music_playing;
     raylib::Music music;
+
+    std::vector<int> selected_key_ids;
 };
 
-class editor_key : public kee::ui::base
+class editor_key : public kee::ui::button
 {
 public:
-    editor_key(const kee::ui::base::required& reqs, kee::scene::editor& editor_scene, int key_id, const raylib::Vector2& relative_pos);
+    editor_key(const kee::ui::base::required& reqs, kee::scene::editor& editor_scene, int key_id);
+
+private:
+    void handle_element_events() override;
+
+    kee::scene::editor& editor_scene;
+
+    const int key_id;
+
+    bool is_control_clicked;
 };
 
 } // namespace scene
