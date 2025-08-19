@@ -10,6 +10,7 @@ namespace scene {
 
 editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     kee::scene::base(window, assets),
+    approach_beats(2.0f),
     beat_step(0.25f),
     music_start_offset(0.5f),
     music_bpm(100.0f),
@@ -186,6 +187,19 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         id_editor_key = child_at(id_key_border)->child_at(id_key_frame)->child_at(id)->add_child_no_id<editor_key>(*this, id);
     }
 
+    /* TODO: for testing only */
+
+    auto get_key = [&](int keycode) -> editor_key& 
+    {
+        return *dynamic_cast<editor_key*>(this->child_at(id_key_border)->child_at(id_key_frame)->child_at(keycode)->child_at(id_editor_key).get());
+    };
+
+    get_key(KeyboardKey::KEY_Q).push(editor_hit_object(0.0f, 16.0f));
+    get_key(KeyboardKey::KEY_W).push(editor_hit_object(0.0f));
+    get_key(KeyboardKey::KEY_W).push(editor_hit_object(4.0f));
+    get_key(KeyboardKey::KEY_W).push(editor_hit_object(8.0f));
+    get_key(KeyboardKey::KEY_W).push(editor_hit_object(12.0f));
+
     music.SetLooping(true);
     music.SetVolume(0.1f);
 
@@ -193,18 +207,33 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         music.Play();
 }
 
-void editor::select_key(int id, bool clear)
+float editor::get_beat() const
 {
-    if (clear)
-    {
-        for (int prev_id : selected_key_ids)
-            child_at(id_key_border)->child_at(id_key_frame)->child_at(prev_id)->child_at(id_editor_key)->set_opt_color(raylib::Color::White());
+    const auto& music_slider = *dynamic_cast<const kee::ui::slider*>(child_at(id_music_slider).get());
+    const float music_time = music_slider.progress * music.GetTimeLength();
 
-        selected_key_ids.clear();
+    return (music_time - music_start_offset) * music_bpm / 60.0f;
+}
+
+void editor::unselect()
+{
+    for (int prev_id : selected_key_ids)
+    {
+        auto& editor_key_ui = *dynamic_cast<editor_key*>(child_at(id_key_border)->child_at(id_key_frame)->child_at(prev_id)->child_at(id_editor_key).get());
+        editor_key_ui.set_opt_color(raylib::Color::White());
+        editor_key_ui.is_selected = false;
     }
 
+    selected_key_ids.clear();
+}
+
+void editor::select(int id)
+{
+    auto& editor_key_ui = *dynamic_cast<editor_key*>(child_at(id_key_border)->child_at(id_key_frame)->child_at(id)->child_at(id_editor_key).get());
+    editor_key_ui.set_opt_color(raylib::Color::Green());
+    editor_key_ui.is_selected = true;
+
     selected_key_ids.push_back(id);
-    child_at(id_key_border)->child_at(id_key_frame)->child_at(id)->child_at(id_editor_key)->set_opt_color(raylib::Color::Green());
 }
 
 void editor::handle_element_events()
@@ -216,7 +245,7 @@ void editor::handle_element_events()
             for (int prev_id : selected_key_ids)
                 child_at(id_key_border)->child_at(id_key_frame)->child_at(prev_id)->child_at(id_editor_key)->set_opt_color(raylib::Color::White());
 
-            selected_key_ids.clear();
+            unselect();
         }
         else
         {
@@ -232,11 +261,7 @@ void editor::handle_element_events()
     if (std::abs(mouse_wheel_move) < 1.0f)
         return;
 
-    auto& music_slider = *dynamic_cast<kee::ui::slider*>(child_at(id_music_slider).get());
-    const float music_time = music_slider.progress * music.GetTimeLength();
-    const float beat = (music_time - music_start_offset) * music_bpm / 60.0f;
-
-    float new_beat = beat;
+    float new_beat = get_beat();
     float beat_steps = 0;
 
     if (mouse_wheel_move <= -1.0f)
@@ -244,8 +269,8 @@ void editor::handle_element_events()
         beat_steps = -std::ceil(mouse_wheel_move);
         mouse_wheel_move += beat_steps;
 
-        const float beat_floor = std::floorf(beat / beat_step) * beat_step;
-        new_beat = (std::abs(beat_floor - beat) < editor::beat_lock_threshold) 
+        const float beat_floor = std::floorf(get_beat() / beat_step) * beat_step;
+        new_beat = (std::abs(beat_floor - get_beat()) < editor::beat_lock_threshold) 
             ? beat_floor - beat_step * beat_steps 
             : beat_floor - beat_step * (beat_steps - 1);
     }
@@ -254,14 +279,16 @@ void editor::handle_element_events()
         beat_steps = std::floor(mouse_wheel_move);
         mouse_wheel_move -= beat_steps;
 
-        const float beat_ceil = std::ceilf(beat / beat_step) * beat_step;
-        new_beat = (std::abs(beat_ceil - beat) < editor::beat_lock_threshold) 
+        const float beat_ceil = std::ceilf(get_beat() / beat_step) * beat_step;
+        new_beat = (std::abs(beat_ceil - get_beat()) < editor::beat_lock_threshold) 
             ? beat_ceil + beat_step * beat_steps 
             : beat_ceil + beat_step * (beat_steps - 1);
     }
 
     const float new_music_time = music_start_offset + new_beat * 60.0f / music_bpm;
     const float new_progress = (new_music_time / music.GetTimeLength());
+
+    auto& music_slider = *dynamic_cast<kee::ui::slider*>(child_at(id_music_slider).get());
     music_slider.progress = std::clamp(new_progress, 0.0f, 1.0f);
 }
 
@@ -299,15 +326,10 @@ void editor::render_element_behind_children() const
     static constexpr float fade_percent = 0.05f;
     static constexpr float beat_delta = 5.0f;
 
-    const auto& music_slider = *dynamic_cast<const kee::ui::slider*>(child_at(id_music_slider).get());
-    const float music_time = music_slider.progress * music.GetTimeLength();
-
-    const float beat = (music_time - music_start_offset) * music_bpm / 60.0f;
-    const float beat_start = std::ceil((beat - beat_delta) / beat_step) * beat_step;
-
-    for (float beat_render = beat_start; beat_render <= beat + beat_delta; beat_render += beat_step)
+    const float beat_start = std::ceil((get_beat() - beat_delta) / beat_step) * beat_step;
+    for (float beat_render = beat_start; beat_render <= get_beat() + beat_delta; beat_render += beat_step)
     {
-        const float render_rel_x = (beat_render - (beat - beat_delta)) / (2 * beat_delta);
+        const float render_rel_x = (beat_render - (get_beat() - beat_delta)) / (2 * beat_delta);
 
         float opacity = 1.0f;
         if (render_rel_x <= fade_percent)
@@ -351,6 +373,16 @@ void editor::render_element_behind_children() const
     }
 }
 
+editor_hit_object::editor_hit_object(float beat) :
+    beat(beat),
+    duration(0.0f)
+{ }
+
+editor_hit_object::editor_hit_object(float beat, float duration) :
+    beat(beat),
+    duration(duration)
+{ }
+
 editor_key::editor_key(const kee::ui::base::required& reqs, kee::scene::editor& editor_scene, int key_id) :
     kee::ui::button(reqs,
         pos(pos::type::rel, 0.5f),
@@ -358,19 +390,25 @@ editor_key::editor_key(const kee::ui::base::required& reqs, kee::scene::editor& 
         border(border::type::rel_h, kee::key_border_parent_h),
         kee::ui::common(true, std::nullopt, false)
     ),
+    is_selected(false),
     editor_scene(editor_scene),
     key_id(key_id),
     is_control_clicked(false)
 {
     on_event = [&](ui::button::event button_event)
     {
-        if (button_event == ui::button::event::on_down && raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_LEFT_CONTROL))
-            is_control_clicked = true;
+        if (button_event == ui::button::event::on_down)
+        {
+            if (raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_LEFT_CONTROL))
+                this->is_control_clicked = true;
+            else
+                this->editor_scene.unselect();
+        }
     };
 
     on_click = [&]()
     {
-        this->editor_scene.select_key(this->key_id, !is_control_clicked);
+        this->editor_scene.select(this->key_id);
     };
 
     set_opt_color(raylib::Color::White());
@@ -383,13 +421,13 @@ editor_key::editor_key(const kee::ui::base::required& reqs, kee::scene::editor& 
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
-        ui::rect_outline(ui::rect_outline::type::rel_h, kee::key_border_width, std::nullopt), 
+        ui::rect_outline(ui::rect_outline::type::rel_h, kee::key_border_width, std::nullopt),
         std::nullopt,
         kee::ui::common(true, std::nullopt, true)
     );
 
-    const std::string key_str = (key_id != KeyboardKey::KEY_SPACE) 
-        ? std::string(1, static_cast<char>(key_id)) 
+    const std::string key_str = (key_id != KeyboardKey::KEY_SPACE)
+        ? std::string(1, static_cast<char>(key_id))
         : "___";
 
     add_child_no_id<kee::ui::text>(
@@ -397,9 +435,22 @@ editor_key::editor_key(const kee::ui::base::required& reqs, kee::scene::editor& 
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
-        assets.font_light, key_str, false, 
+        assets.font_light, key_str, false,
         kee::ui::common(true, 0, false)
     );
+}
+
+const std::vector<editor_hit_object>& editor_key::get_hit_objects() const
+{
+    return hit_objects;
+}
+
+void editor_key::push(const editor_hit_object& object)
+{
+    if (!hit_objects.empty() && object.beat <= hit_objects.back().beat + hit_objects.back().duration)
+        throw std::invalid_argument("A new hit object must be strictly after all other ones in its key!");
+
+    hit_objects.push_back(object);
 }
 
 void editor_key::handle_element_events()
@@ -408,6 +459,44 @@ void editor_key::handle_element_events()
 
     if (is_control_clicked && !raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_LEFT_CONTROL))
         is_control_clicked = false;
+}
+
+void editor_key::render_element_behind_children() const
+{
+    if (is_selected)
+        render_hit_objects();
+}
+
+void editor_key::render_element_ahead_children() const
+{
+    if (!is_selected)
+        render_hit_objects();
+}
+
+void editor_key::render_hit_objects() const
+{
+    for (const editor_hit_object& object : hit_objects)
+    {
+        if (object.beat + object.duration < editor_scene.get_beat() - editor::beat_lock_threshold)
+            continue;
+
+        if (object.beat > editor_scene.get_beat() + editor_scene.approach_beats)
+            break;
+
+        const float start_progress = std::max((object.beat - editor_scene.get_beat()) / (2 * editor_scene.approach_beats), 0.0f);
+        const float end_progress = std::max((object.beat + object.duration - editor_scene.get_beat()) / (2 * editor_scene.approach_beats), 0.0f);
+        const kee::ui::rect hit_obj_rect = make_temp_child<kee::ui::rect>(
+            raylib::Color::Blank(),
+            pos(pos::type::rel, 0.5),
+            pos(pos::type::rel, 0.5),
+            border(border::type::rel_h, start_progress),
+            ui::rect_outline(ui::rect_outline::type::rel_h_parent, std::max(end_progress - start_progress, kee::key_border_width), raylib::Color::Red()),
+            std::nullopt,
+            kee::ui::common(true, std::nullopt, false)
+        );
+
+        hit_obj_rect.render();
+    }
 }
 
 } // namespace scene

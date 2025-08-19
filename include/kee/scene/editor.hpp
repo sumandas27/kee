@@ -12,16 +12,21 @@ namespace scene {
 class editor final : public kee::scene::base
 {
 public:
+    static constexpr float beat_lock_threshold = 0.001f;
+
     editor(const kee::scene::window& window, kee::global_assets& assets);
 
-    void select_key(int id, bool clear);
+    float get_beat() const;
+
+    void unselect();
+    void select(int id);
+
+    const float approach_beats;
 
 private:
     void handle_element_events() override;
     void update_element(float dt) override;
     void render_element_behind_children() const override;
-
-    static constexpr float beat_lock_threshold = 0.001f;
 
     const float music_start_offset;
     const float music_bpm;
@@ -52,19 +57,40 @@ private:
     std::vector<int> selected_key_ids;
 };
 
+class editor_hit_object
+{
+public:
+    editor_hit_object(float beat);
+    editor_hit_object(float beat, float duration);
+
+    const float beat;
+    const float duration;
+};
+
 class editor_key : public kee::ui::button
 {
 public:
     editor_key(const kee::ui::base::required& reqs, kee::scene::editor& editor_scene, int key_id);
 
+    const std::vector<editor_hit_object>& get_hit_objects() const;
+
+    void push(const editor_hit_object& object);
+
+    bool is_selected;
+
 private:
     void handle_element_events() override;
+    void render_element_behind_children() const override;
+    void render_element_ahead_children() const override;
+
+    void render_hit_objects() const;
 
     kee::scene::editor& editor_scene;
 
     const int key_id;
 
     bool is_control_clicked;
+    std::vector<editor_hit_object> hit_objects;
 };
 
 } // namespace scene
