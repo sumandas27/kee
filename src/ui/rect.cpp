@@ -93,7 +93,7 @@ void rect::render_element_behind_children() const
         }
 
         const raylib::Color outline_color = get_color_from_opt(border.value().opt_color);
-        uniform_outline_color = { 
+        uniform_outline_color = {
             static_cast<float>(outline_color.r) / 255.0f,
             static_cast<float>(outline_color.g) / 255.0f,
             static_cast<float>(outline_color.b) / 255.0f,

@@ -25,7 +25,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     id_beat_indicator = add_child_no_id<kee::ui::triangle>(
         raylib::Color::Red(),
         pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.02f),
+        pos(pos::type::rel, 0.01f),
         dims(
             dim(dim::type::rel, 0.02f),
             dim(dim::type::rel, 0.02f)
@@ -41,14 +41,14 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         pos(pos::type::rel, 0.05f),
         dims(
             dim(dim::type::rel, 0.95f),
-            dim(dim::type::rel, 0.05f)
+            dim(dim::type::rel, 0.1f)
         ),
         kee::ui::common(true, 1, false)
     );
 
     id_music_slider = add_child_no_id<kee::ui::slider>(
         pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.125f),
+        pos(pos::type::rel, 0.13f),
         dims(
             dim(dim::type::rel, 0.95f),
             dim(dim::type::rel, 0.005f)
@@ -194,11 +194,11 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         return *dynamic_cast<editor_key*>(this->child_at(id_key_border)->child_at(id_key_frame)->child_at(keycode)->child_at(id_editor_key).get());
     };
 
-    get_key(KeyboardKey::KEY_Q).push(editor_hit_object(0.0f, 16.0f));
-    get_key(KeyboardKey::KEY_W).push(editor_hit_object(0.0f));
-    get_key(KeyboardKey::KEY_W).push(editor_hit_object(4.0f));
-    get_key(KeyboardKey::KEY_W).push(editor_hit_object(8.0f));
-    get_key(KeyboardKey::KEY_W).push(editor_hit_object(12.0f));
+    get_key(KeyboardKey::KEY_W).push(editor_hit_object(0.0f, 16.0f));
+    get_key(KeyboardKey::KEY_Q).push(editor_hit_object(0.0f));
+    get_key(KeyboardKey::KEY_Q).push(editor_hit_object(4.0f));
+    get_key(KeyboardKey::KEY_Q).push(editor_hit_object(8.0f));
+    get_key(KeyboardKey::KEY_Q).push(editor_hit_object(12.0f));
 
     music.SetLooping(true);
     music.SetVolume(0.1f);
@@ -339,12 +339,12 @@ void editor::render_element_behind_children() const
 
         const bool is_whole_beat = std::floorf(beat_render) == beat_render;
         const float render_rel_w = is_whole_beat ? 0.003f : 0.001f;
-        const float render_rel_h = is_whole_beat ? 0.5f : 0.25f;
+        const float render_rel_h = is_whole_beat ? 0.2f : 0.1f;
 
         const kee::ui::rect beat_render_rect = child_at(id_beat_ticks_frame)->make_temp_child<kee::ui::rect>(
             raylib::Color(255, 255, 255, static_cast<unsigned char>(255 * opacity)),
             pos(pos::type::rel, render_rel_x),
-            pos(pos::type::rel, 0.25f),
+            pos(pos::type::rel, 0.2f),
             dims(
                 dim(dim::type::rel, render_rel_w),
                 dim(dim::type::rel, render_rel_h)
@@ -362,13 +362,75 @@ void editor::render_element_behind_children() const
             const kee::ui::text whole_beat_text = child_at(id_beat_ticks_frame)->make_temp_child<kee::ui::text>(
                 raylib::Color(255, 255, 255, static_cast<unsigned char>(255 * opacity)),
                 pos(pos::type::rel, render_rel_x),
-                pos(pos::type::rel, 0.95f),
-                ui::text_size(ui::text_size::type::rel_h, 0.75f),
+                pos(pos::type::rel, 0.6f),
+                ui::text_size(ui::text_size::type::rel_h, 0.4f),
                 assets.font_semi_bold, std::to_string(whole_beat), false,
                 kee::ui::common(true, std::nullopt, false)
             );
 
             whole_beat_text.render();
+        }
+    }
+
+    const raylib::Rectangle frame_raw_rect = child_at(id_beat_ticks_frame)->get_raw_rect();
+    for (const auto& [id, _] : kee::key_ui_data)
+    {
+        const editor_key& key_ui = *dynamic_cast<editor_key*>(child_at(id_key_border)->child_at(id_key_frame)->child_at(id)->child_at(id_editor_key).get());
+        for (const editor_hit_object& object : key_ui.get_hit_objects())
+        {
+            if (object.beat + object.duration < get_beat() - beat_delta)
+                continue;
+
+            if (object.beat > get_beat() + beat_delta)
+                break;
+
+            static constexpr float rel_h = 0.2f;
+            const float rel_x_offset = (rel_h / 2) * (frame_raw_rect.height / frame_raw_rect.width);
+            const float rel_x_beg = std::max(0.0f, (object.beat - (get_beat() - beat_delta)) / (2 * beat_delta));
+            const float rel_x_end = std::min(1.0f, (object.beat + object.duration - (get_beat() - beat_delta)) / (2 * beat_delta));
+
+            const kee::ui::rect obj_indicator_rect = child_at(id_beat_ticks_frame)->make_temp_child<kee::ui::rect>(
+                raylib::Color(0, 0, 255, 30),
+                pos(pos::type::rel, rel_x_beg - rel_x_offset),
+                pos(pos::type::rel, 1.0f - rel_h / 2),
+                dims(
+                    dim(dim::type::rel, rel_x_end - rel_x_beg + 2 * rel_x_offset),
+                    dim(dim::type::rel, rel_h)
+                ),
+                kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, 0.15f, raylib::Color::Blue()), 
+                kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_h, 0.5f),
+                kee::ui::common(false, std::nullopt, false)
+            );
+
+            const kee::ui::rect obj_circle_l = child_at(id_beat_ticks_frame)->make_temp_child<kee::ui::rect>(
+                raylib::Color::Blue(),
+                pos(pos::type::rel, rel_x_beg),
+                pos(pos::type::rel, 1.0f),
+                dims(
+                    dim(dim::type::aspect, 1),
+                    dim(dim::type::rel, rel_h * 0.3f)
+                ),
+                std::nullopt,
+                kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f),
+                kee::ui::common(true, std::nullopt, false)
+            );
+
+            const kee::ui::rect obj_circle_r = child_at(id_beat_ticks_frame)->make_temp_child<kee::ui::rect>(
+                raylib::Color::Blue(),
+                pos(pos::type::rel, rel_x_end),
+                pos(pos::type::rel, 1.0f),
+                dims(
+                    dim(dim::type::aspect, 1),
+                    dim(dim::type::rel, rel_h * 0.3f)
+                ),
+                std::nullopt,
+                kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f),
+                kee::ui::common(true, std::nullopt, false)
+            );
+
+            obj_indicator_rect.render();
+            obj_circle_l.render();
+            obj_circle_r.render();
         }
     }
 }
