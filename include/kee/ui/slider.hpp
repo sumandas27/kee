@@ -32,13 +32,15 @@ private:
     void handle_element_events() override;
     void update_element(float dt) override;
 
-    kee::ui::mouse_state slider_state;
+    /* TODO: change transition same as elements */
 
     unsigned int id_trans_fill_color;
     unsigned int id_trans_thumb_scale;
 
     unsigned int id_fill;
     unsigned int id_thumb;
+
+    kee::ui::mouse_state slider_state;
 };
 
 enum class slider::event

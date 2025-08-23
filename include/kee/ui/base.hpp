@@ -118,6 +118,7 @@ private:
 
     std::optional<raylib::Color> color;
 
+    /* TODO: replace with vector of unique_ptrs + references */
     std::unordered_map<unsigned int, std::unique_ptr<kee::ui::base>> children;
     std::vector<kee::ui::base::ref> z_order_refs;
 };
@@ -130,6 +131,8 @@ public:
     boost::optional<const kee::ui::base&> parent;
     kee::global_assets& assets;
 };
+
+/* TODO: removable */
 
 class base::ref
 {

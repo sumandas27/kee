@@ -37,6 +37,8 @@ private:
     unsigned int id_trans_pause_play_scale;
 
     unsigned int id_beat_indicator;
+    /* TODO: store in its own class */
+    /* TODO: store unordered_map of (key+beat+duration struct w/ boost::hash_combine) -> (hit object indicators) */
     unsigned int id_beat_ticks_frame;
     unsigned int id_music_slider;
     unsigned int id_pause_play;
