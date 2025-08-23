@@ -10,19 +10,6 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     pause_png("assets/img/pause.png"),
     pause_play_color(add_transition<kee::color>(kee::color::white())),
     pause_play_scale(add_transition<float>(1.0f)),
-    beat_indicator(add_child<kee::ui::triangle>(
-        raylib::Color::Red(),
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.01f),
-        dims(
-            dim(dim::type::rel, 0.02f),
-            dim(dim::type::rel, 0.02f)
-        ),
-        raylib::Vector2(0, 0),
-        raylib::Vector2(1, 0),
-        raylib::Vector2(0.5, 1),
-        kee::ui::common(true, 0, false)
-    )),
     beat_ticks_frame(add_child<kee::ui::base>(
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.05f),
@@ -31,6 +18,19 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             dim(dim::type::rel, 0.1f)
         ),
         kee::ui::common(true, 1, false)
+    )),
+    beat_indicator(beat_ticks_frame.add_child<kee::ui::triangle>(
+        raylib::Color::Red(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.1f),
+        dims(
+            dim(dim::type::aspect, 1.5),
+            dim(dim::type::rel, 0.2f)
+        ),
+        raylib::Vector2(0, 0),
+        raylib::Vector2(1, 0),
+        raylib::Vector2(0.5, 1),
+        kee::ui::common(true, 0, false)
     )),
     music_slider(add_child<kee::ui::slider>(
         pos(pos::type::rel, 0.5f),
@@ -43,7 +43,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     )),
     pause_play(music_slider.add_child<kee::ui::button>(
         pos(pos::type::beg, 0),
-        pos(pos::type::beg, 60),
+        pos(pos::type::beg, 40),
         dims(
             dim(dim::type::aspect, 1),
             dim(dim::type::abs, 60)
@@ -64,7 +64,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     music_time_text(music_slider.add_child<kee::ui::text>(
         raylib::Color::White(),
         pos(pos::type::end, 0),
-        pos(pos::type::beg, 50),
+        pos(pos::type::beg, 30),
         ui::text_size(ui::text_size::type::abs, 80),
         assets.font_regular, std::string(), false,
         kee::ui::common(false, std::nullopt, false)
@@ -74,7 +74,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         pos(pos::type::rel, 0.55f),
         dims(
             dim(dim::type::rel, 0.9f),
-            dim(dim::type::rel, 0.6f)
+            dim(dim::type::rel, 0.65f)
         ),
         kee::ui::common(true, std::nullopt, false)
     )),
@@ -315,8 +315,8 @@ void editor::render_element_behind_children() const
             const kee::ui::text whole_beat_text = beat_ticks_frame.make_temp_child<kee::ui::text>(
                 raylib::Color(255, 255, 255, static_cast<unsigned char>(255 * opacity)),
                 pos(pos::type::rel, render_rel_x),
-                pos(pos::type::rel, 0.6f),
-                ui::text_size(ui::text_size::type::rel_h, 0.4f),
+                pos(pos::type::rel, 0.55f),
+                ui::text_size(ui::text_size::type::rel_h, 0.35f),
                 assets.font_semi_bold, std::to_string(whole_beat), false,
                 kee::ui::common(true, std::nullopt, false)
             );
@@ -344,7 +344,7 @@ void editor::render_element_behind_children() const
             const kee::ui::rect obj_indicator_rect = beat_ticks_frame.make_temp_child<kee::ui::rect>(
                 raylib::Color(0, 0, 255, 30),
                 pos(pos::type::rel, rel_x_beg - rel_x_offset),
-                pos(pos::type::rel, 1.0f - rel_h / 2),
+                pos(pos::type::rel, 1.0f - rel_h),
                 dims(
                     dim(dim::type::rel, rel_x_end - rel_x_beg + 2 * rel_x_offset),
                     dim(dim::type::rel, rel_h)
@@ -357,7 +357,7 @@ void editor::render_element_behind_children() const
             const kee::ui::rect obj_circle_l = beat_ticks_frame.make_temp_child<kee::ui::rect>(
                 raylib::Color::Blue(),
                 pos(pos::type::rel, rel_x_beg),
-                pos(pos::type::rel, 1.0f),
+                pos(pos::type::rel, 1.0f - rel_h / 2),
                 dims(
                     dim(dim::type::aspect, 1),
                     dim(dim::type::rel, rel_h * 0.3f)
@@ -370,7 +370,7 @@ void editor::render_element_behind_children() const
             const kee::ui::rect obj_circle_r = beat_ticks_frame.make_temp_child<kee::ui::rect>(
                 raylib::Color::Blue(),
                 pos(pos::type::rel, rel_x_end),
-                pos(pos::type::rel, 1.0f),
+                pos(pos::type::rel, 1.0f - rel_h / 2),
                 dims(
                     dim(dim::type::aspect, 1),
                     dim(dim::type::rel, rel_h * 0.3f)

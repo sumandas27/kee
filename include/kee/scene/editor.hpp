@@ -40,12 +40,12 @@ private:
     kee::transition<kee::color>& pause_play_color;
     kee::transition<float>& pause_play_scale;
 
-    /* TODO: change editor ui vals */
-
-    kee::ui::triangle& beat_indicator;
     /* TODO: store in its own class */
+    /* TODO: render indicators based on key selection */
+    /* TODO: code indicator selection */
     /* TODO: store unordered_map of (key+beat+duration struct w/ boost::hash_combine) -> (hit object indicators) */
     kee::ui::base& beat_ticks_frame;
+    kee::ui::triangle& beat_indicator;
     kee::ui::slider& music_slider;
     kee::ui::button& pause_play;
     kee::ui::image& pause_play_img;
