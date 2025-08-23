@@ -1,7 +1,5 @@
 #include "kee/ui/slider.hpp"
 
-#include "kee/ui/rect.hpp"
-
 namespace kee {
 namespace ui {
 
@@ -17,10 +15,9 @@ slider::slider(
     on_event([]([[maybe_unused]] slider::event slider_event){}),
     progress(0.0f),
     slider_state(mouse_state::off),
-    id_trans_fill_color(0),
-    id_trans_thumb_scale(1)
-{ 
-    add_child_no_id<kee::ui::rect>(
+    fill_color(add_transition<kee::color>(kee::color::white())),
+    thumb_scale(add_transition<float>(1.75f)),
+    track(add_child<kee::ui::rect>(
         raylib::Color(255, 255, 255, 40),
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
@@ -31,12 +28,8 @@ slider::slider(
         std::nullopt, 
         rect_roundness(rect_roundness::type::rel_h, 0.5f),
         kee::ui::common(false, 1, false)
-    );
-
-    transitions[id_trans_fill_color] = std::make_unique<kee::transition<kee::color>>(kee::color::white());
-    transitions[id_trans_thumb_scale] = std::make_unique<kee::transition<float>>(1.75f);
-
-    id_fill = add_child_no_id<kee::ui::rect>(
+    )),
+    fill(add_child<kee::ui::rect>(
         raylib::Color::White(),
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
@@ -44,12 +37,11 @@ slider::slider(
             dim(dim::type::rel, 0),
             dim(dim::type::rel, 1)
         ),
-        std::nullopt, 
+        std::nullopt,
         rect_roundness(rect_roundness::type::rel_h, 0.5f),
         kee::ui::common(false, 0, false)
-    );
-
-    id_thumb = child_at(id_fill)->add_child_no_id<kee::ui::rect>(
+    )),
+    thumb(fill.add_child<kee::ui::rect>(
         std::nullopt,
         pos(pos::type::rel, 1.0f),
         pos(pos::type::rel, 0.5f),
@@ -60,8 +52,8 @@ slider::slider(
         std::nullopt,
         rect_roundness(rect_roundness::type::rel_h, 0.5f),
         kee::ui::common(true, 0, false)
-    );
-}
+    ))
+{ }
 
 bool slider::is_down() const
 {
@@ -70,10 +62,6 @@ bool slider::is_down() const
 
 void slider::handle_element_events()
 {
-    auto& fill_color = *dynamic_cast<kee::transition<kee::color>*>(transitions.at(id_trans_fill_color).get());
-    auto& thumb_scale = *dynamic_cast<kee::transition<float>*>(transitions.at(id_trans_thumb_scale).get());
-    auto& thumb = *dynamic_cast<kee::ui::rect*>(child_at(id_fill)->child_at(id_thumb).get());
-
     const raylib::Vector2 mouse_pos = raylib::Mouse::GetPosition();
     const raylib::Rectangle raw_rect = get_raw_rect();
     const raylib::Rectangle raw_rect_thumb = thumb.get_raw_rect();
@@ -124,14 +112,8 @@ void slider::handle_element_events()
 
 void slider::update_element([[maybe_unused]] float dt)
 {
-    auto& fill_color = *dynamic_cast<kee::transition<kee::color>*>(transitions.at(id_trans_fill_color).get());
-    auto& fill = *dynamic_cast<kee::ui::rect*>(child_at(id_fill).get());
-
     fill.set_opt_color(fill_color.get().to_color());
     std::get<kee::dims>(fill.dimensions).w.val = progress;
-
-    auto& thumb_scale = *dynamic_cast<kee::transition<float>*>(transitions.at(id_trans_thumb_scale).get());
-    auto& thumb = *dynamic_cast<kee::ui::rect*>(child_at(id_fill)->child_at(id_thumb).get());
     std::get<kee::dims>(thumb.dimensions).h.val = thumb_scale.get();
 }
 

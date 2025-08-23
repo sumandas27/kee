@@ -27,7 +27,7 @@ base::base(
     children_z_order_enabled(common.children_z_order_enabled),
     parent(reqs.parent)
 { 
-    set_opt_color(raylib::Color(0, 0, 0, 0));
+    set_opt_color(raylib::Color::Blank());
 }
 
 base::base(const kee::ui::base::required& reqs, const kee::ui::common& common) :
@@ -45,7 +45,7 @@ void base::handle_events()
     else
     {
         handle_element_events();
-        for (auto& [_, child] : children)
+        for (const std::unique_ptr<kee::ui::base>& child : children)
             child->handle_events();
     }
 }
@@ -53,17 +53,17 @@ void base::handle_events()
 void base::update(float dt) 
 {
     update_element(dt);
-    for (auto& [_, transition] : transitions)
+    for (const std::unique_ptr<kee::transition_base>& transition : transitions)
         transition->update(dt);
 
-    for (auto& [_, child] : children)
+    for (const std::unique_ptr<kee::ui::base>& child : children)
         child->update(dt);
 
     if (children_z_order_enabled)
-        std::sort(z_order_refs.begin(), z_order_refs.end(),
-            [](const base::ref& l, const base::ref& r) {
-                const int l_z_order = l.get().z_order.value_or(0);
-                const int r_z_order = r.get().z_order.value_or(0);
+        std::sort(children.begin(), children.end(),
+            [](const std::unique_ptr<kee::ui::base>& l, const std::unique_ptr<kee::ui::base>& r) {
+                const int l_z_order = l->z_order.value_or(0);
+                const int r_z_order = r->z_order.value_or(0);
                 return l_z_order >= r_z_order;
             }
         );
@@ -72,41 +72,9 @@ void base::update(float dt)
 void base::render() const 
 { 
     render_element_behind_children();
-
-    if (!children_z_order_enabled)
-        for (const auto& [_, child] : children)
-            child->render();
-    else
-        for (const kee::ui::base::ref& child_ref : z_order_refs)
-            child_ref.get().render();
-
+    for (const std::unique_ptr<kee::ui::base>& child : children)
+        child->render();
     render_element_ahead_children();
-}
-
-bool base::has_child(unsigned int id) const
-{
-    return children.contains(id);
-}
-
-const std::unique_ptr<kee::ui::base>& base::child_at(unsigned int id) const
-{
-    return children.at(id);
-}
-
-std::unique_ptr<kee::ui::base>& base::child_at(unsigned int id)
-{
-    return children.at(id);
-}
-
-void base::remove_child(unsigned int id)
-{
-    children.erase(id);
-    if (children_z_order_enabled)
-        z_order_refs.erase(std::remove_if(z_order_refs.begin(), z_order_refs.end(),
-            [id](const base::ref& elem) {
-                return elem.get_id() == id;
-            }), 
-        z_order_refs.end());
 }
 
 void base::set_opt_color(const std::optional<raylib::Color>& opt_color)
@@ -268,21 +236,6 @@ base::required::required(boost::optional<const kee::ui::base&> parent, kee::glob
     parent(parent),
     assets(assets)
 { }
-
-base::ref::ref(unsigned int id, const kee::ui::base& ui_ref) :
-    id(id),
-    ui_ref(ui_ref)
-{ }
-
-unsigned int base::ref::get_id() const
-{
-    return id;
-}
-
-const kee::ui::base& base::ref::get() const
-{
-    return ui_ref.get();
-}
 
 } // namespace ui
 } // namespace kee

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "kee/ui/base.hpp"
+#include "kee/ui/rect.hpp"
 
 namespace kee {
 namespace ui {
@@ -32,13 +33,12 @@ private:
     void handle_element_events() override;
     void update_element(float dt) override;
 
-    /* TODO: change transition same as elements */
+    kee::transition<kee::color>& fill_color;
+    kee::transition<float>& thumb_scale;
 
-    unsigned int id_trans_fill_color;
-    unsigned int id_trans_thumb_scale;
-
-    unsigned int id_fill;
-    unsigned int id_thumb;
+    const kee::ui::rect& track;
+    kee::ui::rect& fill;
+    kee::ui::rect& thumb;
 
     kee::ui::mouse_state slider_state;
 };

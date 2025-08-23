@@ -3,11 +3,17 @@
 #include "kee/scene/base.hpp"
 #include "kee/ui/button.hpp"
 #include "kee/ui/image.hpp"
+#include "kee/ui/rect.hpp"
+#include "kee/ui/slider.hpp"
+#include "kee/ui/text.hpp"
+#include "kee/ui/triangle.hpp"
 
 /* TODO: abstract shared info between `editor` and `beatmap` scene */
 
 namespace kee {
 namespace scene {
+
+class editor_key;
 
 class editor final : public kee::scene::base
 {
@@ -28,28 +34,31 @@ private:
     void update_element(float dt) override;
     void render_element_behind_children() const override;
 
+    kee::ui::image_texture play_png;
+    kee::ui::image_texture pause_png;
+
+    kee::transition<kee::color>& pause_play_color;
+    kee::transition<float>& pause_play_scale;
+
+    /* TODO: change editor ui vals */
+
+    kee::ui::triangle& beat_indicator;
+    /* TODO: store in its own class */
+    /* TODO: store unordered_map of (key+beat+duration struct w/ boost::hash_combine) -> (hit object indicators) */
+    kee::ui::base& beat_ticks_frame;
+    kee::ui::slider& music_slider;
+    kee::ui::button& pause_play;
+    kee::ui::image& pause_play_img;
+    kee::ui::text& music_time_text;
+    kee::ui::base& key_border;
+    kee::ui::base& key_frame;
+
     const float music_start_offset;
     const float music_bpm;
 
     const float beat_step;
 
-    unsigned int id_trans_pause_play_color;
-    unsigned int id_trans_pause_play_scale;
-
-    unsigned int id_beat_indicator;
-    /* TODO: store in its own class */
-    /* TODO: store unordered_map of (key+beat+duration struct w/ boost::hash_combine) -> (hit object indicators) */
-    unsigned int id_beat_ticks_frame;
-    unsigned int id_music_slider;
-    unsigned int id_pause_play;
-    unsigned int id_pause_play_png;
-    unsigned int id_music_time_text;
-    unsigned int id_key_border;
-    unsigned int id_key_frame;
-    unsigned int id_editor_key;
-
-    kee::ui::image_texture play_png;
-    kee::ui::image_texture pause_png;
+    std::unordered_map<int, std::reference_wrapper<editor_key>> keys;
 
     float mouse_wheel_move;
 
@@ -88,6 +97,9 @@ private:
     void render_hit_objects() const;
 
     kee::scene::editor& editor_scene;
+
+    kee::ui::rect& frame;
+    kee::ui::text& key_text;
 
     const int key_id;
 

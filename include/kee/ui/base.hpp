@@ -56,17 +56,12 @@ public:
      * These functions will populate the first parameter for you.
      */
     template <std::derived_from<kee::ui::base> T, typename... Args>
-    unsigned int add_child_no_id(Args&&... args);
-    template <std::derived_from<kee::ui::base> T, typename... Args>
-    void add_child_with_id(unsigned int id, Args&&... args);
+    T& add_child(Args&&... args);
     template <std::derived_from<kee::ui::base> T, typename... Args>
     T make_temp_child(Args&&... args) const;
 
-    bool has_child(unsigned int id) const;
-
-    const std::unique_ptr<kee::ui::base>& child_at(unsigned int id) const;
-    std::unique_ptr<kee::ui::base>& child_at(unsigned int id);
-    void remove_child(unsigned int key);
+    template <typename T>
+    kee::transition<T>& add_transition(const T& default_val);
 
     void set_opt_color(const std::optional<raylib::Color>& opt_color);
     const std::optional<raylib::Color>& get_opt_color() const;
@@ -89,8 +84,6 @@ public:
     std::variant<kee::dims, kee::border> dimensions;
     bool centered;
 
-    std::unordered_map<unsigned int, std::unique_ptr<kee::transition_base>> transitions;
-
 protected:
     /**
      * Scene subclasses do *NOT* specify a `parent`, non-scene subclasses do.
@@ -110,17 +103,13 @@ protected:
     bool children_z_order_enabled;
 
 private:
-    class ref;
-
     raylib::Vector2 get_dims(const raylib::Rectangle& parent_raw_rect) const;
 
     const boost::optional<const kee::ui::base&> parent;
+    std::vector<std::unique_ptr<kee::ui::base>> children;
+    std::vector<std::unique_ptr<kee::transition_base>> transitions;
 
     std::optional<raylib::Color> color;
-
-    /* TODO: replace with vector of unique_ptrs + references */
-    std::unordered_map<unsigned int, std::unique_ptr<kee::ui::base>> children;
-    std::vector<kee::ui::base::ref> z_order_refs;
 };
 
 class base::required
@@ -130,21 +119,6 @@ public:
 
     boost::optional<const kee::ui::base&> parent;
     kee::global_assets& assets;
-};
-
-/* TODO: removable */
-
-class base::ref
-{
-public:
-    ref(unsigned int id, const kee::ui::base& ui_ref);
-
-    unsigned int get_id() const;
-    const kee::ui::base& get() const;
-
-private:
-    unsigned int id;
-    std::reference_wrapper<const kee::ui::base> ui_ref;
 };
 
 } // namespace ui

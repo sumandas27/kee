@@ -4,36 +4,16 @@ namespace kee {
 namespace ui {
 
 template <std::derived_from<kee::ui::base> T, typename... Args>
-unsigned int base::add_child_no_id(Args&&... args)
+T& base::add_child(Args&&... args)
 {
-    unsigned int id = 0;
-    while (children.contains(id))
-        id++;
-
-    children[id] = std::make_unique<T>(
+    std::unique_ptr<T> child = std::make_unique<T>(
         kee::ui::base::required(*this, assets), 
         std::forward<Args>(args)...
     );
-    
-    if (children_z_order_enabled)
-        z_order_refs.push_back(base::ref(id, *children.at(id).get()));
 
-    return id;
-}
-
-template <std::derived_from<kee::ui::base> T, typename... Args>
-void base::add_child_with_id(unsigned int id, Args&&... args)
-{
-    auto [_, add_success] = children.try_emplace(id, std::make_unique<T>(
-        kee::ui::base::required(*this, assets), 
-        std::forward<Args>(args)...)
-    );
-    
-    if (!add_success)
-        throw std::invalid_argument("UI Element already contains child with provided ID!");
-
-    if (children_z_order_enabled)
-        z_order_refs.push_back(base::ref(id, *children.at(id).get()));
+    T& ref = *child;
+    children.emplace_back(std::move(child));
+    return ref;
 }
 
 template <std::derived_from<kee::ui::base> T, typename... Args>
@@ -43,6 +23,16 @@ T base::make_temp_child(Args&&... args) const
         kee::ui::base::required(*this, assets), 
         std::forward<Args>(args)...
     );
+}
+
+template <typename T>
+kee::transition<T>& base::add_transition(const T& default_val)
+{
+    std::unique_ptr<kee::transition<T>> transition = std::make_unique<kee::transition<T>>(default_val);
+
+    kee::transition<T>& ref = *transition;
+    transitions.emplace_back(std::move(transition));
+    return ref;
 }
 
 } // namespace ui

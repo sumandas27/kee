@@ -3,9 +3,13 @@
 #include <deque>
 
 #include "kee/scene/base.hpp"
+#include "kee/ui/rect.hpp"
+#include "kee/ui/text.hpp"
 
 namespace kee {
 namespace scene {
+
+class beatmap_key;
 
 class beatmap final : public kee::scene::base
 {
@@ -24,6 +28,15 @@ public:
 private:
     void handle_element_events() override;
     void update_element(float dt) override;
+    void render_element_behind_children() const override;
+
+    kee::transition<float>& combo_gain;
+
+    kee::ui::rect& progress_rect;
+    kee::ui::text& combo_text;
+    kee::ui::text& combo_text_bg;
+    kee::ui::base& window_border;
+    kee::ui::base& key_frame;
 
     const float load_time;
     const float max_combo_time;
@@ -31,14 +44,7 @@ private:
     const float music_start_offset;
     const float music_bpm;
 
-    const unsigned int id_trans_combo_gain;
-
-    unsigned int id_load_rect;
-    unsigned int id_progress_rect;
-    unsigned int id_combo_text;
-    unsigned int id_combo_text_bg;
-    unsigned int id_window_border;
-    unsigned int id_key_frame;
+    std::unordered_map<int, std::reference_wrapper<beatmap_key>> keys;
 
     raylib::Music music;
     raylib::Sound hitsound;
@@ -87,11 +93,13 @@ private:
 
     kee::scene::beatmap& beatmap_scene;
 
-    const int keycode;
-    const unsigned int id_trans_combo_lost_alpha;
+    kee::transition<float>& combo_lost_alpha;
 
-    unsigned int id_rect;
-    unsigned int id_combo_lost_rect;
+    kee::ui::rect& frame;
+    kee::ui::rect& frame_combo_lost;
+    kee::ui::text& key_text;
+
+    const int keycode;
 
     float combo_lost_time;
     std::deque<beatmap_hit_object> hit_objects;
