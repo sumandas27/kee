@@ -43,11 +43,13 @@ public:
     void set_scale(float new_scale);
 
 private:
-    class global;
-
     void render_element_behind_children() const override;
 
-    void update_dims(std::optional<std::string_view> new_str, std::optional<kee::ui::text_size> new_str_size, std::optional<float> new_scale);
+    void update_dims(
+        std::optional<std::string_view> new_str, 
+        std::optional<kee::ui::text_size> new_str_size, 
+        std::optional<float> new_scale
+    );
 
     const raylib::Font& font;
 

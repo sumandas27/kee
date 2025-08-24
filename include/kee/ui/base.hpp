@@ -79,7 +79,7 @@ public:
     /**
      * `kee::dims` alternative holds regular width and height dimensions.
      * `kee::border` creates an empty border of specified type on the parent and 
-     * sizes the rest of the element within the border as if it were centered
+     * sizes the rest of the element within the border as if it were centered.
      */
     std::variant<kee::dims, kee::border> dimensions;
     bool centered;

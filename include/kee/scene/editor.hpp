@@ -40,7 +40,6 @@ private:
     kee::transition<kee::color>& pause_play_color;
     kee::transition<float>& pause_play_scale;
 
-    /* TODO: store in its own class */
     /* TODO: render indicators based on key selection */
     /* TODO: code indicator selection */
     /* TODO: store unordered_map of (key+beat+duration struct w/ boost::hash_combine) -> (hit object indicators) */

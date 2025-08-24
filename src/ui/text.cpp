@@ -55,8 +55,11 @@ void text::render_element_behind_children() const
     assets.shader_sdf_font.EndMode();
 }
 
-void text::update_dims(std::optional<std::string_view> new_str, std::optional<kee::ui::text_size> new_str_size, std::optional<float> new_scale)
-{
+void text::update_dims(
+    std::optional<std::string_view> new_str, 
+    std::optional<kee::ui::text_size> new_str_size, 
+    std::optional<float> new_scale
+) {
     if (new_str.has_value())
         str = new_str.value();
     
