@@ -17,7 +17,16 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             dim(dim::type::rel, 0.95f),
             dim(dim::type::rel, 0.1f)
         ),
-        kee::ui::common(true, 1, false)
+        kee::ui::common(true, std::nullopt, false)
+    )),
+    beat_objects_frame(beat_ticks_frame.add_child<kee::ui::base>(
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.8f),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 0.2f)
+        ),
+        kee::ui::common(false, std::nullopt, false)
     )),
     beat_indicator(beat_ticks_frame.add_child<kee::ui::triangle>(
         raylib::Color::Red(),
@@ -34,7 +43,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     )),
     music_slider(add_child<kee::ui::slider>(
         pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.13f),
+        pos(pos::type::rel, 0.12f),
         dims(
             dim(dim::type::rel, 0.95f),
             dim(dim::type::rel, 0.005f)
@@ -325,7 +334,6 @@ void editor::render_element_behind_children() const
         }
     }
 
-    const raylib::Rectangle frame_raw_rect = beat_ticks_frame.get_raw_rect();
     for (const auto& [id, _] : kee::key_ui_data)
     for (const editor_hit_object& object : keys.at(id).get().get_hit_objects())
     {
@@ -335,44 +343,44 @@ void editor::render_element_behind_children() const
         if (object.beat > get_beat() + beat_delta)
             break;
 
-        static constexpr float rel_h = 0.2f;
-        const float rel_x_offset = (rel_h / 2) * (frame_raw_rect.height / frame_raw_rect.width);
+        const raylib::Rectangle frame_raw_rect = beat_objects_frame.get_raw_rect();
+        const float rel_x_offset = frame_raw_rect.height / (2 * frame_raw_rect.width);
         const float rel_x_beg = std::max(0.0f, (object.beat - (get_beat() - beat_delta)) / (2 * beat_delta));
         const float rel_x_end = std::min(1.0f, (object.beat + object.duration - (get_beat() - beat_delta)) / (2 * beat_delta));
 
-        const kee::ui::rect obj_indicator_rect = beat_ticks_frame.make_temp_child<kee::ui::rect>(
+        const kee::ui::rect obj_indicator_rect = beat_objects_frame.make_temp_child<kee::ui::rect>(
             raylib::Color(0, 0, 255, 30),
             pos(pos::type::rel, rel_x_beg - rel_x_offset),
-            pos(pos::type::rel, 1.0f - rel_h),
+            pos(pos::type::rel, 0),
             dims(
                 dim(dim::type::rel, rel_x_end - rel_x_beg + 2 * rel_x_offset),
-                dim(dim::type::rel, rel_h)
+                dim(dim::type::rel, 1)
             ),
             kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, 0.15f, raylib::Color::Blue()), 
             kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_h, 0.5f),
             kee::ui::common(false, std::nullopt, false)
         );
 
-        const kee::ui::rect obj_circle_l = beat_ticks_frame.make_temp_child<kee::ui::rect>(
+        const kee::ui::rect obj_circle_l = beat_objects_frame.make_temp_child<kee::ui::rect>(
             raylib::Color::Blue(),
             pos(pos::type::rel, rel_x_beg),
-            pos(pos::type::rel, 1.0f - rel_h / 2),
+            pos(pos::type::rel, 0.5f),
             dims(
                 dim(dim::type::aspect, 1),
-                dim(dim::type::rel, rel_h * 0.3f)
+                dim(dim::type::rel, 0.3f)
             ),
             std::nullopt,
             kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f),
             kee::ui::common(true, std::nullopt, false)
         );
 
-        const kee::ui::rect obj_circle_r = beat_ticks_frame.make_temp_child<kee::ui::rect>(
+        const kee::ui::rect obj_circle_r = beat_objects_frame.make_temp_child<kee::ui::rect>(
             raylib::Color::Blue(),
             pos(pos::type::rel, rel_x_end),
-            pos(pos::type::rel, 1.0f - rel_h / 2),
+            pos(pos::type::rel, 0.5f),
             dims(
                 dim(dim::type::aspect, 1),
-                dim(dim::type::rel, rel_h * 0.3f)
+                dim(dim::type::rel, 0.3f)
             ),
             std::nullopt,
             kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f),

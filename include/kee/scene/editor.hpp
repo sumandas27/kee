@@ -44,6 +44,7 @@ private:
     /* TODO: code indicator selection */
     /* TODO: store unordered_map of (key+beat+duration struct w/ boost::hash_combine) -> (hit object indicators) */
     kee::ui::base& beat_ticks_frame;
+    kee::ui::base& beat_objects_frame;
     kee::ui::triangle& beat_indicator;
     kee::ui::slider& music_slider;
     kee::ui::button& pause_play;
