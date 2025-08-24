@@ -6,41 +6,12 @@ namespace scene {
 editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     kee::scene::base(window, assets),
     approach_beats(2.0f),
+    beat_step(0.25f),
     play_png("assets/img/play.png"),
     pause_png("assets/img/pause.png"),
     pause_play_color(add_transition<kee::color>(kee::color::white())),
     pause_play_scale(add_transition<float>(1.0f)),
-    beat_ticks_frame(add_child<kee::ui::base>(
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.05f),
-        dims(
-            dim(dim::type::rel, 0.95f),
-            dim(dim::type::rel, 0.1f)
-        ),
-        kee::ui::common(true, std::nullopt, false)
-    )),
-    beat_objects_frame(beat_ticks_frame.add_child<kee::ui::base>(
-        pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0.8f),
-        dims(
-            dim(dim::type::rel, 1),
-            dim(dim::type::rel, 0.2f)
-        ),
-        kee::ui::common(false, std::nullopt, false)
-    )),
-    beat_indicator(beat_ticks_frame.add_child<kee::ui::triangle>(
-        raylib::Color::Red(),
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.1f),
-        dims(
-            dim(dim::type::aspect, 1.5),
-            dim(dim::type::rel, 0.2f)
-        ),
-        raylib::Vector2(0, 0),
-        raylib::Vector2(1, 0),
-        raylib::Vector2(0.5, 1),
-        kee::ui::common(true, 0, false)
-    )),
+    obj_editor(add_child<object_editor>(*this, keys, selected_key_ids)),
     music_slider(add_child<kee::ui::slider>(
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.12f),
@@ -96,25 +67,25 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         ),
         kee::ui::common(true, std::nullopt, false)
     )),
-    beat_step(0.25f),
     music_start_offset(0.5f),
     music_bpm(100.0f),
     mouse_wheel_move(0.0f),
-    is_music_playing(true),
-    music("assets/daft-punk-something-about-us/daft-punk-something-about-us.mp3")
+    music("assets/daft-punk-something-about-us/daft-punk-something-about-us.mp3"),
+    music_time(0.0f)
 {
-    music_slider.on_event = [&](ui::slider::event slider_event)
+    music_slider.on_event = [&, music_is_playing = music.IsPlaying()](ui::slider::event slider_event) mutable
     {
         switch (slider_event)
         {
         case ui::slider::event::on_down:
+            music_is_playing = music.IsPlaying();
             this->active_child = music_slider;
             this->music.Pause();
             break;
         case ui::slider::event::on_release:
             this->active_child = boost::none;
             this->music.Seek(music_slider.progress * this->music.GetTimeLength());
-            if (this->is_music_playing)
+            if (music_is_playing)
                 this->music.Resume();
             break;
         }
@@ -140,18 +111,17 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
 
     pause_play.on_click = [&]()
     { 
-        this->is_music_playing = !this->is_music_playing;
-
-        if (this->is_music_playing)
-        {
-            this->music.Seek(music_slider.progress * this->music.GetTimeLength());
-            this->music.Resume();
-            this->pause_play_img.set_image(pause_png);
-        }
-        else
+        if (this->music.IsPlaying())
         {
             this->music.Pause();
             this->pause_play_img.set_image(play_png);
+
+        }
+        else
+        {
+            this->music.Seek(music_slider.progress * this->music.GetTimeLength());
+            this->music.Resume();
+            this->pause_play_img.set_image(pause_png);            
         }
     };
 
@@ -184,14 +154,11 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
 
     music.SetLooping(true);
     music.SetVolume(0.1f);
-
-    if (is_music_playing)
-        music.Play();
+    music.Play();
 }
 
 float editor::get_beat() const
 {
-    const float music_time = music_slider.progress * music.GetTimeLength();
     return (music_time - music_start_offset) * music_bpm / 60.0f;
 }
 
@@ -229,7 +196,7 @@ void editor::handle_element_events()
             pause_play.on_click();
     }
 
-    if (is_music_playing)
+    if (music.IsPlaying())
         return;
 
     mouse_wheel_move += raylib::Mouse::GetWheelMove();
@@ -260,38 +227,143 @@ void editor::handle_element_events()
             : beat_ceil + beat_step * (beat_steps - 1);
     }
 
-    const float new_music_time = music_start_offset + new_beat * 60.0f / music_bpm;
-    const float new_progress = (new_music_time / music.GetTimeLength());
-    music_slider.progress = std::clamp(new_progress, 0.0f, 1.0f);
+    music_time = music_start_offset + new_beat * 60.0f / music_bpm;
 }
 
 void editor::update_element([[maybe_unused]] float dt)
 {
-    if (music.IsPlaying())
+    if (!music_slider.is_down())
     {
-        music.Update();
-        music_slider.progress = music.GetTimePlayed() / music.GetTimeLength();
+        if (music.IsPlaying())
+        {
+            music.Update();
+            music_time = music.GetTimePlayed();
+        }
+
+        music_slider.progress = music_time / music.GetTimeLength();
     }
+    else
+        music_time = music_slider.progress * music.GetTimeLength();
     
     std::get<kee::dims>(pause_play_img.dimensions).w.val = pause_play_scale.get();
     std::get<kee::dims>(pause_play_img.dimensions).h.val = pause_play_scale.get();
     pause_play_img.set_opt_color(pause_play_color.get().to_color());
 
     const unsigned int music_length = static_cast<unsigned int>(music.GetTimeLength());
-    const unsigned int music_time = static_cast<unsigned int>(music_slider.progress * music.GetTimeLength());
-    const std::string music_time_str = std::format("{}:{:02} / {}:{:02}", music_time / 60, music_time % 60, music_length / 60, music_length % 60);
+    const unsigned int music_time_int = static_cast<unsigned int>(music_time);
+    const std::string music_time_str = std::format("{}:{:02} / {}:{:02}", music_time_int / 60, music_time_int % 60, music_length / 60, music_length % 60);
     music_time_text.set_string(music_time_str);
 }
 
-void editor::render_element_behind_children() const
+object_editor::object_editor(
+    const kee::ui::base::required& reqs, 
+    const kee::scene::editor& editor_scene,
+    const std::unordered_map<int, std::reference_wrapper<editor_key>>& keys,
+    const std::vector<int>& selected_key_ids
+) :
+    kee::ui::base(reqs,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.05f),
+        dims(
+            dim(dim::type::rel, 0.95f),
+            dim(dim::type::rel, 0.1f)
+        ),
+        kee::ui::common(true, std::nullopt, false)
+    ),
+    editor_scene(editor_scene),
+    keys(keys),
+    selected_key_ids(selected_key_ids),
+    beat_objects_frame(add_child<kee::ui::base>(
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.8f),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 0.2f)
+        ),
+        kee::ui::common(false, std::nullopt, false)
+    )),
+    beat_indicator(add_child<kee::ui::triangle>(
+        raylib::Color::Red(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.1f),
+        dims(
+            dim(dim::type::aspect, 1.5),
+            dim(dim::type::rel, 0.2f)
+        ),
+        raylib::Vector2(0, 0),
+        raylib::Vector2(1, 0),
+        raylib::Vector2(0.5, 1),
+        kee::ui::common(true, 0, false)
+    )),
+    is_object_frame_down(false)
+{ }
+
+void object_editor::handle_element_events()
+{
+    const raylib::Vector2 mouse_pos = raylib::Mouse::GetPosition();
+    const raylib::Rectangle beat_objects_raw_rect = beat_objects_frame.get_raw_rect();
+    const bool is_mouse_on_rect =
+        mouse_pos.x >= beat_objects_raw_rect.x && mouse_pos.x <= beat_objects_raw_rect.x + beat_objects_raw_rect.width &&
+        mouse_pos.y >= beat_objects_raw_rect.y && mouse_pos.y <= beat_objects_raw_rect.y + beat_objects_raw_rect.height;
+
+    if (is_object_frame_down)
+    {
+        if (raylib::Mouse::IsButtonReleased(MouseButton::MOUSE_BUTTON_LEFT))
+        {
+            /* TODO: on release */
+            is_object_frame_down = false;
+        }
+        else
+        {
+            /* TODO: on drag */
+        }
+    }
+    else if (is_mouse_on_rect && raylib::Mouse::IsButtonPressed(MouseButton::MOUSE_BUTTON_LEFT))
+    {
+        /* TODO: on down */
+        is_object_frame_down = true;
+    }
+}
+
+void object_editor::update_element([[maybe_unused]] float dt)
+{
+    object_rects.clear();
+
+    for (const auto& [id, _] : kee::key_ui_data)
+    for (const editor_hit_object& object : keys.at(id).get().get_hit_objects())
+    {
+        if (object.beat + object.duration < editor_scene.get_beat() - beat_delta)
+            continue;
+
+        if (object.beat > editor_scene.get_beat() + beat_delta)
+            break;
+
+        const float rel_x_beg = std::max(0.0f, (object.beat - (editor_scene.get_beat() - beat_delta)) / (2 * beat_delta));
+        const float rel_x_end = std::min(1.0f, (object.beat + object.duration - (editor_scene.get_beat() - beat_delta)) / (2 * beat_delta));
+
+        object_rects.push_back(beat_objects_frame.make_temp_child<kee::ui::rect>(
+            raylib::Color(0, 0, 255, 30),
+            pos(pos::type::rel, rel_x_beg),
+            pos(pos::type::rel, 0),
+            dims(
+                dim(dim::type::rel, rel_x_end - rel_x_beg),
+                dim(dim::type::rel, 1)
+            ),
+            kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, 0.15f, raylib::Color::Blue()), 
+            kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_h, 0.5f, kee::ui::rect_roundness::size_effect::extend_w),
+            kee::ui::common(false, std::nullopt, false)
+        ));
+    }
+}
+
+void object_editor::render_element_behind_children() const
 {
     static constexpr float fade_percent = 0.05f;
-    static constexpr float beat_delta = 5.0f;
 
-    const float beat_start = std::ceil((get_beat() - beat_delta) / beat_step) * beat_step;
-    for (float beat_render = beat_start; beat_render <= get_beat() + beat_delta; beat_render += beat_step)
+    const float beat_start = std::ceil((editor_scene.get_beat() - beat_delta) / editor_scene.beat_step) * editor_scene.beat_step;
+    for (float beat_render = beat_start; beat_render <= editor_scene.get_beat() + beat_delta; beat_render += editor_scene.beat_step)
     {
-        const float render_rel_x = (beat_render - (get_beat() - beat_delta)) / (2 * beat_delta);
+        const float render_rel_x = (beat_render - (editor_scene.get_beat() - beat_delta)) / (2 * beat_delta);
 
         float opacity = 1.0f;
         if (render_rel_x <= fade_percent)
@@ -303,7 +375,7 @@ void editor::render_element_behind_children() const
         const float render_rel_w = is_whole_beat ? 0.003f : 0.001f;
         const float render_rel_h = is_whole_beat ? 0.2f : 0.1f;
 
-        const kee::ui::rect beat_render_rect = beat_ticks_frame.make_temp_child<kee::ui::rect>(
+        const kee::ui::rect beat_render_rect = make_temp_child<kee::ui::rect>(
             raylib::Color(255, 255, 255, static_cast<unsigned char>(255 * opacity)),
             pos(pos::type::rel, render_rel_x),
             pos(pos::type::rel, 0.2f),
@@ -312,7 +384,7 @@ void editor::render_element_behind_children() const
                 dim(dim::type::rel, render_rel_h)
             ),
             std::nullopt,
-            kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f),
+            kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f, std::nullopt),
             kee::ui::common(true, std::nullopt, false)
         );
 
@@ -321,7 +393,7 @@ void editor::render_element_behind_children() const
         if (is_whole_beat)
         {
             const int whole_beat = static_cast<int>(std::floorf(beat_render));
-            const kee::ui::text whole_beat_text = beat_ticks_frame.make_temp_child<kee::ui::text>(
+            const kee::ui::text whole_beat_text = make_temp_child<kee::ui::text>(
                 raylib::Color(255, 255, 255, static_cast<unsigned char>(255 * opacity)),
                 pos(pos::type::rel, render_rel_x),
                 pos(pos::type::rel, 0.55f),
@@ -334,60 +406,35 @@ void editor::render_element_behind_children() const
         }
     }
 
-    for (const auto& [id, _] : kee::key_ui_data)
-    for (const editor_hit_object& object : keys.at(id).get().get_hit_objects())
+    for (const kee::ui::rect& object_rect : object_rects)
     {
-        if (object.beat + object.duration < get_beat() - beat_delta)
-            continue;
-
-        if (object.beat > get_beat() + beat_delta)
-            break;
-
-        const raylib::Rectangle frame_raw_rect = beat_objects_frame.get_raw_rect();
-        const float rel_x_offset = frame_raw_rect.height / (2 * frame_raw_rect.width);
-        const float rel_x_beg = std::max(0.0f, (object.beat - (get_beat() - beat_delta)) / (2 * beat_delta));
-        const float rel_x_end = std::min(1.0f, (object.beat + object.duration - (get_beat() - beat_delta)) / (2 * beat_delta));
-
-        const kee::ui::rect obj_indicator_rect = beat_objects_frame.make_temp_child<kee::ui::rect>(
-            raylib::Color(0, 0, 255, 30),
-            pos(pos::type::rel, rel_x_beg - rel_x_offset),
-            pos(pos::type::rel, 0),
-            dims(
-                dim(dim::type::rel, rel_x_end - rel_x_beg + 2 * rel_x_offset),
-                dim(dim::type::rel, 1)
-            ),
-            kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, 0.15f, raylib::Color::Blue()), 
-            kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_h, 0.5f),
-            kee::ui::common(false, std::nullopt, false)
-        );
-
         const kee::ui::rect obj_circle_l = beat_objects_frame.make_temp_child<kee::ui::rect>(
             raylib::Color::Blue(),
-            pos(pos::type::rel, rel_x_beg),
+            pos(pos::type::rel, object_rect.x.val),
             pos(pos::type::rel, 0.5f),
             dims(
                 dim(dim::type::aspect, 1),
                 dim(dim::type::rel, 0.3f)
             ),
             std::nullopt,
-            kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f),
+            kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f, std::nullopt),
             kee::ui::common(true, std::nullopt, false)
         );
 
         const kee::ui::rect obj_circle_r = beat_objects_frame.make_temp_child<kee::ui::rect>(
             raylib::Color::Blue(),
-            pos(pos::type::rel, rel_x_end),
+            pos(pos::type::rel, object_rect.x.val + std::get<kee::dims>(object_rect.dimensions).w.val),
             pos(pos::type::rel, 0.5f),
             dims(
                 dim(dim::type::aspect, 1),
                 dim(dim::type::rel, 0.3f)
             ),
             std::nullopt,
-            kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f),
+            kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f, std::nullopt),
             kee::ui::common(true, std::nullopt, false)
         );
 
-        obj_indicator_rect.render();
+        object_rect.render();
         obj_circle_l.render();
         obj_circle_r.render();
     }

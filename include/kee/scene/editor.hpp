@@ -13,6 +13,7 @@
 namespace kee {
 namespace scene {
 
+class object_editor;
 class editor_key;
 
 class editor final : public kee::scene::base
@@ -28,11 +29,11 @@ public:
     void select(int id);
 
     const float approach_beats;
+    const float beat_step;
 
 private:
     void handle_element_events() override;
     void update_element(float dt) override;
-    void render_element_behind_children() const override;
 
     kee::ui::image_texture play_png;
     kee::ui::image_texture pause_png;
@@ -40,12 +41,11 @@ private:
     kee::transition<kee::color>& pause_play_color;
     kee::transition<float>& pause_play_scale;
 
+    /* TODO: how to handle event */
     /* TODO: render indicators based on key selection */
     /* TODO: code indicator selection */
     /* TODO: store unordered_map of (key+beat+duration struct w/ boost::hash_combine) -> (hit object indicators) */
-    kee::ui::base& beat_ticks_frame;
-    kee::ui::base& beat_objects_frame;
-    kee::ui::triangle& beat_indicator;
+    object_editor& obj_editor;
     kee::ui::slider& music_slider;
     kee::ui::button& pause_play;
     kee::ui::image& pause_play_img;
@@ -56,16 +56,43 @@ private:
     const float music_start_offset;
     const float music_bpm;
 
-    const float beat_step;
-
     std::unordered_map<int, std::reference_wrapper<editor_key>> keys;
 
     float mouse_wheel_move;
 
-    bool is_music_playing;
     raylib::Music music;
+    float music_time;
 
     std::vector<int> selected_key_ids;
+};
+
+class object_editor final : public kee::ui::base
+{
+public:
+    object_editor(
+        const kee::ui::base::required& reqs, 
+        const kee::scene::editor& editor_scene,
+        const std::unordered_map<int, std::reference_wrapper<editor_key>>& keys,
+        const std::vector<int>& selected_key_ids
+    );
+
+private:
+    static constexpr float beat_delta = 5.0f;
+
+    void handle_element_events() override;
+    void update_element(float dt) override;
+    void render_element_behind_children() const override;
+
+    const kee::scene::editor& editor_scene;
+    const std::unordered_map<int, std::reference_wrapper<editor_key>>& keys;
+    const std::vector<int>& selected_key_ids;
+
+    kee::ui::base& beat_objects_frame;
+    kee::ui::triangle& beat_indicator;
+
+    std::vector<kee::ui::rect> object_rects;
+
+    bool is_object_frame_down;
 };
 
 class editor_hit_object

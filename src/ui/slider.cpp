@@ -26,7 +26,7 @@ slider::slider(
             dim(dim::type::rel, 1)
         ),
         std::nullopt, 
-        rect_roundness(rect_roundness::type::rel_h, 0.5f),
+        rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt),
         kee::ui::common(false, 1, false)
     )),
     fill(add_child<kee::ui::rect>(
@@ -38,7 +38,7 @@ slider::slider(
             dim(dim::type::rel, 1)
         ),
         std::nullopt,
-        rect_roundness(rect_roundness::type::rel_h, 0.5f),
+        rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt),
         kee::ui::common(false, 0, false)
     )),
     thumb(fill.add_child<kee::ui::rect>(
@@ -50,7 +50,7 @@ slider::slider(
             dim(dim::type::rel, 1.75f)
         ),
         std::nullopt,
-        rect_roundness(rect_roundness::type::rel_h, 0.5f),
+        rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt),
         kee::ui::common(true, 0, false)
     ))
 { }

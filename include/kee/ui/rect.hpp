@@ -30,11 +30,13 @@ class rect_roundness
 {
 public:
     enum class type;
+    enum class size_effect;
 
-    rect_roundness(rect_roundness::type rect_roundness_type, float val);
+    rect_roundness(rect_roundness::type rect_roundness_type, float val, std::optional<rect_roundness::size_effect> rect_size_effect);
 
     const rect_roundness::type rect_roundness_type;
     const float val;
+    const std::optional<rect_roundness::size_effect> rect_size_effect;
 };
 
 enum class rect_roundness::type
@@ -42,6 +44,12 @@ enum class rect_roundness::type
     abs,
     rel_w,
     rel_h
+};
+
+enum class rect_roundness::size_effect
+{
+    extend_w,
+    extend_h
 };
 
 class rect final : public kee::ui::base
@@ -58,8 +66,12 @@ public:
         const kee::ui::common& common
     );
 
+    raylib::Rectangle get_raw_rect() const override;
+
 private:
     void render_element_behind_children() const override;
+
+    float get_roundness() const;
 
     const std::optional<kee::ui::rect_outline> border;
     const std::optional<kee::ui::rect_roundness> roundness;
