@@ -12,6 +12,24 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     pause_play_color(add_transition<kee::color>(kee::color::white())),
     pause_play_scale(add_transition<float>(1.0f)),
     obj_editor(add_child<object_editor>(*this, keys, selected_key_ids)),
+    beat_hover_l(add_child<kee::ui::base>(
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 0.025f),
+            dim(dim::type::rel, 0.15f)
+        ),
+        kee::ui::common(false, std::nullopt, false)
+    )),
+    beat_hover_r(add_child<kee::ui::base>(
+        pos(pos::type::rel, 0.975f),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 0.025f),
+            dim(dim::type::rel, 0.15f)
+        ),
+        kee::ui::common(false, std::nullopt, false)
+    )),
     music_slider(add_child<kee::ui::slider>(
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.12f),
@@ -157,9 +175,20 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     music.Play();
 }
 
+bool editor::is_music_playing() const
+{
+    return music.IsPlaying();
+}
+
 float editor::get_beat() const
 {
     return (music_time - music_start_offset) * music_bpm / 60.0f;
+}
+
+void editor::set_beat(float new_beat)
+{
+    const float music_time_raw = music_start_offset + new_beat * 60.0f / music_bpm;
+    music_time = std::clamp(music_time_raw, 0.0f, music.GetTimeLength());
 }
 
 void editor::unselect()
@@ -196,8 +225,16 @@ void editor::handle_element_events()
             pause_play.on_click();
     }
 
-    if (music.IsPlaying())
+    if (is_music_playing())
         return;
+
+    const raylib::Vector2 mouse_pos = raylib::Mouse::GetPosition();
+    if (beat_hover_l.get_raw_rect().CheckCollision(mouse_pos))
+        beat_drag_multiplier = -1;
+    else if (beat_hover_r.get_raw_rect().CheckCollision(mouse_pos))
+        beat_drag_multiplier = 1;
+    else
+        beat_drag_multiplier = 0;
 
     mouse_wheel_move += raylib::Mouse::GetWheelMove();
     if (std::abs(mouse_wheel_move) < 1.0f)
@@ -227,7 +264,7 @@ void editor::handle_element_events()
             : beat_ceil + beat_step * (beat_steps - 1);
     }
 
-    music_time = music_start_offset + new_beat * 60.0f / music_bpm;
+    set_beat(new_beat);
 }
 
 void editor::update_element([[maybe_unused]] float dt)
@@ -245,6 +282,9 @@ void editor::update_element([[maybe_unused]] float dt)
     else
         music_time = music_slider.progress * music.GetTimeLength();
     
+    const float beat_delta = beat_drag_multiplier * beat_drag_speed * dt;
+    set_beat(get_beat() + beat_delta);
+
     std::get<kee::dims>(pause_play_img.dimensions).w.val = pause_play_scale.get();
     std::get<kee::dims>(pause_play_img.dimensions).h.val = pause_play_scale.get();
     pause_play_img.set_opt_color(pause_play_color.get().to_color());
@@ -257,7 +297,7 @@ void editor::update_element([[maybe_unused]] float dt)
 
 object_editor::object_editor(
     const kee::ui::base::required& reqs, 
-    const kee::scene::editor& editor_scene,
+    kee::scene::editor& editor_scene,
     const std::unordered_map<int, std::reference_wrapper<editor_key>>& keys,
     const std::vector<int>& selected_key_ids
 ) :
@@ -300,12 +340,10 @@ object_editor::object_editor(
 
 void object_editor::handle_element_events()
 {
-    const raylib::Vector2 mouse_pos = raylib::Mouse::GetPosition();
-    const raylib::Rectangle beat_objects_raw_rect = beat_objects_frame.get_raw_rect();
-    const bool is_mouse_on_rect =
-        mouse_pos.x >= beat_objects_raw_rect.x && mouse_pos.x <= beat_objects_raw_rect.x + beat_objects_raw_rect.width &&
-        mouse_pos.y >= beat_objects_raw_rect.y && mouse_pos.y <= beat_objects_raw_rect.y + beat_objects_raw_rect.height;
+    if (editor_scene.is_music_playing())
+        return;
 
+    const raylib::Vector2 mouse_pos = raylib::Mouse::GetPosition();
     if (is_object_frame_down)
     {
         if (raylib::Mouse::IsButtonReleased(MouseButton::MOUSE_BUTTON_LEFT))
@@ -318,7 +356,7 @@ void object_editor::handle_element_events()
             /* TODO: on drag */
         }
     }
-    else if (is_mouse_on_rect && raylib::Mouse::IsButtonPressed(MouseButton::MOUSE_BUTTON_LEFT))
+    else if (beat_objects_frame.get_raw_rect().CheckCollision(mouse_pos) && raylib::Mouse::IsButtonPressed(MouseButton::MOUSE_BUTTON_LEFT))
     {
         /* TODO: on down */
         is_object_frame_down = true;
@@ -332,14 +370,14 @@ void object_editor::update_element([[maybe_unused]] float dt)
     for (const auto& [id, _] : kee::key_ui_data)
     for (const editor_hit_object& object : keys.at(id).get().get_hit_objects())
     {
-        if (object.beat + object.duration < editor_scene.get_beat() - beat_delta)
+        if (object.beat + object.duration < editor_scene.get_beat() - beat_width)
             continue;
 
-        if (object.beat > editor_scene.get_beat() + beat_delta)
+        if (object.beat > editor_scene.get_beat() + beat_width)
             break;
 
-        const float rel_x_beg = std::max(0.0f, (object.beat - (editor_scene.get_beat() - beat_delta)) / (2 * beat_delta));
-        const float rel_x_end = std::min(1.0f, (object.beat + object.duration - (editor_scene.get_beat() - beat_delta)) / (2 * beat_delta));
+        const float rel_x_beg = std::max(0.0f, (object.beat - (editor_scene.get_beat() - beat_width)) / (2 * beat_width));
+        const float rel_x_end = std::min(1.0f, (object.beat + object.duration - (editor_scene.get_beat() - beat_width)) / (2 * beat_width));
 
         object_rects.push_back(beat_objects_frame.make_temp_child<kee::ui::rect>(
             raylib::Color(0, 0, 255, 30),
@@ -360,10 +398,10 @@ void object_editor::render_element_behind_children() const
 {
     static constexpr float fade_percent = 0.05f;
 
-    const float beat_start = std::ceil((editor_scene.get_beat() - beat_delta) / editor_scene.beat_step) * editor_scene.beat_step;
-    for (float beat_render = beat_start; beat_render <= editor_scene.get_beat() + beat_delta; beat_render += editor_scene.beat_step)
+    const float beat_start = std::ceil((editor_scene.get_beat() - beat_width) / editor_scene.beat_step) * editor_scene.beat_step;
+    for (float beat_render = beat_start; beat_render <= editor_scene.get_beat() + beat_width; beat_render += editor_scene.beat_step)
     {
-        const float render_rel_x = (beat_render - (editor_scene.get_beat() - beat_delta)) / (2 * beat_delta);
+        const float render_rel_x = (beat_render - (editor_scene.get_beat() - beat_width)) / (2 * beat_width);
 
         float opacity = 1.0f;
         if (render_rel_x <= fade_percent)

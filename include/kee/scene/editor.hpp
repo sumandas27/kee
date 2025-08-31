@@ -23,7 +23,10 @@ public:
 
     editor(const kee::scene::window& window, kee::global_assets& assets);
 
+    bool is_music_playing() const;
+
     float get_beat() const;
+    void set_beat(float new_beat);
 
     void unselect();
     void select(int id);
@@ -32,6 +35,8 @@ public:
     const float beat_step;
 
 private:
+    static constexpr float beat_drag_speed = 5.0f;
+
     void handle_element_events() override;
     void update_element(float dt) override;
 
@@ -46,6 +51,8 @@ private:
     /* TODO: code indicator selection */
     /* TODO: store unordered_map of (key+beat+duration struct w/ boost::hash_combine) -> (hit object indicators) */
     object_editor& obj_editor;
+    kee::ui::base& beat_hover_l;
+    kee::ui::base& beat_hover_r;
     kee::ui::slider& music_slider;
     kee::ui::button& pause_play;
     kee::ui::image& pause_play_img;
@@ -59,6 +66,7 @@ private:
     std::unordered_map<int, std::reference_wrapper<editor_key>> keys;
 
     float mouse_wheel_move;
+    float beat_drag_multiplier;
 
     raylib::Music music;
     float music_time;
@@ -71,19 +79,19 @@ class object_editor final : public kee::ui::base
 public:
     object_editor(
         const kee::ui::base::required& reqs, 
-        const kee::scene::editor& editor_scene,
+        kee::scene::editor& editor_scene,
         const std::unordered_map<int, std::reference_wrapper<editor_key>>& keys,
         const std::vector<int>& selected_key_ids
     );
 
 private:
-    static constexpr float beat_delta = 5.0f;
+    static constexpr float beat_width = 5.0f;
 
     void handle_element_events() override;
     void update_element(float dt) override;
     void render_element_behind_children() const override;
 
-    const kee::scene::editor& editor_scene;
+    kee::scene::editor& editor_scene;
     const std::unordered_map<int, std::reference_wrapper<editor_key>>& keys;
     const std::vector<int>& selected_key_ids;
 
