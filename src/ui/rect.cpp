@@ -32,7 +32,7 @@ rect::rect(
     set_opt_color(color);
 }
 
-raylib::Rectangle rect::get_raw_rect() const
+raylib::Rectangle rect::get_extended_raw_rect() const
 {
     raylib::Rectangle base_raw_rect = kee::ui::base::get_raw_rect();
     if (roundness.has_value() && roundness.value().rect_size_effect.has_value())
@@ -56,7 +56,7 @@ void rect::render_element_behind_children() const
     static const raylib::Rectangle src_rect(0, 0, global_assets::texture_empty_size, global_assets::texture_empty_size);
 
     const raylib::Color raw_color = get_color_from_opt(get_opt_color());
-    const raylib::Rectangle dst_rect = get_raw_rect();
+    const raylib::Rectangle dst_rect = get_extended_raw_rect();
 
     const float uniform_roundness_size = get_roundness();
     const std::array<float, 2> uniform_size = { dst_rect.width, dst_rect.height };

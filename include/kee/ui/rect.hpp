@@ -66,7 +66,7 @@ public:
         const kee::ui::common& common
     );
 
-    raylib::Rectangle get_raw_rect() const override;
+    raylib::Rectangle get_extended_raw_rect() const;
 
 private:
     void render_element_behind_children() const override;

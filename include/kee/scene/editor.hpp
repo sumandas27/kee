@@ -79,7 +79,7 @@ class object_editor final : public kee::ui::base
 public:
     object_editor(
         const kee::ui::base::required& reqs, 
-        kee::scene::editor& editor_scene,
+        const kee::scene::editor& editor_scene,
         const std::unordered_map<int, std::reference_wrapper<editor_key>>& keys,
         const std::vector<int>& selected_key_ids
     );
@@ -87,15 +87,17 @@ public:
 private:
     static constexpr float beat_width = 5.0f;
 
+    static const std::vector<int> prio_to_key;
+    static const std::unordered_map<int, int> key_to_prio;
+
     void handle_element_events() override;
     void update_element(float dt) override;
     void render_element_behind_children() const override;
 
-    kee::scene::editor& editor_scene;
+    const kee::scene::editor& editor_scene;
     const std::unordered_map<int, std::reference_wrapper<editor_key>>& keys;
     const std::vector<int>& selected_key_ids;
 
-    kee::ui::base& beat_objects_frame;
     kee::ui::triangle& beat_indicator;
 
     std::vector<kee::ui::rect> object_rects;

@@ -72,7 +72,7 @@ public:
      * NOTE: We climb up UI hierarchy every time we render a UI element every frame. 
      * Inefficient, if performance is a problem investigate and fix if applicable.
      */
-    virtual raylib::Rectangle get_raw_rect() const;
+    raylib::Rectangle get_raw_rect() const;
     raylib::Rectangle get_raw_rect_parent() const;
 
     kee::pos x;
