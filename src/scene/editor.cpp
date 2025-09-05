@@ -3,6 +3,22 @@
 namespace kee {
 namespace scene {
 
+const std::vector<int> editor::prio_to_key = []
+{
+    std::vector<int> res;
+    for (const kee::key_pos_data& data : kee::key_ui_data)
+        res.push_back(data.raylib_key);
+    return res;
+}();
+
+const std::unordered_map<int, int> editor::key_to_prio = []
+{
+    std::unordered_map<int, int> res;
+    for (int i = 0; i < kee::key_ui_data.size(); i++)
+        res.emplace(kee::key_ui_data[i].raylib_key, i);
+    return res;
+}();
+
 editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     kee::scene::base(window, assets),
     approach_beats(2.0f),
@@ -207,7 +223,11 @@ void editor::select(int id)
     keys.at(id).get().set_opt_color(raylib::Color::Green());
     keys.at(id).get().is_selected = true;
 
-    selected_key_ids.push_back(id);
+    selected_key_ids.insert(
+        std::lower_bound(selected_key_ids.begin(), selected_key_ids.end(), id,
+            [](int l, int r) { return editor::key_to_prio.at(l) <= editor::key_to_prio.at(r); }
+        ),
+    id);
 }
 
 void editor::handle_element_events()
@@ -301,12 +321,11 @@ object_editor::object_editor(
     const std::unordered_map<int, std::reference_wrapper<editor_key>>& keys,
     const std::vector<int>& selected_key_ids
 ) :
-    /* TODO: change this to cover whole x */
     kee::ui::base(reqs,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.1f),
         dims(
-            dim(dim::type::rel, 0.95f),
+            dim(dim::type::rel, 1.0f),
             dim(dim::type::rel, 0.2f)
         ),
         kee::ui::common(true, std::nullopt, false)
@@ -327,24 +346,17 @@ object_editor::object_editor(
         raylib::Vector2(0.5, 1),
         kee::ui::common(true, 0, false)
     )),
+    obj_renderer(add_child<kee::ui::base>(
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        dims(
+            dim(dim::type::rel, 0.95f),
+            dim(dim::type::rel, 1)
+        ),
+        kee::ui::common(true, std::nullopt, false)
+    )),
     is_object_frame_down(false)
 { }
-
-const std::vector<int> object_editor::prio_to_key = []
-{
-    std::vector<int> res;
-    for (const kee::key_pos_data& data : kee::key_ui_data)
-        res.push_back(data.raylib_key);
-    return res;
-}();
-
-const std::unordered_map<int, int> object_editor::key_to_prio = []
-{
-    std::unordered_map<int, int> res;
-    for (int i = 0; i < kee::key_ui_data.size(); i++)
-        res.emplace(kee::key_ui_data[i].raylib_key, i);
-    return res;
-}();
 
 void object_editor::handle_element_events()
 {
@@ -373,10 +385,11 @@ void object_editor::handle_element_events()
 
 void object_editor::update_element([[maybe_unused]] float dt)
 {
-    object_rects.clear();
+    const std::vector<int>& keys_to_render = selected_key_ids.empty() ? editor::prio_to_key : selected_key_ids;
 
-    for (std::size_t i = object_editor::prio_to_key.size(); i-- > 0;)
-    for (const editor_hit_object& object : keys.at(object_editor::prio_to_key[i]).get().get_hit_objects())
+    object_rects.clear();
+    for (std::size_t i = keys_to_render.size(); i-- > 0;)
+    for (const editor_hit_object& object : keys.at(keys_to_render[i]).get().get_hit_objects())
     {
         if (object.beat + object.duration < editor_scene.get_beat() - beat_width)
             continue;
@@ -388,9 +401,9 @@ void object_editor::update_element([[maybe_unused]] float dt)
         const float rel_x_end = std::min(1.0f, (object.beat + object.duration - (editor_scene.get_beat() - beat_width)) / (2 * beat_width));
 
         static const float rel_h = 0.1f;
-        const float rel_y_centered = 0.1f + 0.6f * (i + 1) / (object_editor::prio_to_key.size() + 1);
+        const float rel_y_centered = 0.1f + 0.6f * (i + 1) / (keys_to_render.size() + 1);
 
-        object_rects.push_back(make_temp_child<kee::ui::rect>(
+        object_rects.push_back(obj_renderer.make_temp_child<kee::ui::rect>(
             raylib::Color::DarkBlue(),
             pos(pos::type::rel, rel_x_beg),
             pos(pos::type::rel, rel_y_centered - rel_h / 2),
@@ -449,7 +462,7 @@ void object_editor::render_element_behind_children() const
         const float render_rel_w = is_whole_beat ? 0.005f : 0.003f;
         const float render_rel_h = is_whole_beat ? 0.1f : 0.05f;
 
-        const kee::ui::rect beat_render_rect = make_temp_child<kee::ui::rect>(
+        const kee::ui::rect beat_render_rect = obj_renderer.make_temp_child<kee::ui::rect>(
             raylib::Color(255, 255, 255, static_cast<unsigned char>(255 * opacity)),
             pos(pos::type::rel, render_rel_x),
             pos(pos::type::rel, 0.75f),
@@ -467,7 +480,7 @@ void object_editor::render_element_behind_children() const
         if (is_whole_beat)
         {
             const int whole_beat = static_cast<int>(std::floorf(beat_render));
-            const kee::ui::text whole_beat_text = make_temp_child<kee::ui::text>(
+            const kee::ui::text whole_beat_text = obj_renderer.make_temp_child<kee::ui::text>(
                 raylib::Color(255, 255, 255, static_cast<unsigned char>(255 * opacity)),
                 pos(pos::type::rel, render_rel_x),
                 pos(pos::type::rel, 0.9f),
@@ -479,6 +492,27 @@ void object_editor::render_element_behind_children() const
             whole_beat_text.render();
         }
     }
+
+    const std::vector<int>& keys_to_render = selected_key_ids.empty() ? editor::prio_to_key : selected_key_ids;
+    if (keys_to_render.size() <= 6)
+        for (std::size_t i = 0; i < keys_to_render.size(); i++)
+        {
+            const float rel_y = 0.1f + 0.6f * (i + 1) / (keys_to_render.size() + 1);
+            const std::string key_str = (keys_to_render[i] != KeyboardKey::KEY_SPACE)
+                ? std::string(1, static_cast<char>(keys_to_render[i]))
+                : "__";
+
+            const kee::ui::text key_to_render_text = make_temp_child<kee::ui::text>(
+                raylib::Color::DarkGray(),
+                pos(pos::type::rel, 0.0125f),
+                pos(pos::type::rel, rel_y),
+                ui::text_size(ui::text_size::type::rel_h, 0.1f),
+                assets.font_semi_bold, key_str, false,
+                kee::ui::common(true, std::nullopt, false)
+            );
+
+            key_to_render_text.render();
+        }
 
     for (const kee::ui::rect& object_rect : object_rects)
         object_rect.render();
@@ -532,13 +566,13 @@ editor_key::editor_key(const kee::ui::base::required& reqs, kee::scene::editor& 
         {
             if (raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_LEFT_CONTROL))
                 this->is_control_clicked = true;
-            else
-                this->editor_scene.unselect();
         }
     };
 
     on_click = [&]()
     {
+        if (!this->is_control_clicked)
+            this->editor_scene.unselect();
         this->editor_scene.select(this->key_id);
     };
 

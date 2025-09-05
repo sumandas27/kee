@@ -21,6 +21,9 @@ class editor final : public kee::scene::base
 public:
     static constexpr float beat_lock_threshold = 0.001f;
 
+    static const std::vector<int> prio_to_key;
+    static const std::unordered_map<int, int> key_to_prio;
+
     editor(const kee::scene::window& window, kee::global_assets& assets);
 
     bool is_music_playing() const;
@@ -87,9 +90,6 @@ public:
 private:
     static constexpr float beat_width = 5.0f;
 
-    static const std::vector<int> prio_to_key;
-    static const std::unordered_map<int, int> key_to_prio;
-
     void handle_element_events() override;
     void update_element(float dt) override;
     void render_element_behind_children() const override;
@@ -99,6 +99,7 @@ private:
     const std::vector<int>& selected_key_ids;
 
     kee::ui::triangle& beat_indicator;
+    kee::ui::base& obj_renderer;
 
     std::vector<kee::ui::rect> object_rects;
 
