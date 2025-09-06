@@ -38,8 +38,6 @@ public:
     const float beat_step;
 
 private:
-    static constexpr float beat_drag_speed = 5.0f;
-
     void handle_element_events() override;
     void update_element(float dt) override;
 
@@ -54,8 +52,6 @@ private:
     /* TODO: code indicator selection */
     /* TODO: store unordered_map of (key+beat+duration struct w/ boost::hash_combine) -> (hit object indicators) */
     object_editor& obj_editor;
-    kee::ui::base& beat_hover_l;
-    kee::ui::base& beat_hover_r;
     kee::ui::slider& music_slider;
     kee::ui::button& pause_play;
     kee::ui::image& pause_play_img;
@@ -69,7 +65,6 @@ private:
     std::unordered_map<int, std::reference_wrapper<editor_key>> keys;
 
     float mouse_wheel_move;
-    float beat_drag_multiplier;
 
     raylib::Music music;
     float music_time;
@@ -111,12 +106,16 @@ public:
 class hit_obj_selected
 {
 public:
-    hit_obj_selected(hit_obj_render&& obj_render_info);
+    hit_obj_selected(hit_obj_render&& obj_render_info, float beat_step);
 
     hit_obj_render obj_render_info;
     float beat_start;
+    float beat_curr;
     bool has_moved;
 };
+
+/* TODO: add blocks to left and right of indicator */
+/* TODO: ability to drag ends of hold objects */
 
 class object_editor final : public kee::ui::base
 {
@@ -129,7 +128,8 @@ public:
     );
 
 private:
-    static constexpr float beat_width = 5.0f;
+    static constexpr float beat_width = 4.0f;
+    static constexpr float beat_drag_speed = 5.0f;
 
     void handle_element_events() override;
     void update_element(float dt) override;
@@ -140,12 +140,16 @@ private:
 
     kee::scene::editor& editor_scene;
 
+    kee::ui::base& beat_hover_l;
+    kee::ui::base& beat_hover_r;
     kee::ui::triangle& beat_indicator;
     kee::ui::base& obj_renderer;
 
     std::vector<hit_obj_render> obj_render_info;
     std::optional<hit_obj_selected> selected_obj;
     std::optional<float> beat_drag_start;
+
+    float beat_drag_multiplier;
 };
 
 class editor_key : public kee::ui::button
