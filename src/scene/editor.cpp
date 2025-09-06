@@ -1,5 +1,7 @@
 #include "kee/scene/editor.hpp"
 
+#include <ranges>
+
 namespace kee {
 namespace scene {
 
@@ -27,7 +29,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     pause_png("assets/img/pause.png"),
     pause_play_color(add_transition<kee::color>(kee::color::white())),
     pause_play_scale(add_transition<float>(1.0f)),
-    obj_editor(add_child<object_editor>(*this, keys, selected_key_ids)),
+    obj_editor(add_child<object_editor>(keys, selected_key_ids, *this)),
     beat_hover_l(add_child<kee::ui::base>(
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
@@ -180,11 +182,11 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
 
     /* TODO: for testing only */
 
-    keys.at(KeyboardKey::KEY_W).get().push(editor_hit_object(0.0f, 16.0f));
-    keys.at(KeyboardKey::KEY_Q).get().push(editor_hit_object(0.0f));
-    keys.at(KeyboardKey::KEY_Q).get().push(editor_hit_object(4.0f));
-    keys.at(KeyboardKey::KEY_Q).get().push(editor_hit_object(8.0f));
-    keys.at(KeyboardKey::KEY_Q).get().push(editor_hit_object(12.0f));
+    keys.at(KeyboardKey::KEY_W).get().hit_objects.push_back(editor_hit_object(0.0f, 16.0f));
+    keys.at(KeyboardKey::KEY_Q).get().hit_objects.push_back(editor_hit_object(0.0f));
+    keys.at(KeyboardKey::KEY_Q).get().hit_objects.push_back(editor_hit_object(4.0f));
+    keys.at(KeyboardKey::KEY_Q).get().hit_objects.push_back(editor_hit_object(8.0f));
+    keys.at(KeyboardKey::KEY_Q).get().hit_objects.push_back(editor_hit_object(12.0f));
 
     music.SetLooping(true);
     music.SetVolume(0.1f);
@@ -315,11 +317,71 @@ void editor::update_element([[maybe_unused]] float dt)
     music_time_text.set_string(music_time_str);
 }
 
+editor_hit_object::editor_hit_object(float beat) :
+    beat(beat),
+    duration(0.0f)
+{ }
+
+editor_hit_object::editor_hit_object(float beat, float duration) :
+    beat(beat),
+    duration(duration)
+{ }
+
+hit_obj_ui::hit_obj_ui(const kee::ui::base::required& reqs, float rel_x_beg, float rel_x_end, float rel_y) :
+    kee::ui::rect(reqs,
+        raylib::Color::DarkBlue(),
+        pos(pos::type::rel, rel_x_beg),
+        pos(pos::type::rel, rel_y - rel_h / 2),
+        dims(
+            dim(dim::type::rel, rel_x_end - rel_x_beg),
+            dim(dim::type::rel, rel_h)
+        ),
+        kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, 0.15f, raylib::Color::Blue()), 
+        kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_h, 0.5f, kee::ui::rect_roundness::size_effect::extend_w),
+        kee::ui::common(false, std::nullopt, false)
+    ),
+    circle_l(add_child<kee::ui::rect>(
+        raylib::Color::Blue(),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.5f),
+        dims(
+            dim(dim::type::aspect, 1),
+            dim(dim::type::rel, 0.4f)
+        ),
+        std::nullopt,
+        kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f, std::nullopt),
+        kee::ui::common(true, std::nullopt, false)
+    )),
+    circle_r(add_child<kee::ui::rect>(
+        raylib::Color::Blue(),
+        pos(pos::type::rel, 1),
+        pos(pos::type::rel, 0.5f),
+        dims(
+            dim(dim::type::aspect, 1),
+            dim(dim::type::rel, 0.4f)
+        ),
+        std::nullopt,
+        kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f, std::nullopt),
+        kee::ui::common(true, std::nullopt, false)
+    ))
+{ }
+
+hit_obj_render::hit_obj_render(hit_obj_ui&& render_ui, editor_hit_object& hit_obj_ref) :
+    render_ui(std::move(render_ui)),
+    hit_obj_ref(hit_obj_ref)
+{ }
+
+hit_obj_selected::hit_obj_selected(hit_obj_render&& obj_render_info) :
+    obj_render_info(std::move(obj_render_info)),
+    beat_start(this->obj_render_info.hit_obj_ref.get().beat),
+    has_moved(false)
+{ }
+
 object_editor::object_editor(
     const kee::ui::base::required& reqs,
-    const kee::scene::editor& editor_scene,
     const std::unordered_map<int, std::reference_wrapper<editor_key>>& keys,
-    const std::vector<int>& selected_key_ids
+    const std::vector<int>& selected_key_ids,
+    kee::scene::editor& editor_scene
 ) :
     kee::ui::base(reqs,
         pos(pos::type::rel, 0.5f),
@@ -330,9 +392,9 @@ object_editor::object_editor(
         ),
         kee::ui::common(true, std::nullopt, false)
     ),
-    editor_scene(editor_scene),
     keys(keys),
     selected_key_ids(selected_key_ids),
+    editor_scene(editor_scene),
     beat_indicator(add_child<kee::ui::triangle>(
         raylib::Color::Red(),
         pos(pos::type::rel, 0.5f),
@@ -354,8 +416,7 @@ object_editor::object_editor(
             dim(dim::type::rel, 1)
         ),
         kee::ui::common(true, std::nullopt, false)
-    )),
-    is_object_frame_down(false)
+    ))
 { }
 
 void object_editor::handle_element_events()
@@ -364,22 +425,64 @@ void object_editor::handle_element_events()
         return;
 
     const raylib::Vector2 mouse_pos = raylib::Mouse::GetPosition();
-    if (is_object_frame_down)
+    const raylib::Rectangle obj_renderer_rect = obj_renderer.get_raw_rect();
+
+    if (beat_drag_start.has_value())
     {
         if (raylib::Mouse::IsButtonReleased(MouseButton::MOUSE_BUTTON_LEFT))
         {
-            /* TODO: on release */
-            is_object_frame_down = false;
+            editor_scene.active_child = boost::none;
+
+            beat_drag_start.reset();
+            if (selected_obj.has_value())
+                selected_obj.reset();
         }
         else
         {
             /* TODO: on drag */
         }
     }
-    else if (get_raw_rect().CheckCollision(mouse_pos) && raylib::Mouse::IsButtonPressed(MouseButton::MOUSE_BUTTON_LEFT))
+    else if (obj_renderer_rect.CheckCollision(mouse_pos) && raylib::Mouse::IsButtonPressed(MouseButton::MOUSE_BUTTON_LEFT))
     {
-        /* TODO: on down */
-        is_object_frame_down = true;
+        /**
+         * If two hit objects intersect with mouse position on-click, the top-rightmost one (top-most prioritized 
+         * over right-most) gets selected since that is how the hit objects are ordered when rendered.
+         */
+        static const auto click_priority = [](const hit_obj_render& l, const hit_obj_render& r)
+        {
+            const raylib::Rectangle l_rect = l.render_ui.get_extended_raw_rect();
+            const raylib::Rectangle r_rect = r.render_ui.get_extended_raw_rect();
+
+            return (l_rect.y != r_rect.y)
+                ? l_rect.y > r_rect.y
+                : l_rect.x < r_rect.x;
+        };
+
+        auto obj_rects_clicked = obj_render_info | std::views::filter(
+            [&mouse_pos](const hit_obj_render& obj){ return obj.render_ui.get_extended_raw_rect().CheckCollision(mouse_pos); }
+        );
+
+        auto obj_rect_it = std::ranges::max_element(obj_rects_clicked, click_priority);
+        if (obj_rect_it == std::ranges::end(obj_rects_clicked))
+        {
+            std::println("DRAWING SELECTION BOX");
+        }
+        else
+        {
+            selected_obj.emplace(hit_obj_selected(std::move(*obj_rect_it)));
+
+            hit_obj_ui& selected_ui = selected_obj.value().obj_render_info.render_ui;
+            selected_ui.set_opt_color(raylib::Color::Green());
+            selected_ui.border.value().opt_color = raylib::Color::DarkGreen();
+            selected_ui.circle_l.set_opt_color(raylib::Color::DarkGreen());
+            selected_ui.circle_r.set_opt_color(raylib::Color::DarkGreen());
+        }
+
+        const float mouse_in_rect_percent = (mouse_pos.x - obj_renderer_rect.x) / obj_renderer_rect.width;
+        const float mouse_beat_diff = (mouse_in_rect_percent - 0.5f) * beat_width * 2;
+        beat_drag_start = editor_scene.get_beat() + mouse_beat_diff;
+
+        editor_scene.active_child = *this;
     }
 }
 
@@ -387,11 +490,13 @@ void object_editor::update_element([[maybe_unused]] float dt)
 {
     const std::vector<int>& keys_to_render = selected_key_ids.empty() ? editor::prio_to_key : selected_key_ids;
 
-    object_rects.clear();
+    obj_render_info.clear();
     for (std::size_t i = keys_to_render.size(); i-- > 0;)
-    for (const editor_hit_object& object : keys.at(keys_to_render[i]).get().get_hit_objects())
+    for (editor_hit_object& object : keys.at(keys_to_render[i]).get().hit_objects)
     {
-        if (object.beat + object.duration < editor_scene.get_beat() - beat_width)
+        const bool obj_too_early = object.beat + object.duration < editor_scene.get_beat() - beat_width;
+        const bool obj_selected = selected_obj.has_value() && &selected_obj.value().obj_render_info.hit_obj_ref.get() == &object; 
+        if (obj_too_early || obj_selected)
             continue;
 
         if (object.beat > editor_scene.get_beat() + beat_width)
@@ -399,48 +504,9 @@ void object_editor::update_element([[maybe_unused]] float dt)
 
         const float rel_x_beg = std::max(0.0f, (object.beat - (editor_scene.get_beat() - beat_width)) / (2 * beat_width));
         const float rel_x_end = std::min(1.0f, (object.beat + object.duration - (editor_scene.get_beat() - beat_width)) / (2 * beat_width));
+        const float rel_y = 0.1f + 0.6f * (i + 1) / (keys_to_render.size() + 1);
 
-        static const float rel_h = 0.1f;
-        const float rel_y_centered = 0.1f + 0.6f * (i + 1) / (keys_to_render.size() + 1);
-
-        object_rects.push_back(obj_renderer.make_temp_child<kee::ui::rect>(
-            raylib::Color::DarkBlue(),
-            pos(pos::type::rel, rel_x_beg),
-            pos(pos::type::rel, rel_y_centered - rel_h / 2),
-            dims(
-                dim(dim::type::rel, rel_x_end - rel_x_beg),
-                dim(dim::type::rel, rel_h)
-            ),
-            kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, 0.15f, raylib::Color::Blue()), 
-            kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_h, 0.5f, kee::ui::rect_roundness::size_effect::extend_w),
-            kee::ui::common(false, std::nullopt, false)
-        ));
-
-        object_rects.back().add_child<kee::ui::rect>(
-            raylib::Color::Blue(),
-            pos(pos::type::rel, 0),
-            pos(pos::type::rel, 0.5f),
-            dims(
-                dim(dim::type::aspect, 1),
-                dim(dim::type::rel, 0.4f)
-            ),
-            std::nullopt,
-            kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f, std::nullopt),
-            kee::ui::common(true, std::nullopt, false)
-        );
-
-        object_rects.back().add_child<kee::ui::rect>(
-            raylib::Color::Blue(),
-            pos(pos::type::rel, 1),
-            pos(pos::type::rel, 0.5f),
-            dims(
-                dim(dim::type::aspect, 1),
-                dim(dim::type::rel, 0.4f)
-            ),
-            std::nullopt,
-            kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f, std::nullopt),
-            kee::ui::common(true, std::nullopt, false)
-        );
+        obj_render_info.push_back(hit_obj_render(obj_renderer.make_temp_child<hit_obj_ui>(rel_x_beg, rel_x_end, rel_y), object));
     }
 }
 
@@ -514,19 +580,12 @@ void object_editor::render_element_behind_children() const
             key_to_render_text.render();
         }
 
-    for (const kee::ui::rect& object_rect : object_rects)
+    for (const auto& [object_rect, _] : obj_render_info)
         object_rect.render();
+
+    if (selected_obj.has_value())
+        selected_obj.value().obj_render_info.render_ui.render();
 }
-
-editor_hit_object::editor_hit_object(float beat) :
-    beat(beat),
-    duration(0.0f)
-{ }
-
-editor_hit_object::editor_hit_object(float beat, float duration) :
-    beat(beat),
-    duration(duration)
-{ }
 
 editor_key::editor_key(const kee::ui::base::required& reqs, kee::scene::editor& editor_scene, int key_id) :
     kee::ui::button(reqs,
@@ -583,19 +642,6 @@ editor_key::editor_key(const kee::ui::base::required& reqs, kee::scene::editor& 
         : "___";
 
     key_text.set_string(key_str);
-}
-
-const std::vector<editor_hit_object>& editor_key::get_hit_objects() const
-{
-    return hit_objects;
-}
-
-void editor_key::push(const editor_hit_object& object)
-{
-    if (!hit_objects.empty() && object.beat <= hit_objects.back().beat + hit_objects.back().duration)
-        throw std::invalid_argument("A new hit object must be strictly after all other ones in its key!");
-
-    hit_objects.push_back(object);
 }
 
 void editor_key::handle_element_events()

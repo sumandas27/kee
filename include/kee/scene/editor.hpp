@@ -77,35 +77,6 @@ private:
     std::vector<int> selected_key_ids;
 };
 
-class object_editor final : public kee::ui::base
-{
-public:
-    object_editor(
-        const kee::ui::base::required& reqs, 
-        const kee::scene::editor& editor_scene,
-        const std::unordered_map<int, std::reference_wrapper<editor_key>>& keys,
-        const std::vector<int>& selected_key_ids
-    );
-
-private:
-    static constexpr float beat_width = 5.0f;
-
-    void handle_element_events() override;
-    void update_element(float dt) override;
-    void render_element_behind_children() const override;
-
-    const kee::scene::editor& editor_scene;
-    const std::unordered_map<int, std::reference_wrapper<editor_key>>& keys;
-    const std::vector<int>& selected_key_ids;
-
-    kee::ui::triangle& beat_indicator;
-    kee::ui::base& obj_renderer;
-
-    std::vector<kee::ui::rect> object_rects;
-
-    bool is_object_frame_down;
-};
-
 class editor_hit_object
 {
 public:
@@ -116,14 +87,73 @@ public:
     const float duration;
 };
 
+class hit_obj_ui final : public kee::ui::rect
+{
+public:
+    hit_obj_ui(const kee::ui::base::required& reqs, float rel_x_beg, float rel_x_end, float rel_y);
+
+    kee::ui::rect& circle_l;
+    kee::ui::rect& circle_r;
+
+private:
+    static constexpr float rel_h = 0.1f;
+};
+
+class hit_obj_render
+{
+public:
+    hit_obj_render(hit_obj_ui&& render_ui, editor_hit_object& hit_obj_ref);
+
+    hit_obj_ui render_ui;
+    std::reference_wrapper<editor_hit_object> hit_obj_ref;
+};
+
+class hit_obj_selected
+{
+public:
+    hit_obj_selected(hit_obj_render&& obj_render_info);
+
+    hit_obj_render obj_render_info;
+    float beat_start;
+    bool has_moved;
+};
+
+class object_editor final : public kee::ui::base
+{
+public:
+    object_editor(
+        const kee::ui::base::required& reqs,
+        const std::unordered_map<int, std::reference_wrapper<editor_key>>& keys,
+        const std::vector<int>& selected_key_ids, 
+        kee::scene::editor& editor_scene
+    );
+
+private:
+    static constexpr float beat_width = 5.0f;
+
+    void handle_element_events() override;
+    void update_element(float dt) override;
+    void render_element_behind_children() const override;
+
+    const std::unordered_map<int, std::reference_wrapper<editor_key>>& keys;
+    const std::vector<int>& selected_key_ids;
+
+    kee::scene::editor& editor_scene;
+
+    kee::ui::triangle& beat_indicator;
+    kee::ui::base& obj_renderer;
+
+    std::vector<hit_obj_render> obj_render_info;
+    std::optional<hit_obj_selected> selected_obj;
+    std::optional<float> beat_drag_start;
+};
+
 class editor_key : public kee::ui::button
 {
 public:
     editor_key(const kee::ui::base::required& reqs, kee::scene::editor& editor_scene, int key_id);
 
-    const std::vector<editor_hit_object>& get_hit_objects() const;
-
-    void push(const editor_hit_object& object);
+    std::vector<editor_hit_object> hit_objects;
 
     bool is_selected;
 
@@ -142,7 +172,6 @@ private:
     const int key_id;
 
     bool is_control_clicked;
-    std::vector<editor_hit_object> hit_objects;
 };
 
 } // namespace scene

@@ -12,9 +12,10 @@ public:
 
     rect_outline(rect_outline::type rect_outline_type, float val, const std::optional<raylib::Color>& opt_color);
 
-    const std::optional<raylib::Color> opt_color;
     const rect_outline::type rect_outline_type;
     const float val;
+
+    std::optional<raylib::Color> opt_color;
 };
 
 enum class rect_outline::type
@@ -52,7 +53,7 @@ enum class rect_roundness::size_effect
     extend_h
 };
 
-class rect final : public kee::ui::base
+class rect : public kee::ui::base
 {
 public:
     rect(
@@ -68,13 +69,13 @@ public:
 
     raylib::Rectangle get_extended_raw_rect() const;
 
+    std::optional<kee::ui::rect_outline> border;
+    std::optional<kee::ui::rect_roundness> roundness;
+
 private:
     void render_element_behind_children() const override;
 
     float get_roundness() const;
-
-    const std::optional<kee::ui::rect_outline> border;
-    const std::optional<kee::ui::rect_roundness> roundness;
 };
 
 } // namespace ui

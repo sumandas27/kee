@@ -38,13 +38,13 @@ public:
     class required;
 
     base(
-        const kee::ui::base::required& reqs, 
-        kee::pos x, 
-        kee::pos y, 
-        const std::variant<kee::dims, kee::border>& dimensions, 
+        const kee::ui::base::required& reqs,
+        kee::pos x,
+        kee::pos y,
+        const std::variant<kee::dims, kee::border>& dimensions,
         const kee::ui::common& common
     );
-    base(base&&) = default;
+    base(base&& other) noexcept;
     virtual ~base() = default;
 
     void handle_events();
@@ -85,6 +85,8 @@ public:
     std::variant<kee::dims, kee::border> dimensions;
     bool centered;
 
+    boost::optional<kee::ui::base&> active_child;
+
 protected:
     /**
      * Scene subclasses do *NOT* specify a `parent`, non-scene subclasses do.
@@ -98,15 +100,13 @@ protected:
 
     kee::global_assets& assets;
 
-    boost::optional<kee::ui::base&> active_child;
-
     std::optional<int> z_order;
     bool children_z_order_enabled;
 
 private:
     raylib::Vector2 get_dims(const raylib::Rectangle& parent_raw_rect) const;
 
-    const boost::optional<const kee::ui::base&> parent;
+    boost::optional<const kee::ui::base&> parent;
     std::vector<std::unique_ptr<kee::ui::base>> children;
     std::vector<std::unique_ptr<kee::transition_base>> transitions;
 

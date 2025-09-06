@@ -38,6 +38,24 @@ base::base(const kee::ui::base::required& reqs, const kee::ui::common& common) :
     parent(reqs.parent)
 { }
 
+base::base(base&& other) noexcept :
+    x(std::move(other.x)),
+    y(std::move(other.y)),
+    dimensions(std::move(other.dimensions)),
+    centered(other.centered),
+    active_child(boost::none),
+    assets(other.assets),
+    z_order(std::move(other.z_order)),
+    children_z_order_enabled(other.children_z_order_enabled),
+    parent(other.parent),
+    children(std::move(other.children)),
+    transitions(std::move(other.transitions)),
+    color(std::move(other.color))
+{ 
+    for (std::unique_ptr<kee::ui::base>& child : children)
+        child.get()->parent = *this;
+}
+
 void base::handle_events()
 {    
     if (active_child.has_value())

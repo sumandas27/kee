@@ -4,9 +4,9 @@ namespace kee {
 namespace ui {
 
 rect_outline::rect_outline(rect_outline::type rect_outline_type, float val, const std::optional<raylib::Color>& opt_color) :
-    opt_color(opt_color),
     rect_outline_type(rect_outline_type),
-    val(val)
+    val(val),
+    opt_color(opt_color)
 { }
 
 rect_roundness::rect_roundness(rect_roundness::type rect_roundness_type, float val, std::optional<rect_roundness::size_effect> rect_size_effect) :
