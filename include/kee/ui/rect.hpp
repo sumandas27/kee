@@ -72,9 +72,10 @@ public:
     std::optional<kee::ui::rect_outline> border;
     std::optional<kee::ui::rect_roundness> roundness;
 
-private:
+protected:
     void render_element_behind_children() const override;
 
+private:
     float get_roundness() const;
 };
 

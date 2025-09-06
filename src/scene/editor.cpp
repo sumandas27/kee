@@ -355,13 +355,15 @@ object_editor::object_editor(
     const std::vector<int>& selected_key_ids,
     kee::scene::editor& editor_scene
 ) :
-    kee::ui::base(reqs,
+    kee::ui::rect(reqs,
+        raylib::Color(15, 15, 15, 255),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.1f),
         dims(
             dim(dim::type::rel, 1.0f),
             dim(dim::type::rel, 0.2f)
         ),
+        std::nullopt, std::nullopt,
         kee::ui::common(true, std::nullopt, false)
     ),
     keys(keys),
@@ -385,6 +387,28 @@ object_editor::object_editor(
         ),
         kee::ui::common(false, std::nullopt, false)
     )),
+    rect_l(add_child<kee::ui::rect>(
+        raylib::Color(30, 30, 30),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 0.125f),
+            dim(dim::type::rel, 1)
+        ),
+        std::nullopt, std::nullopt,
+        kee::ui::common(false, std::nullopt, false)
+    )),
+    rect_r(add_child<kee::ui::rect>(
+        raylib::Color(30, 30, 30),
+        pos(pos::type::rel, 0.875f),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 0.125f),
+            dim(dim::type::rel, 1)
+        ),
+        std::nullopt, std::nullopt,
+        kee::ui::common(false, std::nullopt, false)
+    )),
     beat_indicator(add_child<kee::ui::triangle>(
         raylib::Color::Red(),
         pos(pos::type::rel, 0.5f),
@@ -402,7 +426,7 @@ object_editor::object_editor(
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         dims(
-            dim(dim::type::rel, 0.95f),
+            dim(dim::type::rel, 0.75f),
             dim(dim::type::rel, 1)
         ),
         kee::ui::common(true, std::nullopt, false)
@@ -512,42 +536,34 @@ void object_editor::update_element([[maybe_unused]] float dt)
     for (std::size_t i = keys_to_render.size(); i-- > 0;)
     for (editor_hit_object& object : keys.at(keys_to_render[i]).get().hit_objects)
     {
-        const bool obj_too_early = object.beat + object.duration < editor_scene.get_beat() - beat_width;
-        const bool obj_selected = selected_obj.has_value() && &selected_obj.value().obj_render_info.hit_obj_ref.get() == &object; 
-        if (obj_too_early || obj_selected)
+        if (selected_obj.has_value() && &selected_obj.value().obj_render_info.hit_obj_ref.get() == &object)
             continue;
 
-        if (object.beat > editor_scene.get_beat() + beat_width)
-            break;
-
-        const float rel_x_beg = std::max(0.0f, (object.beat - (editor_scene.get_beat() - beat_width)) / (2 * beat_width));
-        const float rel_x_end = std::min(1.0f, (object.beat + object.duration - (editor_scene.get_beat() - beat_width)) / (2 * beat_width));
+        const float rel_x_beg = (object.beat - (editor_scene.get_beat() - beat_width)) / (2 * beat_width);
+        const float rel_x_end = (object.beat + object.duration - (editor_scene.get_beat() - beat_width)) / (2 * beat_width);
         const float rel_y = 0.1f + 0.6f * (i + 1) / (keys_to_render.size() + 1);
 
-        obj_render_info.push_back(hit_obj_render(obj_renderer.make_temp_child<hit_obj_ui>(rel_x_beg, rel_x_end, rel_y), object));
+        hit_obj_ui render_ui = obj_renderer.make_temp_child<hit_obj_ui>(rel_x_beg, rel_x_end, rel_y);
+        if (render_ui.get_extended_raw_rect().CheckCollision(obj_renderer.get_raw_rect()))
+            obj_render_info.push_back(hit_obj_render(std::move(render_ui), object));
     }
 }
 
 void object_editor::render_element_behind_children() const
 {
+    kee::ui::rect::render_element_behind_children();
+
     const float beat_start = std::ceil((editor_scene.get_beat() - beat_width) / editor_scene.beat_step) * editor_scene.beat_step;
-    for (float beat_render = beat_start; beat_render <= editor_scene.get_beat() + beat_width; beat_render += editor_scene.beat_step)
+    for (float beat_render = beat_start - 1.0f; beat_render <= editor_scene.get_beat() + beat_width + 1.0f; beat_render += editor_scene.beat_step)
     {
         const float render_rel_x = (beat_render - (editor_scene.get_beat() - beat_width)) / (2 * beat_width);
-
-        static constexpr float fade_percent = 0.05f;
-        float opacity = 1.0f;
-        if (render_rel_x <= fade_percent)
-            opacity = render_rel_x / fade_percent;
-        else if (render_rel_x >= 1.0f - fade_percent)
-            opacity = (1.0f - render_rel_x) / fade_percent;
 
         const bool is_whole_beat = std::floorf(beat_render) == beat_render;
         const float render_rel_w = is_whole_beat ? 0.005f : 0.003f;
         const float render_rel_h = is_whole_beat ? 0.1f : 0.05f;
 
         const kee::ui::rect beat_render_rect = obj_renderer.make_temp_child<kee::ui::rect>(
-            raylib::Color(255, 255, 255, static_cast<unsigned char>(255 * opacity)),
+            raylib::Color::White(),
             pos(pos::type::rel, render_rel_x),
             pos(pos::type::rel, 0.75f),
             dims(
@@ -559,24 +575,35 @@ void object_editor::render_element_behind_children() const
             kee::ui::common(true, std::nullopt, false)
         );
 
-        beat_render_rect.render();
+        if (beat_render_rect.get_raw_rect().CheckCollision(obj_renderer.get_raw_rect()))
+            beat_render_rect.render();
 
         if (is_whole_beat)
         {
             const int whole_beat = static_cast<int>(std::floorf(beat_render));
             const kee::ui::text whole_beat_text = obj_renderer.make_temp_child<kee::ui::text>(
-                raylib::Color(255, 255, 255, static_cast<unsigned char>(255 * opacity)),
+                raylib::Color::White(),
                 pos(pos::type::rel, render_rel_x),
                 pos(pos::type::rel, 0.9f),
-                ui::text_size(ui::text_size::type::rel_h, 0.2f),
+                ui::text_size(ui::text_size::type::rel_h, 0.15f),
                 assets.font_semi_bold, std::to_string(whole_beat), true,
                 kee::ui::common(true, std::nullopt, false)
             );
 
-            whole_beat_text.render();
+            if (whole_beat_text.get_raw_rect().CheckCollision(obj_renderer.get_raw_rect()))
+                whole_beat_text.render();
         }
     }
 
+    for (const auto& [object_rect, _] : obj_render_info)
+        object_rect.render();
+
+    if (selected_obj.has_value())
+        selected_obj.value().obj_render_info.render_ui.render();
+}
+
+void object_editor::render_element_ahead_children() const
+{
     const std::vector<int>& keys_to_render = selected_key_ids.empty() ? editor::prio_to_key : selected_key_ids;
     if (keys_to_render.size() <= 6)
         for (std::size_t i = 0; i < keys_to_render.size(); i++)
@@ -587,8 +614,8 @@ void object_editor::render_element_behind_children() const
                 : "__";
 
             const kee::ui::text key_to_render_text = make_temp_child<kee::ui::text>(
-                raylib::Color::DarkGray(),
-                pos(pos::type::rel, 0.0125f),
+                raylib::Color::White(),
+                pos(pos::type::rel, 0.115f),
                 pos(pos::type::rel, rel_y),
                 ui::text_size(ui::text_size::type::rel_h, 0.1f),
                 assets.font_semi_bold, key_str, false,
@@ -597,12 +624,6 @@ void object_editor::render_element_behind_children() const
 
             key_to_render_text.render();
         }
-
-    for (const auto& [object_rect, _] : obj_render_info)
-        object_rect.render();
-
-    if (selected_obj.has_value())
-        selected_obj.value().obj_render_info.render_ui.render();
 }
 
 editor_key::editor_key(const kee::ui::base::required& reqs, kee::scene::editor& editor_scene, int key_id) :

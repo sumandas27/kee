@@ -117,7 +117,7 @@ public:
 /* TODO: add blocks to left and right of indicator */
 /* TODO: ability to drag ends of hold objects */
 
-class object_editor final : public kee::ui::base
+class object_editor final : public kee::ui::rect
 {
 public:
     object_editor(
@@ -134,6 +134,7 @@ private:
     void handle_element_events() override;
     void update_element(float dt) override;
     void render_element_behind_children() const override;
+    void render_element_ahead_children() const override;
 
     const std::unordered_map<int, std::reference_wrapper<editor_key>>& keys;
     const std::vector<int>& selected_key_ids;
@@ -142,6 +143,8 @@ private:
 
     kee::ui::base& beat_hover_l;
     kee::ui::base& beat_hover_r;
+    kee::ui::rect& rect_l;
+    kee::ui::rect& rect_r;
     kee::ui::triangle& beat_indicator;
     kee::ui::base& obj_renderer;
 
