@@ -298,13 +298,13 @@ editor_hit_object::editor_hit_object(float beat, float duration) :
     duration(duration)
 { }
 
-hit_obj_ui::hit_obj_ui(const kee::ui::base::required& reqs, float rel_x_beg, float rel_x_end, float rel_y) :
+hit_obj_ui::hit_obj_ui(const kee::ui::base::required& reqs, float beat, float duration, float curr_beat, float beat_width, float rel_y) :
     kee::ui::rect(reqs,
         raylib::Color::DarkBlue(),
-        pos(pos::type::rel, rel_x_beg),
+        pos(pos::type::rel, (beat - curr_beat + beat_width) / (2 * beat_width)),
         pos(pos::type::rel, rel_y - rel_h / 2),
         dims(
-            dim(dim::type::rel, rel_x_end - rel_x_beg),
+            dim(dim::type::rel, duration / (2 * beat_width)),
             dim(dim::type::rel, rel_h)
         ),
         kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, 0.15f, raylib::Color::Blue()), 
@@ -342,12 +342,17 @@ hit_obj_render::hit_obj_render(hit_obj_ui&& render_ui, editor_hit_object& hit_ob
     hit_obj_ref(hit_obj_ref)
 { }
 
-hit_obj_selected::hit_obj_selected(hit_obj_render&& obj_render_info, float beat_step) :
+hit_obj_selected::hit_obj_selected(hit_obj_render&& obj_render_info, const raylib::Vector2& mouse_pos_start) :
     obj_render_info(std::move(obj_render_info)),
-    beat_start(std::round(this->obj_render_info.hit_obj_ref.get().beat / beat_step) * beat_step),
-    beat_curr(beat_start),
+    mouse_pos_start(mouse_pos_start),
     has_moved(false)
 { }
+
+void hit_obj_selected::update(float beat, float duration, float curr_beat, float beat_width)
+{
+    obj_render_info.render_ui.x.val = (beat - curr_beat + beat_width) / (2 * beat_width);
+    std::get<kee::dims>(obj_render_info.render_ui.dimensions).w.val = duration / (2 * beat_width);
+}
 
 object_editor::object_editor(
     const kee::ui::base::required& reqs,
@@ -443,7 +448,7 @@ void object_editor::handle_element_events()
 
     const float mouse_in_rect_percent = (mouse_pos.x - obj_renderer_rect.x) / obj_renderer_rect.width;
     const float mouse_beat_diff = (mouse_in_rect_percent - 0.5f) * beat_width * 2;
-    const float mouse_beat = editor_scene.get_beat() - mouse_beat_diff;
+    const float mouse_beat = editor_scene.get_beat() + mouse_beat_diff;
 
     if (beat_hover_l.get_raw_rect().CheckCollision(mouse_pos))
         beat_drag_multiplier = -1;
@@ -460,24 +465,31 @@ void object_editor::handle_element_events()
 
             beat_drag_start.reset();
             if (selected_obj.has_value())
+            {
+                /* TODO: see if obj can be placed in new location */
                 selected_obj.reset();
+            }
         }
         else
         {
-            //const float beat_drag_width = mouse_beat - beat_drag_start.value();
             if (selected_obj.has_value())
             {
-                //const float selected_mouse_beat = std::round(mouse_beat / editor_scene.beat_step) * editor_scene.beat_step;
-                
-                //if (selected_beat_mouse_diff > editor_scene.get_beat() + beat_width)
-                //    selected_beat_mouse_diff = std::ceil((editor_scene.get_beat() + beat_width) / editor_scene.beat_step) * editor_scene.beat_step;
-                //else if (selected_beat_mouse_diff < editor_scene.get_beat() - beat_width)
-                //    selected_beat_mouse_diff = std::floor((editor_scene.get_beat() - beat_width) / editor_scene.beat_step) * editor_scene.beat_step;
+                float& selected_obj_beat = selected_obj.value().obj_render_info.hit_obj_ref.get().beat;
+                if (!selected_obj.value().has_moved && mouse_pos != selected_obj.value().mouse_pos_start)
+                {
+                    if (std::abs(std::fmod(selected_obj_beat, editor_scene.beat_step)) > editor_scene.beat_lock_threshold)
+                    {
+                        selected_obj_beat = std::round(selected_obj_beat / editor_scene.beat_step) * editor_scene.beat_step;
+                        beat_drag_start = selected_obj_beat;
+                    }
 
-                //if (std::abs(selected_mouse_beat - selected_obj.value().beat_curr) > editor_scene.beat_lock_threshold)
-                //    selected_obj.value().beat_curr = selected_mouse_beat;
+                    selected_obj.value().has_moved = true;
+                }
 
-                /* TODO: update */
+                const float beat_drag_width = mouse_beat - beat_drag_start.value();
+                const float beat_drag_diff = std::round(beat_drag_width / editor_scene.beat_step) * editor_scene.beat_step;
+                const float selected_obj_duration = selected_obj.value().obj_render_info.hit_obj_ref.get().duration;
+                selected_obj.value().update(selected_obj_beat + beat_drag_diff, selected_obj_duration, editor_scene.get_beat(), beat_width);
             }
         }
     }
@@ -511,7 +523,7 @@ void object_editor::handle_element_events()
             /** 
              * `obj_render_info` will be promptly cleared in `update_element`. Moving is safe. 
              */
-            selected_obj.emplace(hit_obj_selected(std::move(*obj_rect_it), editor_scene.beat_step));
+            selected_obj.emplace(hit_obj_selected(std::move(*obj_rect_it), mouse_pos));
 
             hit_obj_ui& selected_ui = selected_obj.value().obj_render_info.render_ui;
             selected_ui.set_opt_color(raylib::Color::Green());
@@ -539,11 +551,9 @@ void object_editor::update_element([[maybe_unused]] float dt)
         if (selected_obj.has_value() && &selected_obj.value().obj_render_info.hit_obj_ref.get() == &object)
             continue;
 
-        const float rel_x_beg = (object.beat - (editor_scene.get_beat() - beat_width)) / (2 * beat_width);
-        const float rel_x_end = (object.beat + object.duration - (editor_scene.get_beat() - beat_width)) / (2 * beat_width);
         const float rel_y = 0.1f + 0.6f * (i + 1) / (keys_to_render.size() + 1);
+        hit_obj_ui render_ui = obj_renderer.make_temp_child<hit_obj_ui>(object.beat, object.duration, editor_scene.get_beat(), beat_width, rel_y);
 
-        hit_obj_ui render_ui = obj_renderer.make_temp_child<hit_obj_ui>(rel_x_beg, rel_x_end, rel_y);
         if (render_ui.get_extended_raw_rect().CheckCollision(obj_renderer.get_raw_rect()))
             obj_render_info.push_back(hit_obj_render(std::move(render_ui), object));
     }

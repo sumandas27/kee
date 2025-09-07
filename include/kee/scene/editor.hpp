@@ -78,14 +78,15 @@ public:
     editor_hit_object(float beat);
     editor_hit_object(float beat, float duration);
 
-    const float beat;
-    const float duration;
+    float beat;
+    float duration;
 };
 
 class hit_obj_ui final : public kee::ui::rect
 {
 public:
-    hit_obj_ui(const kee::ui::base::required& reqs, float rel_x_beg, float rel_x_end, float rel_y);
+    hit_obj_ui(const kee::ui::base::required& reqs, float beat, float duration, float curr_beat, float beat_width, float rel_y);
+
 
     kee::ui::rect& circle_l;
     kee::ui::rect& circle_r;
@@ -106,11 +107,12 @@ public:
 class hit_obj_selected
 {
 public:
-    hit_obj_selected(hit_obj_render&& obj_render_info, float beat_step);
+    hit_obj_selected(hit_obj_render&& obj_render_info, const raylib::Vector2& mouse_pos_start);
+
+    void update(float beat, float duration, float curr_beat, float beat_width);
 
     hit_obj_render obj_render_info;
-    float beat_start;
-    float beat_curr;
+    raylib::Vector2 mouse_pos_start;
     bool has_moved;
 };
 
