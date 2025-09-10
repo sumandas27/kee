@@ -80,13 +80,14 @@ public:
 
     float beat;
     float duration;
+
+    bool is_selected;
 };
 
 class hit_obj_ui final : public kee::ui::rect
 {
 public:
     hit_obj_ui(const kee::ui::base::required& reqs, float beat, float duration, float curr_beat, float beat_width, float rel_y);
-
 
     kee::ui::rect& circle_l;
     kee::ui::rect& circle_r;
@@ -104,15 +105,18 @@ public:
     std::reference_wrapper<editor_hit_object> hit_obj_ref;
 };
 
-class hit_obj_selected
+class hit_objs_selected
 {
 public:
-    hit_obj_selected(hit_obj_render&& obj_render_info, const raylib::Vector2& mouse_pos_start);
+    hit_objs_selected();
 
-    void update(float beat, float duration, float curr_beat, float beat_width);
+    void update(float beat_drag_diff, float curr_beat, float beat_width);
 
-    hit_obj_render obj_render_info;
+    std::vector<hit_obj_render> render_infos;
     raylib::Vector2 mouse_pos_start;
+    float reference_beat;
+
+    bool is_active;
     bool has_moved;
 };
 
@@ -151,8 +155,9 @@ private:
     kee::ui::base& obj_renderer;
 
     std::vector<hit_obj_render> obj_render_info;
-    std::optional<hit_obj_selected> selected_obj;
     std::optional<float> beat_drag_start;
+
+    hit_objs_selected selected_obj; /* TODO: rename to `selected` */
 
     float beat_drag_multiplier;
 };
