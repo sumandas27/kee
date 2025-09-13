@@ -8,7 +8,8 @@
 #include "kee/ui/text.hpp"
 #include "kee/ui/triangle.hpp"
 
-/* TODO: abstract shared info between `editor` and `beatmap` scene */
+/* BUG: occasionally beats jump to end of song. */
+/* BUG: occasionally beat indicators at bottom do NOT update */
 
 namespace kee {
 namespace scene {
@@ -89,6 +90,8 @@ class hit_obj_ui final : public kee::ui::rect
 public:
     hit_obj_ui(const kee::ui::base::required& reqs, float beat, float duration, float curr_beat, float beat_width, float rel_y);
 
+    void update(float beat, float duration, float curr_beat, float beat_width);
+
     kee::ui::rect& circle_l;
     kee::ui::rect& circle_r;
 
@@ -105,27 +108,15 @@ public:
     std::reference_wrapper<editor_hit_object> hit_obj_ref;
 };
 
-class hit_objs_selected
-{
-public:
-    hit_objs_selected();
-
-    void update(float beat_drag_diff, float curr_beat, float beat_width);
-
-    std::vector<hit_obj_render> render_infos;
-    raylib::Vector2 mouse_pos_start;
-    float reference_beat;
-
-    bool is_active;
-    bool has_moved;
-};
-
 /* TODO: add blocks to left and right of indicator */
 /* TODO: ability to drag ends of hold objects */
 
 class object_editor final : public kee::ui::rect
 {
 public:
+    static constexpr float beat_width = 4.0f;
+    static constexpr float beat_drag_speed = 5.0f;
+
     object_editor(
         const kee::ui::base::required& reqs,
         const std::unordered_map<int, std::reference_wrapper<editor_key>>& keys,
@@ -133,10 +124,11 @@ public:
         kee::scene::editor& editor_scene
     );
 
-private:
-    static constexpr float beat_width = 4.0f;
-    static constexpr float beat_drag_speed = 5.0f;
+    kee::ui::base& obj_renderer;
 
+    std::vector<hit_obj_render> obj_render_info;
+
+private:
     void handle_element_events() override;
     void update_element(float dt) override;
     void render_element_behind_children() const override;
@@ -152,14 +144,16 @@ private:
     kee::ui::rect& rect_l;
     kee::ui::rect& rect_r;
     kee::ui::triangle& beat_indicator;
-    kee::ui::base& obj_renderer;
 
-    std::vector<hit_obj_render> obj_render_info;
     std::optional<float> beat_drag_start;
-
-    hit_objs_selected selected_obj; /* TODO: rename to `selected` */
-
     float beat_drag_multiplier;
+    float mouse_beat;
+
+    raylib::Vector2 mouse_pos_start;
+    bool selected_has_moved;
+    bool selected_is_active;
+
+    float selected_reference_beat;
 };
 
 class editor_key : public kee::ui::button
