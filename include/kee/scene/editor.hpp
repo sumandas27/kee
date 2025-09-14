@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+
 #include "kee/scene/base.hpp"
 #include "kee/ui/button.hpp"
 #include "kee/ui/image.hpp"
@@ -76,12 +78,9 @@ private:
 class editor_hit_object
 {
 public:
-    editor_hit_object(float beat);
-    editor_hit_object(float beat, float duration);
+    editor_hit_object(float duration);
 
-    float beat;
     float duration;
-
     bool is_selected;
 };
 
@@ -102,10 +101,10 @@ private:
 class hit_obj_render
 {
 public:
-    hit_obj_render(hit_obj_ui&& render_ui, editor_hit_object& hit_obj_ref);
+    hit_obj_render(hit_obj_ui&& render_ui, std::map<float, editor_hit_object>::iterator hit_obj_ref);
 
     hit_obj_ui render_ui;
-    std::reference_wrapper<editor_hit_object> hit_obj_ref;
+    std::map<float, editor_hit_object>::iterator hit_obj_ref;
 };
 
 /* TODO: add blocks to left and right of indicator */
@@ -153,6 +152,7 @@ private:
     bool selected_has_moved;
     bool selected_is_active;
 
+    float selected_beat;
     float selected_reference_beat;
 };
 
@@ -161,7 +161,7 @@ class editor_key : public kee::ui::button
 public:
     editor_key(const kee::ui::base::required& reqs, kee::scene::editor& editor_scene, int key_id);
 
-    std::vector<editor_hit_object> hit_objects;
+    std::map<float, editor_hit_object> hit_objects;
 
     bool is_selected;
 

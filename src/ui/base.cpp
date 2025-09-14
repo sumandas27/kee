@@ -82,7 +82,7 @@ void base::update(float dt)
             [](const std::unique_ptr<kee::ui::base>& l, const std::unique_ptr<kee::ui::base>& r) {
                 const int l_z_order = l->z_order.value_or(0);
                 const int r_z_order = r->z_order.value_or(0);
-                return l_z_order >= r_z_order;
+                return l_z_order > r_z_order;
             }
         );
 }
