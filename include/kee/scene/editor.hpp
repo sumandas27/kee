@@ -19,6 +19,20 @@ namespace scene {
 class object_editor;
 class editor_key;
 
+/**
+ * These objects will belong in an `std::set`, whose keys store the `beat` of the object.
+ */
+class editor_hit_object
+{
+public:
+    editor_hit_object(int key, float duration);
+
+    int key;
+
+    float duration;
+    bool is_selected;
+};
+
 class editor final : public kee::scene::base
 {
 public:
@@ -39,6 +53,8 @@ public:
 
     const float approach_beats;
     const float beat_step;
+
+    std::unordered_map<int, std::reference_wrapper<editor_key>> keys;
 
 private:
     void handle_element_events() override;
@@ -65,23 +81,12 @@ private:
     const float music_start_offset;
     const float music_bpm;
 
-    std::unordered_map<int, std::reference_wrapper<editor_key>> keys;
-
     float mouse_wheel_move;
 
     raylib::Music music;
     float music_time;
 
     std::vector<int> selected_key_ids;
-};
-
-class editor_hit_object
-{
-public:
-    editor_hit_object(float duration);
-
-    float duration;
-    bool is_selected;
 };
 
 class hit_obj_ui final : public kee::ui::rect
@@ -105,6 +110,15 @@ public:
 
     hit_obj_ui render_ui;
     std::map<float, editor_hit_object>::iterator hit_obj_ref;
+};
+
+class hit_obj_node
+{
+public:
+    hit_obj_node(hit_obj_render& ref, std::map<float, editor_hit_object>::node_type node);
+
+    hit_obj_render& ref;
+    std::map<float, editor_hit_object>::node_type node;
 };
 
 /* TODO: add blocks to left and right of indicator */

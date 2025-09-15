@@ -5,6 +5,12 @@
 namespace kee {
 namespace scene {
 
+editor_hit_object::editor_hit_object(int key, float duration) :
+    key(key),
+    duration(duration),
+    is_selected(false)
+{ }
+
 const std::vector<int> editor::prio_to_key = []
 {
     std::vector<int> res;
@@ -133,7 +139,6 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         {
             this->music.Pause();
             this->pause_play_img.set_image(play_png);
-
         }
         else
         {
@@ -164,11 +169,11 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
 
     /* TODO: for testing only */
 
-    keys.at(KeyboardKey::KEY_W).get().hit_objects.emplace(0.0f, editor_hit_object(16.0f));
-    keys.at(KeyboardKey::KEY_Q).get().hit_objects.emplace(0.0f, editor_hit_object(0));
-    keys.at(KeyboardKey::KEY_Q).get().hit_objects.emplace(4.0f, editor_hit_object(0));
-    keys.at(KeyboardKey::KEY_Q).get().hit_objects.emplace(8.0f, editor_hit_object(0));
-    keys.at(KeyboardKey::KEY_Q).get().hit_objects.emplace(12.0f, editor_hit_object(0));
+    keys.at(KeyboardKey::KEY_Q).get().hit_objects.emplace(0.0f, editor_hit_object(KeyboardKey::KEY_Q, 16.0f));
+    keys.at(KeyboardKey::KEY_W).get().hit_objects.emplace(0.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
+    keys.at(KeyboardKey::KEY_W).get().hit_objects.emplace(4.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
+    keys.at(KeyboardKey::KEY_W).get().hit_objects.emplace(8.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
+    keys.at(KeyboardKey::KEY_W).get().hit_objects.emplace(12.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
 
     music.SetLooping(true);
     music.SetVolume(0.1f);
@@ -314,11 +319,6 @@ void editor::update_element([[maybe_unused]] float dt)
     music_time_text.set_string(music_time_str);
 }
 
-editor_hit_object::editor_hit_object(float duration) :
-    duration(duration),
-    is_selected(false)
-{ }
-
 hit_obj_ui::hit_obj_ui(const kee::ui::base::required& reqs, float beat, float duration, float curr_beat, float beat_width, float rel_y) :
     kee::ui::rect(reqs,
         raylib::Color::DarkBlue(),
@@ -361,6 +361,11 @@ hit_obj_ui::hit_obj_ui(const kee::ui::base::required& reqs, float beat, float du
 hit_obj_render::hit_obj_render(hit_obj_ui&& render_ui, std::map<float, editor_hit_object>::iterator hit_obj_ref) :
     render_ui(std::move(render_ui)),
     hit_obj_ref(hit_obj_ref)
+{ }
+
+hit_obj_node::hit_obj_node(hit_obj_render& ref, std::map<float, editor_hit_object>::node_type node) :
+    ref(ref),
+    node(std::move(node))
 { }
 
 void hit_obj_ui::update(float beat, float duration, float curr_beat, float beat_width)
@@ -482,23 +487,51 @@ void object_editor::handle_element_events()
             {
                 const float beat_drag_width = mouse_beat - beat_drag_start.value();
                 const float beat_drag_diff = std::round(beat_drag_width / editor_scene.beat_step) * editor_scene.beat_step;
-                selected_reference_beat += beat_drag_diff;
+                const float new_reference_beat = selected_reference_beat + beat_drag_diff;
                 
+                std::vector<hit_obj_node> hit_obj_nodes;
                 for (hit_obj_render& obj_selected : obj_render_info)
                 {
-                    auto& [beat, object] = *obj_selected.hit_obj_ref;
+                    editor_hit_object& object = obj_selected.hit_obj_ref->second;
                     if (object.is_selected)
                     {
-                        const float obj_beat_offset = beat - selected_beat;
-                        const float obj_beat_new = selected_reference_beat + obj_beat_offset;
-
-                        /* TODO: reshift */
-                        //obj_selected.hit_obj_ref.get().beat = selected_reference_beat + obj_beat_offset;
+                        auto map_node = editor_scene.keys.at(object.key).get().hit_objects.extract(obj_selected.hit_obj_ref);
+                        hit_obj_nodes.emplace_back(obj_selected, std::move(map_node));
                     }
+                }
+
+                bool is_move_valid = true;
+                for (hit_obj_node& node : hit_obj_nodes)
+                {
+                    auto& [beat, object] = *node.ref.hit_obj_ref;
+                    const float obj_beat_new = new_reference_beat + beat - selected_beat;
+
+                    std::map<float, editor_hit_object>& hit_objects = editor_scene.keys.at(object.key).get().hit_objects;
+                    auto next_it = hit_objects.lower_bound(obj_beat_new);
+                    
+                    if (next_it != hit_objects.end() && obj_beat_new + object.duration + editor::beat_lock_threshold >= next_it->first)
+                        is_move_valid = false;
+                    else if (next_it != hit_objects.begin() && std::prev(next_it)->first + std::prev(next_it)->second.duration + editor::beat_lock_threshold >= obj_beat_new)
+                        is_move_valid = false;
+
+                    if (!is_move_valid)
+                        break;
+                }
+
+                for (hit_obj_node& node : hit_obj_nodes)
+                {
+                    auto& [beat, object] = *node.ref.hit_obj_ref;
+                    const float obj_beat_new = new_reference_beat + beat - selected_beat;
+                    const float obj_beat_inserted = is_move_valid ? obj_beat_new : beat;
+
+                    node.node.key() = obj_beat_inserted;
+                    node.ref.hit_obj_ref = editor_scene.keys.at(object.key).get().hit_objects.insert(std::move(node.node)).position;
                 }
 
                 selected_has_moved = false;
                 selected_is_active = false;
+                if (is_move_valid)
+                    selected_reference_beat = new_reference_beat;
             }
             else
             {
@@ -583,7 +616,6 @@ void object_editor::handle_element_events()
     }
     else
     {
-
         std::println("DRAWING SELECTION BOX");
     }
 }
