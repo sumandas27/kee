@@ -10,9 +10,6 @@
 #include "kee/ui/text.hpp"
 #include "kee/ui/triangle.hpp"
 
-/* BUG: occasionally beats jump to end of song. */
-/* BUG: occasionally beat indicators at bottom do NOT update */
-
 namespace kee {
 namespace scene {
 
@@ -108,6 +105,9 @@ class hit_obj_render
 public:
     hit_obj_render(hit_obj_ui&& render_ui, std::map<float, editor_hit_object>::iterator hit_obj_ref);
 
+    void select();
+    void unselect();
+
     hit_obj_ui render_ui;
     std::map<float, editor_hit_object>::iterator hit_obj_ref;
 };
@@ -128,7 +128,7 @@ class object_editor final : public kee::ui::rect
 {
 public:
     static constexpr float beat_width = 4.0f;
-    static constexpr float beat_drag_speed = 5.0f;
+    static constexpr float beat_drag_speed = 7.0f;
 
     object_editor(
         const kee::ui::base::required& reqs,
@@ -159,8 +159,9 @@ private:
     kee::ui::triangle& beat_indicator;
 
     std::optional<float> beat_drag_start;
-    float beat_drag_multiplier;
+    std::optional<kee::ui::rect> selection_rect;
     float mouse_beat;
+    float beat_drag_multiplier;
 
     raylib::Vector2 mouse_pos_start;
     bool selected_has_moved;
