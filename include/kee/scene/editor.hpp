@@ -10,6 +10,9 @@
 #include "kee/ui/text.hpp"
 #include "kee/ui/triangle.hpp"
 
+/* TODO: add hit objects on both object editor and keys with right click */
+/* TODO: add right-hand bar to edit hit objects */
+
 namespace kee {
 namespace scene {
 
@@ -91,6 +94,9 @@ class hit_obj_ui final : public kee::ui::rect
 public:
     hit_obj_ui(const kee::ui::base::required& reqs, float beat, float duration, float curr_beat, float beat_width, float rel_y);
 
+    void select();
+    void unselect();
+
     void update(float beat, float duration, float curr_beat, float beat_width);
 
     kee::ui::rect& circle_l;
@@ -104,9 +110,6 @@ class hit_obj_render
 {
 public:
     hit_obj_render(hit_obj_ui&& render_ui, std::map<float, editor_hit_object>::iterator hit_obj_ref);
-
-    void select();
-    void unselect();
 
     hit_obj_ui render_ui;
     std::map<float, editor_hit_object>::iterator hit_obj_ref;
@@ -124,9 +127,24 @@ public:
 /* TODO: add blocks to left and right of indicator */
 /* TODO: ability to drag ends of hold objects */
 
+class new_hit_obj_data
+{
+public:
+    new_hit_obj_data(int key, float rel_y, float click_beat, float current_beat);
+
+    int key;
+    float rel_y;
+
+    float click_beat;
+    float current_beat;
+};
+
 class object_editor final : public kee::ui::rect
 {
 public:
+    static constexpr float hit_objs_rel_y = 0.1f;
+    static constexpr float hit_objs_rel_h = 0.6f;
+
     static constexpr float beat_width = 4.0f;
     static constexpr float beat_drag_speed = 7.0f;
 
@@ -136,6 +154,8 @@ public:
         const std::vector<int>& selected_key_ids, 
         kee::scene::editor& editor_scene
     );
+
+    void reset_render_hit_objs();
 
     kee::ui::base& obj_renderer;
 
@@ -160,6 +180,8 @@ private:
 
     std::optional<float> beat_drag_start;
     std::optional<kee::ui::rect> selection_rect;
+    std::optional<new_hit_obj_data> new_hit_object;
+
     float mouse_beat;
     float beat_drag_multiplier;
 

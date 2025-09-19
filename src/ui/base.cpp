@@ -78,7 +78,7 @@ void base::update(float dt)
         child->update(dt);
 
     if (children_z_order_enabled)
-        std::sort(children.begin(), children.end(),
+         std::sort(children.begin(), children.end(),
             [](const std::unique_ptr<kee::ui::base>& l, const std::unique_ptr<kee::ui::base>& r) {
                 const int l_z_order = l->z_order.value_or(0);
                 const int r_z_order = r->z_order.value_or(0);
