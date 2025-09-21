@@ -51,6 +51,8 @@ public:
     void unselect();
     void select(int id);
 
+    object_editor& obj_editor;
+
     const float approach_beats;
     const float beat_step;
 
@@ -66,11 +68,6 @@ private:
     kee::transition<kee::color>& pause_play_color;
     kee::transition<float>& pause_play_scale;
 
-    /* TODO: how to handle event */
-    /* TODO: render indicators based on key selection */
-    /* TODO: code indicator selection */
-    /* TODO: store unordered_map of (key+beat+duration struct w/ boost::hash_combine) -> (hit object indicators) */
-    object_editor& obj_editor;
     kee::ui::slider& music_slider;
     kee::ui::button& pause_play;
     kee::ui::image& pause_play_img;
@@ -124,7 +121,6 @@ public:
     std::map<float, editor_hit_object>::node_type node;
 };
 
-/* TODO: add blocks to left and right of indicator */
 /* TODO: ability to drag ends of hold objects */
 
 class new_hit_obj_data
@@ -156,10 +152,12 @@ public:
     );
 
     void reset_render_hit_objs();
+    void attempt_add_hit_obj();
 
     kee::ui::base& obj_renderer;
-
     std::vector<hit_obj_render> obj_render_info;
+
+    std::optional<new_hit_obj_data> new_hit_object;
 
 private:
     void handle_element_events() override;
@@ -180,7 +178,6 @@ private:
 
     std::optional<float> beat_drag_start;
     std::optional<kee::ui::rect> selection_rect;
-    std::optional<new_hit_obj_data> new_hit_object;
 
     float mouse_beat;
     float beat_drag_multiplier;
@@ -191,6 +188,8 @@ private:
 
     float selected_beat;
     float selected_reference_beat;
+
+    bool new_hit_obj_from_editor;
 };
 
 class editor_key : public kee::ui::button

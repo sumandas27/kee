@@ -19,19 +19,23 @@ public:
     );
 
     std::function<void(button::event)> on_event;
-    std::function<void()> on_click;
+    std::function<void()> on_click_l;
+    std::function<void()> on_click_r;
 
 protected:
     void handle_element_events() override;
 
 private:
     kee::ui::mouse_state button_state;
+
+    std::optional<bool> is_down_l;
 };
 
 enum class button::event
 {
     on_hot,
-    on_down,
+    on_down_l,
+    on_down_r,
     on_leave
 };
 

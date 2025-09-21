@@ -29,13 +29,13 @@ const std::unordered_map<int, int> editor::key_to_prio = []
 
 editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     kee::scene::base(window, assets),
+    obj_editor(add_child<object_editor>(keys, selected_key_ids, *this)),
     approach_beats(2.0f),
     beat_step(0.25f),
     play_png("assets/img/play.png"),
     pause_png("assets/img/pause.png"),
     pause_play_color(add_transition<kee::color>(kee::color::white())),
     pause_play_scale(add_transition<float>(1.0f)),
-    obj_editor(add_child<object_editor>(keys, selected_key_ids, *this)),
     music_slider(add_child<kee::ui::slider>(
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.22f),
@@ -123,7 +123,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             pause_play_color.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
             pause_play_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
             break;
-        case ui::button::event::on_down:
+        case ui::button::event::on_down_l:
             pause_play_scale.set(std::nullopt, 0.9f, 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_leave:
@@ -133,7 +133,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         }
     };
 
-    pause_play.on_click = [&]()
+    pause_play.on_click_l = [&]()
     { 
         if (this->music.IsPlaying())
         {
@@ -237,7 +237,7 @@ void editor::handle_element_events()
             unselect();
         }
         else
-            pause_play.on_click();
+            pause_play.on_click_l();
     }
 
     if (is_music_playing())
@@ -459,7 +459,8 @@ object_editor::object_editor(
         kee::ui::common(true, 0, false)
     )),
     selected_is_active(false),
-    selected_has_moved(false)
+    selected_has_moved(false),
+    new_hit_obj_from_editor(false)
 { }
 
 void object_editor::reset_render_hit_objs()
@@ -479,8 +480,37 @@ void object_editor::reset_render_hit_objs()
     }
 }
 
+void object_editor::attempt_add_hit_obj()
+{
+    const float new_beat = std::min(new_hit_object.value().click_beat, new_hit_object.value().current_beat);
+    const float new_duration = std::max(new_hit_object.value().click_beat, new_hit_object.value().current_beat) - new_beat;
+
+    std::map<float, editor_hit_object>& hit_objects = editor_scene.keys.at(new_hit_object.value().key).get().hit_objects;
+    const auto next_it = hit_objects.lower_bound(new_beat);
+    const bool is_new_invalid =
+        (next_it != hit_objects.end() && new_beat + new_duration + editor::beat_lock_threshold >= next_it->first) ||
+        (next_it != hit_objects.begin() && std::prev(next_it)->first + std::prev(next_it)->second.duration + editor::beat_lock_threshold >= new_beat);
+
+    if (!is_new_invalid)
+    {
+        hit_objects.emplace(new_beat, editor_hit_object(new_hit_object.value().key, new_duration));
+        reset_render_hit_objs();
+    }
+
+    new_hit_object.reset();
+}
+
 void object_editor::handle_element_events()
 {
+    if (raylib::Keyboard::IsKeyPressed(KeyboardKey::KEY_BACKSPACE) && !selected_is_active)
+    {
+        for (hit_obj_render& hit_obj : obj_render_info)
+            if (hit_obj.hit_obj_ref->second.is_selected)
+                editor_scene.keys.at(hit_obj.hit_obj_ref->second.key).get().hit_objects.erase(hit_obj.hit_obj_ref);
+
+        reset_render_hit_objs();
+    }
+
     if (editor_scene.is_music_playing())
         return;
 
@@ -581,22 +611,8 @@ void object_editor::handle_element_events()
         }
         else if (mouse_released_r)
         {
-            const float new_beat = std::min(new_hit_object.value().click_beat, new_hit_object.value().current_beat);
-            const float new_duration = std::max(new_hit_object.value().click_beat, new_hit_object.value().current_beat) - new_beat;
-
-            std::map<float, editor_hit_object>& hit_objects = editor_scene.keys.at(new_hit_object.value().key).get().hit_objects;
-            const auto next_it = hit_objects.lower_bound(new_beat);
-            const bool is_new_invalid =
-                (next_it != hit_objects.end() && new_beat + new_duration + editor::beat_lock_threshold >= next_it->first) ||
-                (next_it != hit_objects.begin() && std::prev(next_it)->first + std::prev(next_it)->second.duration + editor::beat_lock_threshold >= new_beat);
-
-            if (!is_new_invalid)
-            {
-                hit_objects.emplace(new_beat, editor_hit_object(new_hit_object.value().key, new_duration));
-                reset_render_hit_objs();
-            }
-
-            new_hit_object.reset();
+            attempt_add_hit_obj();        
+            new_hit_obj_from_editor = false;
         }
 
         beat_drag_start.reset();
@@ -698,7 +714,9 @@ void object_editor::handle_element_events()
 
             const float start_beat = std::round(mouse_beat / editor_scene.beat_step) * editor_scene.beat_step;
             const float rel_y = object_editor::hit_objs_rel_y + object_editor::hit_objs_rel_h * (selected_key_idx + 1) / (keys_to_render.size() + 1);
+            
             new_hit_object = new_hit_obj_data(keys_to_render[selected_key_idx], rel_y, start_beat, start_beat);
+            new_hit_obj_from_editor = true;
         }
     }
 }
@@ -715,7 +733,10 @@ void object_editor::update_element([[maybe_unused]] float dt)
     }
     else if (new_hit_object.has_value())
     {
-        const float current_beat = std::round(mouse_beat / editor_scene.beat_step) * editor_scene.beat_step;
+        const float current_beat = new_hit_obj_from_editor 
+            ? std::round(mouse_beat / editor_scene.beat_step) * editor_scene.beat_step
+            : editor_scene.get_beat();
+            
         new_hit_object.value().current_beat = current_beat;
     }
 
@@ -877,15 +898,45 @@ editor_key::editor_key(const kee::ui::base::required& reqs, kee::scene::editor& 
 {
     on_event = [&](ui::button::event button_event)
     {
-        if (button_event == ui::button::event::on_down && raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_LEFT_CONTROL))
-            this->is_control_clicked = true;
+        switch (button_event)
+        {
+        case ui::button::event::on_down_l:
+            if (raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_LEFT_CONTROL))
+                this->is_control_clicked = true;
+            break;
+        case ui::button::event::on_down_r: {
+            this->editor_scene.unselect();
+            this->editor_scene.select(this->key_id);
+
+            static constexpr float new_hit_obj_rel_y = object_editor::hit_objs_rel_y + object_editor::hit_objs_rel_h / 2;
+            this->editor_scene.obj_editor.new_hit_object = new_hit_obj_data(this->key_id, new_hit_obj_rel_y, this->editor_scene.get_beat(), this->editor_scene.get_beat());
+            break;
+        }
+        case ui::button::event::on_leave:
+            if (this->editor_scene.obj_editor.new_hit_object.has_value())
+            {
+                this->editor_scene.unselect();
+                this->editor_scene.obj_editor.new_hit_object.reset();
+            }
+            break;
+        default:
+            break;
+        }
     };
 
-    on_click = [&]()
+    on_click_l = [&]()
     {
         if (!this->is_control_clicked)
             this->editor_scene.unselect();
         this->editor_scene.select(this->key_id);
+    };
+
+    on_click_r = [&]()
+    {
+        this->editor_scene.obj_editor.attempt_add_hit_obj();
+
+        this->editor_scene.unselect();
+        this->editor_scene.obj_editor.new_hit_object.reset();
     };
 
     set_opt_color(raylib::Color::White());
