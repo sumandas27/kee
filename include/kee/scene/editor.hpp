@@ -10,7 +10,6 @@
 #include "kee/ui/text.hpp"
 #include "kee/ui/triangle.hpp"
 
-/* TODO: add hit objects on both object editor and keys with right click */
 /* TODO: add right-hand bar to edit hit objects */
 
 namespace kee {
@@ -112,16 +111,24 @@ public:
     std::map<float, editor_hit_object>::iterator hit_obj_ref;
 };
 
+class hit_obj_update_return
+{
+public:
+    hit_obj_update_return(float beat, float duration);
+
+    float beat;
+    float duration;
+};
+
 class hit_obj_node
 {
 public:
-    hit_obj_node(hit_obj_render& ref, std::map<float, editor_hit_object>::node_type node);
+    hit_obj_node(hit_obj_render& ref, hit_obj_update_return obj_new, std::map<float, editor_hit_object>::node_type node);
 
     hit_obj_render& ref;
+    hit_obj_update_return obj_new;
     std::map<float, editor_hit_object>::node_type node;
 };
-
-/* TODO: ability to drag ends of hold objects */
 
 class new_hit_obj_data
 {
@@ -133,6 +140,15 @@ public:
 
     float click_beat;
     float current_beat;
+};
+
+class drag_selection
+{
+public:
+    drag_selection(std::map<float, editor_hit_object>::iterator hold_obj_ref);
+
+    std::map<float, editor_hit_object>::iterator hold_obj_ref;
+    bool is_left;
 };
 
 class object_editor final : public kee::ui::rect
@@ -165,6 +181,8 @@ private:
     void render_element_behind_children() const override;
     void render_element_ahead_children() const override;
 
+    hit_obj_update_return hit_obj_update_info(const hit_obj_render& hit_obj, float beat_drag_diff) const;
+
     const std::unordered_map<int, std::reference_wrapper<editor_key>>& keys;
     const std::vector<int>& selected_key_ids;
 
@@ -178,6 +196,7 @@ private:
 
     std::optional<float> beat_drag_start;
     std::optional<kee::ui::rect> selection_rect;
+    std::optional<drag_selection> hit_obj_drag_selection;
 
     float mouse_beat;
     float beat_drag_multiplier;
