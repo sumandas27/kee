@@ -36,14 +36,25 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     pause_png("assets/img/pause.png"),
     pause_play_color(add_transition<kee::color>(kee::color::white())),
     pause_play_scale(add_transition<float>(1.0f)),
+    inspector_rect(add_child<kee::ui::rect>(
+        raylib::Color(20, 20, 20),
+        pos(pos::type::rel, 0.8f),
+        pos(pos::type::rel, 0.2f),
+        dims(
+            dim(dim::type::rel, 0.2f),
+            dim(dim::type::rel, 0.8f)
+        ),
+        std::nullopt, std::nullopt,
+        kee::ui::common(false, 1, false)
+    )),
     music_slider(add_child<kee::ui::slider>(
-        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.01f),
         pos(pos::type::rel, 0.22f),
         dims(
-            dim(dim::type::rel, 0.95f),
+            dim(dim::type::rel, 0.78f),
             dim(dim::type::rel, 0.005f)
         ),
-        true, std::nullopt
+        false, std::nullopt
     )),
     pause_play(music_slider.add_child<kee::ui::button>(
         pos(pos::type::beg, 0),
@@ -74,8 +85,8 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         kee::ui::common(false, std::nullopt, false)
     )),
     key_border(add_child<kee::ui::base>(
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.55f),
+        pos(pos::type::rel, 0.4f),
+        pos(pos::type::rel, 0.6f),
         dims(
             dim(dim::type::rel, 0.7f),
             dim(dim::type::rel, 0.5f)
@@ -394,23 +405,23 @@ object_editor::object_editor(
 ) :
     kee::ui::rect(reqs,
         raylib::Color(15, 15, 15, 255),
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.1f),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
         dims(
             dim(dim::type::rel, 1.0f),
             dim(dim::type::rel, 0.2f)
         ),
         std::nullopt, std::nullopt,
-        kee::ui::common(true, std::nullopt, false)
+        kee::ui::common(false, std::nullopt, false)
     ),
     obj_renderer(add_child<kee::ui::base>(
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
         dims(
-            dim(dim::type::rel, 0.75f),
+            dim(dim::type::rel, 0.8f),
             dim(dim::type::rel, 1)
         ),
-        kee::ui::common(true, std::nullopt, false)
+        kee::ui::common(false, std::nullopt, false)
     )),
     keys(keys),
     selected_key_ids(selected_key_ids),
@@ -433,23 +444,23 @@ object_editor::object_editor(
         ),
         kee::ui::common(false, std::nullopt, false)
     )),
-    rect_l(add_child<kee::ui::rect>(
+    settings_rect(add_child<kee::ui::rect>(
         raylib::Color(30, 30, 30),
-        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.8f),
         pos(pos::type::rel, 0),
         dims(
-            dim(dim::type::rel, 0.125f),
+            dim(dim::type::rel, 0.2f),
             dim(dim::type::rel, 1)
         ),
         std::nullopt, std::nullopt,
         kee::ui::common(false, std::nullopt, false)
     )),
-    rect_r(add_child<kee::ui::rect>(
-        raylib::Color(30, 30, 30),
-        pos(pos::type::rel, 0.875f),
+    key_label_rect(settings_rect.add_child<kee::ui::rect>(
+        raylib::Color(35, 35, 35),
+        pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         dims(
-            dim(dim::type::rel, 0.125f),
+            dim(dim::type::rel, 0.075f),
             dim(dim::type::rel, 1)
         ),
         std::nullopt, std::nullopt,
@@ -485,7 +496,7 @@ void object_editor::reset_render_hit_objs()
         object.is_selected = false;
 
         const float rel_y = object_editor::hit_objs_rel_y + object_editor::hit_objs_rel_h * (i + 1) / (keys_to_render.size() + 1);
-        hit_obj_ui render_ui = obj_renderer.make_temp_child<hit_obj_ui>(beat, object.duration, editor_scene.get_beat(), object_editor::beat_width, rel_y);
+        hit_obj_ui render_ui = make_temp_child<hit_obj_ui>(beat, object.duration, editor_scene.get_beat(), object_editor::beat_width, rel_y);
         obj_render_info.push_back(hit_obj_render(std::move(render_ui), it));
     }
 }
@@ -527,7 +538,7 @@ void object_editor::handle_element_events()
     const raylib::Vector2 mouse_pos = raylib::Mouse::GetPosition();
     const raylib::Rectangle obj_renderer_rect = obj_renderer.get_raw_rect();
 
-    const float mouse_in_rect_percent = (mouse_pos.x - obj_renderer_rect.x) / obj_renderer_rect.width;
+    const float mouse_in_rect_percent = (mouse_pos.x - get_raw_rect().x) / get_raw_rect().width;
     const float mouse_beat_diff = (mouse_in_rect_percent - 0.5f) * beat_width * 2;
     mouse_beat = editor_scene.get_beat() + mouse_beat_diff;
 
@@ -676,7 +687,7 @@ void object_editor::handle_element_events()
                         obj.render_ui.unselect();
                     }
 
-                selection_rect.emplace(obj_renderer.make_temp_child<kee::ui::rect>(
+                selection_rect.emplace(make_temp_child<kee::ui::rect>(
                     raylib::Color(255, 255, 255, 50),
                     pos(pos::type::rel, 0),
                     pos(pos::type::rel, 0),
@@ -826,7 +837,7 @@ void object_editor::render_element_behind_children() const
         const float render_rel_w = is_whole_beat ? 0.005f : 0.003f;
         const float render_rel_h = is_whole_beat ? 0.1f : 0.05f;
 
-        const kee::ui::rect beat_render_rect = obj_renderer.make_temp_child<kee::ui::rect>(
+        const kee::ui::rect beat_render_rect = make_temp_child<kee::ui::rect>(
             raylib::Color::White(),
             pos(pos::type::rel, render_rel_x),
             pos(pos::type::rel, 0.75f),
@@ -845,7 +856,7 @@ void object_editor::render_element_behind_children() const
         if (is_whole_beat)
         {
             const int whole_beat = static_cast<int>(std::floorf(beat_render));
-            const kee::ui::text whole_beat_text = obj_renderer.make_temp_child<kee::ui::text>(
+            const kee::ui::text whole_beat_text = make_temp_child<kee::ui::text>(
                 raylib::Color::White(),
                 pos(pos::type::rel, render_rel_x),
                 pos(pos::type::rel, 0.9f),
@@ -874,7 +885,7 @@ void object_editor::render_element_behind_children() const
         const float beg_beat = std::min(new_hit_object.value().click_beat, new_hit_object.value().current_beat);
         const float end_beat = std::max(new_hit_object.value().click_beat, new_hit_object.value().current_beat);
 
-        hit_obj_ui new_hit_obj_render = obj_renderer.make_temp_child<hit_obj_ui>(beg_beat, end_beat - beg_beat, editor_scene.get_beat(), beat_width, new_hit_object.value().rel_y);
+        hit_obj_ui new_hit_obj_render = make_temp_child<hit_obj_ui>(beg_beat, end_beat - beg_beat, editor_scene.get_beat(), beat_width, new_hit_object.value().rel_y);
         new_hit_obj_render.select();
         new_hit_obj_render.render();
     }
@@ -891,9 +902,9 @@ void object_editor::render_element_ahead_children() const
                 ? std::string(1, static_cast<char>(keys_to_render[i]))
                 : "__";
 
-            const kee::ui::text key_to_render_text = make_temp_child<kee::ui::text>(
+            const kee::ui::text key_to_render_text = key_label_rect.make_temp_child<kee::ui::text>(
                 raylib::Color::White(),
-                pos(pos::type::rel, 0.115f),
+                pos(pos::type::rel, 0.5f),
                 pos(pos::type::rel, rel_y),
                 ui::text_size(ui::text_size::type::rel_h, 0.1f),
                 assets.font_semi_bold, key_str, false,

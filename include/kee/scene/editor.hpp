@@ -67,6 +67,7 @@ private:
     kee::transition<kee::color>& pause_play_color;
     kee::transition<float>& pause_play_scale;
 
+    kee::ui::rect& inspector_rect;
     kee::ui::slider& music_slider;
     kee::ui::button& pause_play;
     kee::ui::image& pause_play_img;
@@ -157,7 +158,7 @@ public:
     static constexpr float hit_objs_rel_y = 0.1f;
     static constexpr float hit_objs_rel_h = 0.6f;
 
-    static constexpr float beat_width = 4.0f;
+    static constexpr float beat_width = 5.0f;
     static constexpr float beat_drag_speed = 7.0f;
 
     object_editor(
@@ -190,8 +191,8 @@ private:
 
     kee::ui::base& beat_hover_l;
     kee::ui::base& beat_hover_r;
-    kee::ui::rect& rect_l;
-    kee::ui::rect& rect_r;
+    kee::ui::rect& settings_rect;
+    kee::ui::rect& key_label_rect;
     kee::ui::triangle& beat_indicator;
 
     std::optional<float> beat_drag_start;
