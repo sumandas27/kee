@@ -36,6 +36,8 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     pause_png("assets/img/pause.png"),
     pause_play_color(add_transition<kee::color>(kee::color::white())),
     pause_play_scale(add_transition<float>(1.0f)),
+    beat_snap_button_color(add_transition<kee::color>(kee::color::white())),
+    beat_snap_button_outline(add_transition<float>(0.55f)),
     inspector_rect(add_child<kee::ui::rect>(
         raylib::Color(20, 20, 20),
         pos(pos::type::rel, 0.8f),
@@ -46,6 +48,35 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         ),
         std::nullopt, std::nullopt,
         kee::ui::common(false, 1, false)
+    )),
+    beat_snap_button(inspector_rect.add_child<kee::ui::button>(
+        pos(pos::type::rel, 0.1f),
+        pos(pos::type::rel, 0.05f),
+        dims(
+            dim(dim::type::aspect, 1),
+            dim(dim::type::rel, 0.02f)
+        ),
+        kee::ui::common(true, std::nullopt, false)
+    )),
+    beat_snap_button_rect(beat_snap_button.add_child<kee::ui::rect>(
+        raylib::Color::Blank(),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 1)
+        ),
+        kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, 0.55f, raylib::Color::White()),
+        std::nullopt,
+        kee::ui::common(false, std::nullopt, false)
+    )),
+    beat_snap_text(inspector_rect.add_child<kee::ui::text>(
+        raylib::Color::White(),
+        pos(pos::type::rel, 0.35f),
+        pos(pos::type::rel, 0.05f),
+        ui::text_size(ui::text_size::type::rel_h, 0.03f),
+        assets.font_semi_bold, "BEAT SNAP", false,
+        kee::ui::common(true, std::nullopt, false)
     )),
     music_slider(add_child<kee::ui::slider>(
         pos(pos::type::rel, 0.01f),
@@ -106,8 +137,38 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     music_bpm(100.0f),
     mouse_wheel_move(0.0f),
     music("assets/daft-punk-something-about-us/daft-punk-something-about-us.mp3"),
-    music_time(0.0f)
+    music_time(0.0f),
+    is_beat_snap(true)
 {
+    beat_snap_button.on_click_l = [&]()
+    {
+        if (this->is_beat_snap)
+        {
+            this->beat_snap_button_outline.set(std::nullopt, 0.2f, 0.25f, kee::transition_type::exp);
+            this->is_beat_snap = false;
+        }
+        else
+        {
+            this->beat_snap_button_outline.set(std::nullopt, 0.55f, 0.25f, kee::transition_type::exp);
+            this->is_beat_snap = true;
+        }
+    };
+
+    beat_snap_button.on_event = [&](ui::button::event button_event)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot: {
+            const kee::color new_color = this->is_beat_snap ? kee::color::red() : kee::color::green();
+            this->beat_snap_button_color.set(std::nullopt, new_color, 0.5f, kee::transition_type::exp);
+            break;
+        }
+        case ui::button::event::on_leave:
+            this->beat_snap_button_color.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
+            break;
+        }
+    };
+
     music_slider.on_event = [&, music_is_playing = music.IsPlaying()](ui::slider::event slider_event) mutable
     {
         switch (slider_event)
@@ -180,7 +241,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
 
     /* TODO: for testing only */
 
-    keys.at(KeyboardKey::KEY_Q).get().hit_objects.emplace(0.0f, editor_hit_object(KeyboardKey::KEY_Q, 16.0f));
+    keys.at(KeyboardKey::KEY_Q).get().hit_objects.emplace(0.2f, editor_hit_object(KeyboardKey::KEY_Q, 16.0f));
     keys.at(KeyboardKey::KEY_W).get().hit_objects.emplace(0.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
     keys.at(KeyboardKey::KEY_W).get().hit_objects.emplace(4.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
     keys.at(KeyboardKey::KEY_W).get().hit_objects.emplace(8.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
@@ -234,6 +295,11 @@ void editor::select(int id)
     id);
 
     obj_editor.reset_render_hit_objs();
+}
+
+bool editor::is_beat_snap_enabled() const
+{
+    return is_beat_snap;
 }
 
 void editor::handle_element_events()
@@ -302,6 +368,9 @@ void editor::update_element([[maybe_unused]] float dt)
     std::get<kee::dims>(pause_play_img.dimensions).w.val = pause_play_scale.get();
     std::get<kee::dims>(pause_play_img.dimensions).h.val = pause_play_scale.get();
     pause_play_img.set_opt_color(pause_play_color.get().to_color());
+
+    beat_snap_button_rect.border.value().opt_color.value() = beat_snap_button_color.get().to_color();
+    beat_snap_button_rect.border.value().val = beat_snap_button_outline.get();
 
     const unsigned int music_length = static_cast<unsigned int>(music.GetTimeLength());
     const unsigned int music_time_int = static_cast<unsigned int>(music_time);
@@ -582,8 +651,9 @@ void object_editor::handle_element_events()
                 float beat_drag_diff = 0.0f;
                 if (beat_drag_start.has_value() && selected_is_active)
                 {
-                    const float beat_drag_width = mouse_beat - beat_drag_start.value();
-                    beat_drag_diff = std::round(beat_drag_width / editor_scene.beat_step) * editor_scene.beat_step;
+                    beat_drag_diff = mouse_beat - beat_drag_start.value();
+                    if (editor_scene.is_beat_snap_enabled())
+                        beat_drag_diff = std::round(beat_drag_diff / editor_scene.beat_step) * editor_scene.beat_step;
                 }
 
                 std::vector<hit_obj_node> hit_obj_nodes;
@@ -768,9 +838,11 @@ void object_editor::handle_element_events()
             else
                 selected_key_idx = static_cast<std::size_t>((mouse_rel_y - keys_rel_y_beg) / key_rel_y_range);
 
-            const float start_beat = std::round(mouse_beat / editor_scene.beat_step) * editor_scene.beat_step;
-            const float rel_y = object_editor::hit_objs_rel_y + object_editor::hit_objs_rel_h * (selected_key_idx + 1) / (keys_to_render.size() + 1);
-            
+            const float rel_y = object_editor::hit_objs_rel_y + object_editor::hit_objs_rel_h * (selected_key_idx + 1) / (keys_to_render.size() + 1);     
+            float start_beat = mouse_beat;
+            if (editor_scene.is_beat_snap_enabled())
+                start_beat = std::round(start_beat / editor_scene.beat_step) * editor_scene.beat_step;
+
             new_hit_object = new_hit_obj_data(keys_to_render[selected_key_idx], rel_y, start_beat, start_beat);
             new_hit_obj_from_editor = true;
         }
@@ -788,21 +860,24 @@ void object_editor::update_element([[maybe_unused]] float dt)
         std::get<kee::dims>(selection_rect.value().dimensions).w.val = (selection_end_beat - selection_start_beat) / (2 * beat_width);
     }
     else if (new_hit_object.has_value())
-    {
-        const float current_beat = new_hit_obj_from_editor 
-            ? std::round(mouse_beat / editor_scene.beat_step) * editor_scene.beat_step
-            : editor_scene.get_beat();
-            
+    { 
+        float current_beat;
+        if (new_hit_obj_from_editor)
+        {
+            current_beat = mouse_beat;
+            if (editor_scene.is_beat_snap_enabled())
+                current_beat = std::round(current_beat / editor_scene.beat_step) * editor_scene.beat_step;
+        }
+        else
+            current_beat = editor_scene.get_beat();
+
         new_hit_object.value().current_beat = current_beat;
     }
 
     if (beat_drag_start.has_value() && !selected_has_moved && raylib::Mouse::GetPosition() != mouse_pos_start)
     {
-        if (selected_is_active && std::abs(std::fmod(selected_reference_beat, editor_scene.beat_step)) > editor_scene.beat_lock_threshold)
-        {
+        if (selected_is_active && std::abs(std::fmod(selected_reference_beat, editor_scene.beat_step)) > editor_scene.beat_lock_threshold && editor_scene.is_beat_snap_enabled())
             selected_reference_beat = std::round(selected_reference_beat / editor_scene.beat_step) * editor_scene.beat_step;
-            beat_drag_start = selected_reference_beat;
-        }
 
         selected_has_moved = true;
     }
@@ -810,8 +885,9 @@ void object_editor::update_element([[maybe_unused]] float dt)
     float beat_drag_diff = 0.0f;
     if (beat_drag_start.has_value() && selected_is_active)
     {
-        const float beat_drag_width = mouse_beat - beat_drag_start.value();
-        beat_drag_diff = std::round(beat_drag_width / editor_scene.beat_step) * editor_scene.beat_step;
+        beat_drag_diff = mouse_beat - beat_drag_start.value();
+        if (editor_scene.is_beat_snap_enabled())
+            beat_drag_diff = std::round(beat_drag_diff / editor_scene.beat_step) * editor_scene.beat_step;
     }
 
     for (hit_obj_render& hit_obj : obj_render_info)

@@ -50,6 +50,8 @@ public:
     void unselect();
     void select(int id);
 
+    bool is_beat_snap_enabled() const;
+
     object_editor& obj_editor;
 
     const float approach_beats;
@@ -66,8 +68,13 @@ private:
 
     kee::transition<kee::color>& pause_play_color;
     kee::transition<float>& pause_play_scale;
+    kee::transition<kee::color>& beat_snap_button_color;
+    kee::transition<float>& beat_snap_button_outline;
 
     kee::ui::rect& inspector_rect;
+    kee::ui::button& beat_snap_button;
+    kee::ui::rect& beat_snap_button_rect;
+    kee::ui::text& beat_snap_text;
     kee::ui::slider& music_slider;
     kee::ui::button& pause_play;
     kee::ui::image& pause_play_img;
@@ -84,6 +91,8 @@ private:
     float music_time;
 
     std::vector<int> selected_key_ids;
+
+    bool is_beat_snap;
 };
 
 class hit_obj_ui final : public kee::ui::rect

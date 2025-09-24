@@ -12,8 +12,8 @@ public:
 
     rect_outline(rect_outline::type rect_outline_type, float val, const std::optional<raylib::Color>& opt_color);
 
-    const rect_outline::type rect_outline_type;
-    const float val;
+    rect_outline::type rect_outline_type;
+    float val;
 
     std::optional<raylib::Color> opt_color;
 };

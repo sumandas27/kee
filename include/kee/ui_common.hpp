@@ -129,6 +129,8 @@ class color
 public:
     static constexpr kee::color dark_orange();
     static constexpr kee::color white();
+    static constexpr kee::color red();
+    static constexpr kee::color green();
 
     constexpr color();
     constexpr color(float r, float g, float b, float a);
@@ -156,6 +158,16 @@ constexpr kee::color color::dark_orange()
 constexpr kee::color color::white()
 {
     return kee::color(255, 255, 255, 255);
+}
+
+constexpr kee::color color::red()
+{
+    return kee::color(255, 0, 0, 255);
+}
+
+constexpr kee::color color::green()
+{
+    return kee::color(0, 255, 0, 255);
 }
 
 constexpr color::color() :
