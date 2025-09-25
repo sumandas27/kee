@@ -31,13 +31,14 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     kee::scene::base(window, assets),
     obj_editor(add_child<object_editor>(keys, selected_key_ids, *this)),
     approach_beats(2.0f),
-    beat_step(0.25f),
+    ticks_per_beat(4),
     play_png("assets/img/play.png"),
     pause_png("assets/img/pause.png"),
+    arrow_png("assets/img/arrow.png"),
     pause_play_color(add_transition<kee::color>(kee::color::white())),
     pause_play_scale(add_transition<float>(1.0f)),
     beat_snap_button_color(add_transition<kee::color>(kee::color::white())),
-    beat_snap_button_outline(add_transition<float>(0.55f)),
+    beat_snap_button_outline(add_transition<float>(0.6f)),
     inspector_rect(add_child<kee::ui::rect>(
         raylib::Color(20, 20, 20),
         pos(pos::type::rel, 0.8f),
@@ -66,7 +67,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
-        kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, 0.55f, raylib::Color::White()),
+        kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, 0.6f, raylib::Color::White()),
         std::nullopt,
         kee::ui::common(false, std::nullopt, false)
     )),
@@ -76,6 +77,35 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         pos(pos::type::rel, 0.05f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
         assets.font_semi_bold, "BEAT SNAP", false,
+        kee::ui::common(true, std::nullopt, false)
+    )),
+    tick_text(inspector_rect.add_child<kee::ui::text>(
+        raylib::Color::White(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.15f),
+        ui::text_size(ui::text_size::type::rel_h, 0.08f),
+        assets.font_semi_bold, "1 / " + std::to_string(ticks_per_beat), false,
+        kee::ui::common(true, std::nullopt, false)
+    )),
+    tick_l_button(inspector_rect.add_child<kee::ui::button>(
+        pos(pos::type::rel, 0.15f),
+        pos(pos::type::rel, 0.15f),
+        dims(
+            dim(dim::type::aspect, 1),
+            dim(dim::type::rel, 0.035f)
+        ),
+        kee::ui::common(true, std::nullopt, false)
+    )),
+    tick_l_img(tick_l_button.add_child<kee::ui::image>(
+        arrow_png,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0.5),
+        pos(pos::type::rel, 0.5),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 1)
+        ),
+        false, false,
         kee::ui::common(true, std::nullopt, false)
     )),
     music_slider(add_child<kee::ui::slider>(
@@ -105,6 +135,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
+        false, false,
         kee::ui::common(true, std::nullopt, false)
     )),
     music_time_text(music_slider.add_child<kee::ui::text>(
@@ -149,7 +180,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         }
         else
         {
-            this->beat_snap_button_outline.set(std::nullopt, 0.55f, 0.25f, kee::transition_type::exp);
+            this->beat_snap_button_outline.set(std::nullopt, 0.6f, 0.25f, kee::transition_type::exp);
             this->is_beat_snap = true;
         }
     };
@@ -332,20 +363,20 @@ void editor::handle_element_events()
         beat_steps = -std::ceil(mouse_wheel_move);
         mouse_wheel_move += beat_steps;
 
-        const float beat_floor = std::floorf(get_beat() / beat_step) * beat_step;
+        const float beat_floor = std::floorf(get_beat() * ticks_per_beat) / ticks_per_beat;
         new_beat = (std::abs(beat_floor - get_beat()) < editor::beat_lock_threshold) 
-            ? beat_floor - beat_step * beat_steps 
-            : beat_floor - beat_step * (beat_steps - 1);
+            ? beat_floor - (1.0f / ticks_per_beat) * beat_steps 
+            : beat_floor - (1.0f / ticks_per_beat) * (beat_steps - 1);
     }
     else if (mouse_wheel_move >= 1.0f)
     {
         beat_steps = std::floor(mouse_wheel_move);
         mouse_wheel_move -= beat_steps;
 
-        const float beat_ceil = std::ceilf(get_beat() / beat_step) * beat_step;
+        const float beat_ceil = std::ceilf(get_beat() * ticks_per_beat) / ticks_per_beat;
         new_beat = (std::abs(beat_ceil - get_beat()) < editor::beat_lock_threshold) 
-            ? beat_ceil + beat_step * beat_steps 
-            : beat_ceil + beat_step * (beat_steps - 1);
+            ? beat_ceil + (1.0f / ticks_per_beat) * beat_steps 
+            : beat_ceil + (1.0f / ticks_per_beat) * (beat_steps - 1);
     }
 
     set_beat(new_beat);
@@ -653,7 +684,7 @@ void object_editor::handle_element_events()
                 {
                     beat_drag_diff = mouse_beat - beat_drag_start.value();
                     if (editor_scene.is_beat_snap_enabled())
-                        beat_drag_diff = std::round(beat_drag_diff / editor_scene.beat_step) * editor_scene.beat_step;
+                        beat_drag_diff = std::round(beat_drag_diff * editor_scene.ticks_per_beat) / editor_scene.ticks_per_beat;
                 }
 
                 std::vector<hit_obj_node> hit_obj_nodes;
@@ -841,7 +872,7 @@ void object_editor::handle_element_events()
             const float rel_y = object_editor::hit_objs_rel_y + object_editor::hit_objs_rel_h * (selected_key_idx + 1) / (keys_to_render.size() + 1);     
             float start_beat = mouse_beat;
             if (editor_scene.is_beat_snap_enabled())
-                start_beat = std::round(start_beat / editor_scene.beat_step) * editor_scene.beat_step;
+                start_beat = std::round(start_beat * editor_scene.ticks_per_beat) / editor_scene.ticks_per_beat;
 
             new_hit_object = new_hit_obj_data(keys_to_render[selected_key_idx], rel_y, start_beat, start_beat);
             new_hit_obj_from_editor = true;
@@ -866,7 +897,7 @@ void object_editor::update_element([[maybe_unused]] float dt)
         {
             current_beat = mouse_beat;
             if (editor_scene.is_beat_snap_enabled())
-                current_beat = std::round(current_beat / editor_scene.beat_step) * editor_scene.beat_step;
+                current_beat = std::round(current_beat * editor_scene.ticks_per_beat) / editor_scene.ticks_per_beat;
         }
         else
             current_beat = editor_scene.get_beat();
@@ -876,8 +907,8 @@ void object_editor::update_element([[maybe_unused]] float dt)
 
     if (beat_drag_start.has_value() && !selected_has_moved && raylib::Mouse::GetPosition() != mouse_pos_start)
     {
-        if (selected_is_active && std::abs(std::fmod(selected_reference_beat, editor_scene.beat_step)) > editor_scene.beat_lock_threshold && editor_scene.is_beat_snap_enabled())
-            selected_reference_beat = std::round(selected_reference_beat / editor_scene.beat_step) * editor_scene.beat_step;
+        if (selected_is_active && std::abs(std::fmod(selected_reference_beat, 1.0f / editor_scene.ticks_per_beat)) > editor_scene.beat_lock_threshold && editor_scene.is_beat_snap_enabled())
+            selected_reference_beat = std::round(selected_reference_beat * editor_scene.ticks_per_beat) / editor_scene.ticks_per_beat;
 
         selected_has_moved = true;
     }
@@ -887,7 +918,7 @@ void object_editor::update_element([[maybe_unused]] float dt)
     {
         beat_drag_diff = mouse_beat - beat_drag_start.value();
         if (editor_scene.is_beat_snap_enabled())
-            beat_drag_diff = std::round(beat_drag_diff / editor_scene.beat_step) * editor_scene.beat_step;
+            beat_drag_diff = std::round(beat_drag_diff * editor_scene.ticks_per_beat) / editor_scene.ticks_per_beat;
     }
 
     for (hit_obj_render& hit_obj : obj_render_info)
@@ -904,12 +935,14 @@ void object_editor::render_element_behind_children() const
 {
     kee::ui::rect::render_element_behind_children();
 
-    const float beat_start = std::ceil((editor_scene.get_beat() - beat_width) / editor_scene.beat_step) * editor_scene.beat_step;
-    for (float beat_render = beat_start - 1.0f; beat_render <= editor_scene.get_beat() + beat_width + 1.0f; beat_render += editor_scene.beat_step)
+    const int beat_start_tick = static_cast<int>(std::floor(editor_scene.get_beat() - beat_width) * editor_scene.ticks_per_beat);
+    const int beat_end_tick = static_cast<int>(std::ceil(editor_scene.get_beat() + beat_width) * editor_scene.ticks_per_beat);
+    for (int beat_tick = beat_start_tick; beat_tick <= beat_end_tick; beat_tick++)
     {
+        const float beat_render = static_cast<float>(beat_tick) / editor_scene.ticks_per_beat;
         const float render_rel_x = (beat_render - (editor_scene.get_beat() - beat_width)) / (2 * beat_width);
 
-        const bool is_whole_beat = std::floorf(beat_render) == beat_render;
+        const bool is_whole_beat = beat_tick % editor_scene.ticks_per_beat == 0;
         const float render_rel_w = is_whole_beat ? 0.005f : 0.003f;
         const float render_rel_h = is_whole_beat ? 0.1f : 0.05f;
 
@@ -931,7 +964,7 @@ void object_editor::render_element_behind_children() const
 
         if (is_whole_beat)
         {
-            const int whole_beat = static_cast<int>(std::floorf(beat_render));
+            const int whole_beat = beat_tick / editor_scene.ticks_per_beat;
             const kee::ui::text whole_beat_text = make_temp_child<kee::ui::text>(
                 raylib::Color::White(),
                 pos(pos::type::rel, render_rel_x),
@@ -1003,18 +1036,18 @@ hit_obj_update_return object_editor::hit_obj_update_info(const hit_obj_render& h
             update_beat = selected_reference_beat + beat_drag_diff + beat - selected_beat;
         else if (hit_obj_drag_selection.value().is_left)
         {
-            float max_hit_obj_beat = std::floor((beat + object.duration) / editor_scene.beat_step) * editor_scene.beat_step;
+            float max_hit_obj_beat = std::floor((beat + object.duration) * editor_scene.ticks_per_beat) / editor_scene.ticks_per_beat;
             if (std::abs(beat + object.duration - max_hit_obj_beat) <= editor::beat_lock_threshold)
-                max_hit_obj_beat -= editor_scene.beat_step;
+                max_hit_obj_beat -= 1.0f / editor_scene.ticks_per_beat;
 
             update_beat = std::min(selected_reference_beat + beat_drag_diff, max_hit_obj_beat);
             update_duration = (beat + object.duration) - update_beat;
         }
         else
         {
-            float min_hit_obj_beat = std::ceil(beat / editor_scene.beat_step) * editor_scene.beat_step;
+            float min_hit_obj_beat = std::ceil(beat * editor_scene.ticks_per_beat) / editor_scene.ticks_per_beat;
             if (std::abs(beat - min_hit_obj_beat) <= editor::beat_lock_threshold)
-                min_hit_obj_beat += editor_scene.beat_step;
+                min_hit_obj_beat += 1.0f / editor_scene.ticks_per_beat;
 
             const float update_end_beat = std::max(selected_reference_beat + beat_drag_diff, min_hit_obj_beat);
             update_duration = update_end_beat - beat;

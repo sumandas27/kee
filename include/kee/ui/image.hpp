@@ -22,7 +22,9 @@ public:
         const raylib::Color& color,
         kee::pos x, 
         kee::pos y,
-        const std::variant<kee::dims, kee::border>& dimensions, 
+        const std::variant<kee::dims, kee::border>& dimensions,
+        bool flip_horizontal,
+        bool flip_vertical,
         const kee::ui::common& common
     );
 
@@ -30,6 +32,9 @@ public:
 
 private:
     void render_element_behind_children() const override;
+
+    const bool flip_horizontal;
+    const bool flip_vertical;
 
     std::reference_wrapper<const kee::ui::image_texture> img_texture_ref;
 };

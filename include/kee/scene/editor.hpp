@@ -55,7 +55,7 @@ public:
     object_editor& obj_editor;
 
     const float approach_beats;
-    const float beat_step;
+    const int ticks_per_beat;
 
     std::unordered_map<int, std::reference_wrapper<editor_key>> keys;
 
@@ -65,6 +65,7 @@ private:
 
     kee::ui::image_texture play_png;
     kee::ui::image_texture pause_png;
+    kee::ui::image_texture arrow_png;
 
     kee::transition<kee::color>& pause_play_color;
     kee::transition<float>& pause_play_scale;
@@ -75,6 +76,9 @@ private:
     kee::ui::button& beat_snap_button;
     kee::ui::rect& beat_snap_button_rect;
     kee::ui::text& beat_snap_text;
+    kee::ui::text& tick_text;
+    kee::ui::button& tick_l_button;
+    kee::ui::image& tick_l_img;
     kee::ui::slider& music_slider;
     kee::ui::button& pause_play;
     kee::ui::image& pause_play_img;
