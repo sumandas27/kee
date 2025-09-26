@@ -42,7 +42,9 @@ public:
 
     editor(const kee::scene::window& window, kee::global_assets& assets);
 
+    int get_ticks_per_beat() const;
     bool is_music_playing() const;
+    bool is_beat_snap_enabled() const;
 
     float get_beat() const;
     void set_beat(float new_beat);
@@ -50,16 +52,16 @@ public:
     void unselect();
     void select(int id);
 
-    bool is_beat_snap_enabled() const;
-
     object_editor& obj_editor;
 
     const float approach_beats;
-    const int ticks_per_beat;
 
     std::unordered_map<int, std::reference_wrapper<editor_key>> keys;
 
 private:
+    static constexpr std::size_t tick_freq_count = 8;
+    static constexpr std::array<int, tick_freq_count> tick_freqs = { 1, 2, 3, 4, 6, 8, 12, 16 };
+
     void handle_element_events() override;
     void update_element(float dt) override;
 
@@ -71,14 +73,29 @@ private:
     kee::transition<float>& pause_play_scale;
     kee::transition<kee::color>& beat_snap_button_color;
     kee::transition<float>& beat_snap_button_outline;
+    kee::transition<kee::color>& tick_l_button_color;
+    kee::transition<kee::color>& tick_r_button_color;
+    kee::transition<float>& tick_l_button_scale;
+    kee::transition<float>& tick_r_button_scale;
 
     kee::ui::rect& inspector_rect;
+
     kee::ui::button& beat_snap_button;
     kee::ui::rect& beat_snap_button_rect;
     kee::ui::text& beat_snap_text;
+
+    std::size_t tick_freq_idx;
+
     kee::ui::text& tick_text;
     kee::ui::button& tick_l_button;
     kee::ui::image& tick_l_img;
+    kee::ui::button& tick_r_button;
+    kee::ui::image& tick_r_img;
+
+    kee::ui::rect& tick_frame;
+    kee::ui::rect& tick_curr_rect;
+    std::vector<std::reference_wrapper<kee::ui::text>> tick_frame_texts;
+
     kee::ui::slider& music_slider;
     kee::ui::button& pause_play;
     kee::ui::image& pause_play_img;
@@ -90,13 +107,12 @@ private:
     const float music_bpm;
 
     float mouse_wheel_move;
+    bool is_beat_snap;
 
     raylib::Music music;
     float music_time;
 
     std::vector<int> selected_key_ids;
-
-    bool is_beat_snap;
 };
 
 class hit_obj_ui final : public kee::ui::rect

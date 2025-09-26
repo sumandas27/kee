@@ -89,7 +89,10 @@ class transition_base
 {
 public:
     transition_base();
+    transition_base(const transition_base&) = delete;
     virtual ~transition_base() = default;
+
+    transition_base& operator=(const transition_base&) = delete;
 
     void update(float dt);
 
