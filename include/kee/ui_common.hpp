@@ -79,6 +79,14 @@ enum class border::type
     rel_h
 };
 
+enum class mouse_state
+{
+    off,
+    hot,
+    down
+};
+
+/* TODO: merge with `transition` class ??? */
 enum class transition_type
 {
     lin,

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "kee/scene/base.hpp"
+/*#include "kee/scene/base.hpp"
 #include "kee/ui/button.hpp"
 #include "kee/ui/image.hpp"
 #include "kee/ui/rect.hpp"
@@ -8,18 +8,16 @@
 #include "kee/ui/text.hpp"
 #include "kee/ui/triangle.hpp"
 
-/* TODO: add right-hand bar to edit hit objects */
-
 namespace kee {
 namespace scene {
 
 class object_editor;
-class editor_key;
+class editor_key;*/
 
 /**
  * These objects will belong in an `std::set`, whose keys store the `beat` of the object.
  */
-class editor_hit_object
+/*class editor_hit_object
 {
 public:
     editor_hit_object(int key, float duration);
@@ -272,4 +270,4 @@ private:
 };
 
 } // namespace scene
-} // namespace kee
+} // namespace kee*/

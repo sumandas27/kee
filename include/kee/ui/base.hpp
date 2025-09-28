@@ -12,11 +12,30 @@
 namespace kee {
 namespace ui {
 
-enum class mouse_state
+class base;
+
+template <typename T>
+class handle
 {
-    off,
-    hot,
-    down
+public:
+    handle(const handle&) = delete;
+    handle(handle&& other);
+    ~handle();
+
+    handle& operator=(const handle&) = delete;
+    handle& operator=(handle&&) = delete;
+
+    T& ref;
+
+private:
+    friend class base;
+
+    handle(T& ref, std::multimap<int, std::unique_ptr<kee::ui::base>>& multimap, std::multimap<int, std::unique_ptr<kee::ui::base>>::iterator it);
+
+    std::multimap<int, std::unique_ptr<kee::ui::base>>& multimap;
+    std::multimap<int, std::unique_ptr<kee::ui::base>>::iterator it;
+
+    bool has_moved;
 };
 
 /**
@@ -49,7 +68,7 @@ public:
      * These functions will populate the first parameter for you.
      */
     template <std::derived_from<kee::ui::base> T, typename... Args>
-    T& add_child(std::optional<int> z_order, Args&&... args);
+    kee::ui::handle<T> add_child(std::optional<int> z_order, Args&&... args);
     /* TODO: deprecated, remove soon */
     template <std::derived_from<kee::ui::base> T, typename... Args>
     T make_temp_child(Args&&... args) const;

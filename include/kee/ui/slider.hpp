@@ -35,11 +35,11 @@ private:
     kee::transition<kee::color>& fill_color;
     kee::transition<float>& thumb_scale;
 
-    const kee::ui::rect& track;
-    kee::ui::rect& fill;
-    kee::ui::rect& thumb;
+    kee::ui::handle<kee::ui::rect> track;
+    kee::ui::handle<kee::ui::rect> fill;
+    kee::ui::handle<kee::ui::rect> thumb;
 
-    kee::ui::mouse_state slider_state;
+    kee::mouse_state slider_state;
 };
 
 enum class slider::event

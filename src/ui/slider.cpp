@@ -40,7 +40,7 @@ slider::slider(
         std::nullopt,
         rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt)
     )),
-    thumb(fill.add_child<kee::ui::rect>(1,
+    thumb(fill.ref.add_child<kee::ui::rect>(1,
         std::nullopt,
         pos(pos::type::rel, 1.0f),
         pos(pos::type::rel, 0.5f),
@@ -63,7 +63,7 @@ void slider::handle_element_events()
 {
     const raylib::Vector2 mouse_pos = raylib::Mouse::GetPosition();
     const raylib::Rectangle raw_rect = get_raw_rect();
-    const raylib::Rectangle raw_rect_thumb = thumb.get_raw_rect();
+    const raylib::Rectangle raw_rect_thumb = thumb.ref.get_raw_rect();
 
     const bool is_mouse_on_rect =
         mouse_pos.x >= raw_rect.x && mouse_pos.x <= raw_rect.x + raw_rect.width &&
@@ -111,9 +111,9 @@ void slider::handle_element_events()
 
 void slider::update_element([[maybe_unused]] float dt)
 {
-    fill.set_opt_color(fill_color.get().to_color());
-    std::get<kee::dims>(fill.dimensions).w.val = progress;
-    std::get<kee::dims>(thumb.dimensions).h.val = thumb_scale.get();
+    fill.ref.set_opt_color(fill_color.get().to_color());
+    std::get<kee::dims>(fill.ref.dimensions).w.val = progress;
+    std::get<kee::dims>(thumb.ref.dimensions).h.val = thumb_scale.get();
 }
 
 } // namespace ui

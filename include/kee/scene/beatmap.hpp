@@ -31,12 +31,12 @@ private:
 
     kee::transition<float>& combo_gain;
 
-    kee::ui::rect& load_rect;
-    kee::ui::rect& progress_rect;
-    kee::ui::text& combo_text;
-    kee::ui::text& combo_text_bg;
-    kee::ui::base& window_border;
-    kee::ui::base& key_frame;
+    std::optional<kee::ui::handle<kee::ui::rect>> load_rect;
+    kee::ui::handle<kee::ui::rect> progress_rect;
+    kee::ui::handle<kee::ui::text> combo_text;
+    kee::ui::handle<kee::ui::text> combo_text_bg;
+    kee::ui::handle<kee::ui::base> window_border;
+    kee::ui::handle<kee::ui::base> key_frame;
 
     const float load_time;
     const float max_combo_time;
@@ -44,7 +44,7 @@ private:
     const float music_start_offset;
     const float music_bpm;
 
-    std::unordered_map<int, std::reference_wrapper<beatmap_key>> keys;
+    std::unordered_map<int, kee::ui::handle<beatmap_key>> keys;
 
     raylib::Music music;
     raylib::Sound hitsound;
@@ -95,9 +95,9 @@ private:
 
     kee::transition<float>& combo_lost_alpha;
 
-    kee::ui::rect& frame;
-    kee::ui::rect& frame_combo_lost;
-    kee::ui::text& key_text;
+    kee::ui::handle<kee::ui::rect> frame;
+    kee::ui::handle<kee::ui::rect> frame_combo_lost;
+    kee::ui::handle<kee::ui::text> key_text;
 
     const int keycode;
 

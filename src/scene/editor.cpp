@@ -1,6 +1,6 @@
 #include "kee/scene/editor.hpp"
 
-#include <ranges>
+/*#include <ranges>
 
 namespace kee {
 namespace scene {
@@ -406,11 +406,11 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         );
 
         keys.emplace(id, key_holder.add_child<editor_key>(std::nullopt, *this, id));
-    }
+    }*/
 
     /* TODO: for testing only */
 
-    keys.at(KeyboardKey::KEY_Q).get().hit_objects.emplace(0.2f, editor_hit_object(KeyboardKey::KEY_Q, 16.0f));
+    /*keys.at(KeyboardKey::KEY_Q).get().hit_objects.emplace(0.2f, editor_hit_object(KeyboardKey::KEY_Q, 16.0f));
     keys.at(KeyboardKey::KEY_W).get().hit_objects.emplace(0.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
     keys.at(KeyboardKey::KEY_W).get().hit_objects.emplace(4.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
     keys.at(KeyboardKey::KEY_W).get().hit_objects.emplace(8.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
@@ -919,13 +919,13 @@ void object_editor::handle_element_events()
         editor_scene.active_child = *this;
 
         if (raylib::Mouse::IsButtonPressed(MouseButton::MOUSE_BUTTON_LEFT))
-        {
+        {*/
             /**
              * If two hit objects intersect with mouse position on-click, already selected objects take
              * priority. Then the top-rightmost one (top-most prioritized over right-most) gets selected 
              * since that is how hit objects are ordered when rendered.
              */
-            static const auto click_priority = [](const hit_obj_render& l, const hit_obj_render& r)
+            /*static const auto click_priority = [](const hit_obj_render& l, const hit_obj_render& r)
             {
                 if (l.hit_obj_ref->second.is_selected != r.hit_obj_ref->second.is_selected)
                     return r.hit_obj_ref->second.is_selected;
@@ -1348,4 +1348,4 @@ void editor_key::render_hit_objects() const
 }
 
 } // namespace scene
-} // namespace kee
+} // namespace kee*/

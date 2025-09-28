@@ -26,7 +26,7 @@ protected:
     void handle_element_events() override;
 
 private:
-    kee::ui::mouse_state button_state;
+    kee::mouse_state button_state;
 
     std::optional<bool> is_down_l;
 };
