@@ -7,12 +7,12 @@ window::window()
 {
     static constexpr int window_fps = 144;
     impl.SetConfigFlags(
-        ConfigFlags::FLAG_BORDERLESS_WINDOWED_MODE |    /* Make window take up the entire screen */
-        ConfigFlags::FLAG_WINDOW_UNDECORATED |          /* Remove toolbars when displaying the game */
-        ConfigFlags::FLAG_VSYNC_HINT                    /* Prevent screen tearing */
+        //ConfigFlags::FLAG_BORDERLESS_WINDOWED_MODE |    /* Make window take up the entire screen */
+        //ConfigFlags::FLAG_WINDOW_UNDECORATED |          /* Remove toolbars when displaying the game */
+        ConfigFlags::FLAG_VSYNC_HINT |                   /* Prevent screen tearing */
+        ConfigFlags::FLAG_WINDOW_HIGHDPI
     );
     impl.Init(raylib::Window::GetWidth(), raylib::Window::GetHeight());
-    //impl.Init();
     impl.SetTargetFPS(window_fps);
 }
 

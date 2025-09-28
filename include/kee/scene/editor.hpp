@@ -65,9 +65,13 @@ private:
     void handle_element_events() override;
     void update_element(float dt) override;
 
+    void set_tick_freq_idx(std::size_t new_tick_freq_idx);
+
     kee::ui::image_texture play_png;
     kee::ui::image_texture pause_png;
     kee::ui::image_texture arrow_png;
+
+    std::size_t tick_freq_idx;
 
     kee::transition<kee::color>& pause_play_color;
     kee::transition<float>& pause_play_scale;
@@ -77,14 +81,13 @@ private:
     kee::transition<kee::color>& tick_r_button_color;
     kee::transition<float>& tick_l_button_scale;
     kee::transition<float>& tick_r_button_scale;
+    kee::transition<float>& tick_curr_rect_x;
 
     kee::ui::rect& inspector_rect;
 
     kee::ui::button& beat_snap_button;
     kee::ui::rect& beat_snap_button_rect;
     kee::ui::text& beat_snap_text;
-
-    std::size_t tick_freq_idx;
 
     kee::ui::text& tick_text;
     kee::ui::button& tick_l_button;
@@ -94,7 +97,10 @@ private:
 
     kee::ui::rect& tick_frame;
     kee::ui::rect& tick_curr_rect;
+
     std::vector<std::reference_wrapper<kee::ui::text>> tick_frame_texts;
+    std::vector<std::reference_wrapper<kee::ui::button>> tick_frame_buttons;
+    std::vector<std::reference_wrapper<kee::transition<kee::color>>> tick_frame_text_colors;
 
     kee::ui::slider& music_slider;
     kee::ui::button& pause_play;

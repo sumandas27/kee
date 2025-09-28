@@ -7,8 +7,8 @@ int main()
     std::println();
     std::println(stderr, "`kee` uses the Raylib game engine backed by OpenGL, a graphics API which Apple has deprecated.");
 
-    return EXIT_FAILURE;
-#else
+    //return EXIT_FAILURE;
+//#else
     try {
         kee::game game;
         game.main_loop();

@@ -34,6 +34,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     play_png("assets/img/play.png"),
     pause_png("assets/img/pause.png"),
     arrow_png("assets/img/arrow.png"),
+    tick_freq_idx(3),
     pause_play_color(add_transition<kee::color>(kee::color::white())),
     pause_play_scale(add_transition<float>(1.0f)),
     beat_snap_button_color(add_transition<kee::color>(kee::color::white())),
@@ -42,6 +43,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     tick_r_button_color(add_transition<kee::color>(kee::color::white())),
     tick_l_button_scale(add_transition<float>(1.0f)),
     tick_r_button_scale(add_transition<float>(1.0f)),
+    tick_curr_rect_x(add_transition<float>(static_cast<float>(tick_freq_idx * 2 + 1) / (tick_freq_count * 2))),
     inspector_rect(add_child<kee::ui::rect>(
         raylib::Color(20, 20, 20),
         pos(pos::type::rel, 0.8f),
@@ -82,7 +84,6 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         assets.font_semi_bold, "BEAT SNAP", false,
         kee::ui::common(true, std::nullopt, false)
     )),
-    tick_freq_idx(3),
     tick_text(inspector_rect.add_child<kee::ui::text>(
         raylib::Color::White(),
         pos(pos::type::rel, 0.5f),
@@ -144,7 +145,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     )),
     tick_curr_rect(tick_frame.add_child<kee::ui::rect>(
         raylib::Color(40, 40, 40, 255),
-        pos(pos::type::rel, static_cast<float>(tick_freq_idx * 2 + 1) / (tick_freq_count * 2)),
+        pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.5f),
         dims(
             dim(dim::type::rel, 1.0f / tick_freq_count),
@@ -217,6 +218,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     music_time(0.0f)
 {
     for (std::size_t i = 0; i < tick_freq_count; i++)
+    {
         tick_frame_texts.push_back(tick_frame.add_child<kee::ui::text>(
             raylib::Color::White(),
             pos(pos::type::rel, static_cast<float>(i * 2 + 1) / (tick_freq_count * 2)),
@@ -225,6 +227,39 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             assets.font_regular, std::to_string(tick_freqs[i]), false,
             kee::ui::common(true, 0, false)
         ));
+
+        tick_frame_buttons.push_back(tick_frame.add_child<kee::ui::button>(
+            pos(pos::type::rel, static_cast<float>(i * 2 + 1) / (tick_freq_count * 2)),
+            pos(pos::type::rel, 0.5f),
+            dims(
+                dim(dim::type::rel, 1.0f / tick_freq_count),
+                dim(dim::type::rel, 1)
+            ),
+            kee::ui::common(true, 1, false)
+        ));
+
+        tick_frame_buttons.back().get().on_event = [&, idx = i](ui::button::event button_event)
+        {
+            switch (button_event)
+            {
+            case ui::button::event::on_hot:
+                this->tick_frame_text_colors[idx].get().set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
+                break;
+            case ui::button::event::on_leave:
+                this->tick_frame_text_colors[idx].get().set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
+                break;
+            default:
+                break;
+            }
+        };
+
+        tick_frame_buttons.back().get().on_click_l = [&, idx = i]()
+        {
+            this->set_tick_freq_idx(idx);
+        };
+
+        tick_frame_text_colors.push_back(add_transition<kee::color>(kee::color::white()));
+    }
 
     tick_l_button.on_event = [&](ui::button::event button_event)
     {
@@ -241,7 +276,15 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             this->tick_l_button_color.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
             this->tick_l_button_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
             break;
+        default:
+            break;
         }
+    };
+
+    tick_l_button.on_click_l = [&]()
+    {
+        if (this->tick_freq_idx != 0)
+            this->set_tick_freq_idx(this->tick_freq_idx - 1);
     };
 
     tick_r_button.on_event = [&](ui::button::event button_event)
@@ -259,7 +302,15 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             this->tick_r_button_color.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
             this->tick_r_button_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
             break;
+        default:
+            break;
         }
+    };
+
+    tick_r_button.on_click_l = [&]()
+    {
+        if (this->tick_freq_idx != editor::tick_freq_count - 1)
+            this->set_tick_freq_idx(this->tick_freq_idx + 1);
     };
 
     beat_snap_button.on_click_l = [&]()
@@ -288,6 +339,8 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         case ui::button::event::on_leave:
             this->beat_snap_button_color.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
             break;
+        default:
+            break;
         }
     };
 
@@ -306,6 +359,8 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             if (music_is_playing)
                 this->music.Resume();
             break;
+        default:
+            break;
         }
     };
 
@@ -323,6 +378,8 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         case ui::button::event::on_leave:
             pause_play_color.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
             pause_play_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
+            break;
+        default:
             break;
         }
     };
@@ -501,16 +558,32 @@ void editor::update_element([[maybe_unused]] float dt)
 
     std::get<kee::dims>(tick_l_img.dimensions).w.val = tick_l_button_scale.get();
     std::get<kee::dims>(tick_l_img.dimensions).h.val = tick_l_button_scale.get();
-    tick_l_img.set_opt_color(tick_l_button_color.get().to_color());
-
     std::get<kee::dims>(tick_r_img.dimensions).w.val = tick_r_button_scale.get();
     std::get<kee::dims>(tick_r_img.dimensions).h.val = tick_r_button_scale.get();
-    tick_r_img.set_opt_color(tick_r_button_color.get().to_color());
+
+    for (std::size_t i = 0; i < editor::tick_freq_count; i++)
+        tick_frame_texts[i].get().set_opt_color(tick_frame_text_colors[i].get().get().to_color());
+
+    const raylib::Color tick_l_img_color = (tick_freq_idx != 0) ? tick_l_button_color.get().to_color() : raylib::Color::Blank();
+    const raylib::Color tick_r_img_color = (tick_freq_idx != tick_freq_count - 1) ? tick_r_button_color.get().to_color() : raylib::Color::Blank();
+    tick_l_img.set_opt_color(tick_l_img_color);
+    tick_r_img.set_opt_color(tick_r_img_color);
+
+    tick_curr_rect.x.val = tick_curr_rect_x.get();
 
     const unsigned int music_length = static_cast<unsigned int>(music.GetTimeLength());
     const unsigned int music_time_int = static_cast<unsigned int>(music_time);
     const std::string music_time_str = std::format("{}:{:02} / {}:{:02}", music_time_int / 60, music_time_int % 60, music_length / 60, music_length % 60);
     music_time_text.set_string(music_time_str);
+}
+
+void editor::set_tick_freq_idx(std::size_t new_tick_freq_idx)
+{
+    tick_freq_idx = new_tick_freq_idx;
+    tick_text.set_string("1 / " + std::to_string(tick_freqs[tick_freq_idx]));
+
+    const float new_y = static_cast<float>(tick_freq_idx * 2 + 1) / (tick_freq_count * 2);
+    tick_curr_rect_x.set(std::nullopt, new_y, 0.2f, kee::transition_type::exp);
 }
 
 hit_obj_ui::hit_obj_ui(const kee::ui::base::required& reqs, float beat, float duration, float curr_beat, float beat_width, float rel_y) :
