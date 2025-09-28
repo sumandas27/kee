@@ -3,12 +3,10 @@
 int main()
 {
 #ifdef __APPLE__
-    std::println(stderr, "`kee` does not support Apple machines! This may change in the future.");
-    std::println();
-    std::println(stderr, "`kee` uses the Raylib game engine backed by OpenGL, a graphics API which Apple has deprecated.");
+    std::println(stderr, "[WARNING] `kee` may not be functional on Apple machines! `kee` uses the Raylib game engine");
+    std::println(stderr, "backed by OpenGL, a graphics API which Apple has deprecated.");
+#endif
 
-    //return EXIT_FAILURE;
-//#else
     try {
         kee::game game;
         game.main_loop();
@@ -28,5 +26,4 @@ int main()
     }
 
     return EXIT_FAILURE;
-#endif
 }
