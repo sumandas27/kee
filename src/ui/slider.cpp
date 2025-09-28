@@ -8,16 +8,15 @@ slider::slider(
     kee::pos x, 
     kee::pos y, 
     const std::variant<kee::dims, kee::border>& dimensions, 
-    bool centered,
-    std::optional<int> z_order
+    bool centered
 ) :
-    kee::ui::base(reqs, x, y, dimensions, kee::ui::common(centered, z_order, true)),
+    kee::ui::base(reqs, x, y, dimensions, centered),
     on_event([]([[maybe_unused]] slider::event slider_event){}),
     progress(0.0f),
     slider_state(mouse_state::off),
     fill_color(add_transition<kee::color>(kee::color::white())),
     thumb_scale(add_transition<float>(1.75f)),
-    track(add_child<kee::ui::rect>(
+    track(add_child<kee::ui::rect>(0,
         raylib::Color(255, 255, 255, 40),
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
@@ -25,11 +24,11 @@ slider::slider(
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
+        false,
         std::nullopt, 
-        rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt),
-        kee::ui::common(false, 1, false)
+        rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt)
     )),
-    fill(add_child<kee::ui::rect>(
+    fill(add_child<kee::ui::rect>(1,
         raylib::Color::White(),
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
@@ -37,11 +36,11 @@ slider::slider(
             dim(dim::type::rel, 0),
             dim(dim::type::rel, 1)
         ),
+        false,
         std::nullopt,
-        rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt),
-        kee::ui::common(false, 0, false)
+        rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt)
     )),
-    thumb(fill.add_child<kee::ui::rect>(
+    thumb(fill.add_child<kee::ui::rect>(1,
         std::nullopt,
         pos(pos::type::rel, 1.0f),
         pos(pos::type::rel, 0.5f),
@@ -49,9 +48,9 @@ slider::slider(
             dim(dim::type::aspect, 1.0f),
             dim(dim::type::rel, 1.75f)
         ),
+        true,
         std::nullopt,
-        rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt),
-        kee::ui::common(true, 0, false)
+        rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt)
     ))
 { }
 

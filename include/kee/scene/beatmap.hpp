@@ -28,10 +28,10 @@ public:
 private:
     void handle_element_events() override;
     void update_element(float dt) override;
-    void render_element_behind_children() const override;
 
     kee::transition<float>& combo_gain;
 
+    kee::ui::rect& load_rect;
     kee::ui::rect& progress_rect;
     kee::ui::text& combo_text;
     kee::ui::text& combo_text_bg;

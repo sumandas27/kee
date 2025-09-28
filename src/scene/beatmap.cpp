@@ -6,7 +6,17 @@ namespace scene {
 beatmap::beatmap(const kee::scene::window& window, kee::global_assets& assets) :
     kee::scene::base(window, assets),
     combo_gain(add_transition<float>(0.0f)),
-    progress_rect(add_child<kee::ui::rect>(
+    load_rect(add_child<kee::ui::rect>(0,
+        raylib::Color(255, 255, 255, 20),
+        pos(pos::type::beg, 0),
+        pos(pos::type::end, 0),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 1)
+        ),
+        false, std::nullopt, std::nullopt
+    )),
+    progress_rect(add_child<kee::ui::rect>(1,
         raylib::Color::White(),
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
@@ -14,42 +24,39 @@ beatmap::beatmap(const kee::scene::window& window, kee::global_assets& assets) :
             dim(dim::type::rel, 0),
             dim(dim::type::abs, 10)
         ),
-        std::nullopt, std::nullopt,
-        kee::ui::common(false, 0, false)
+        false, std::nullopt, std::nullopt
     )),
-    combo_text(add_child<kee::ui::text>(
+    combo_text(add_child<kee::ui::text>(2,
         raylib::Color::White(),
         pos(pos::type::beg, 40),
         pos(pos::type::end, 40),
         ui::text_size(ui::text_size::type::rel_h, 0.1f),
-        assets.font_light, "0x", true, 
-        kee::ui::common(false, 0, false)
+        false, assets.font_light, "0x", true
     )),
-    combo_text_bg(add_child<kee::ui::text>(
+    combo_text_bg(add_child<kee::ui::text>(1,
         raylib::Color(255, 255, 255, 0),
         pos(pos::type::beg, 40),
         pos(pos::type::end, 40),
         ui::text_size(ui::text_size::type::rel_h, 0.1f),
-        assets.font_light, "0x", true, 
-        kee::ui::common(false, 0, false)
+        false, assets.font_light, "0x", true
     )),
-    window_border(add_child<kee::ui::base>(
+    window_border(add_child<kee::ui::base>(1,
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         dims(
             dim(dim::type::rel, 0.9f),
             dim(dim::type::rel, 0.9f)
         ),
-        kee::ui::common(true, 0, false)
+        true
     )),
-    key_frame(window_border.add_child<kee::ui::base>(
+    key_frame(window_border.add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         dims(
             dim(dim::type::aspect, 10),
             dim(dim::type::aspect, 4)
         ),
-        kee::ui::common(true, 0, false)
+        true
     )),
     input_tolerance(0.25f),
     approach_beats(2.0f),
@@ -66,7 +73,7 @@ beatmap::beatmap(const kee::scene::window& window, kee::global_assets& assets) :
     game_time(0.0f)
 {
     for (const auto& [id, rel_pos] : kee::key_ui_data)
-        keys.emplace(id, key_frame.add_child<beatmap_key>(*this, id, rel_pos));
+        keys.emplace(id, key_frame.add_child<beatmap_key>(std::nullopt, *this, id, rel_pos));
 
     music.SetLooping(false);
     music.SetVolume(0.1f);
@@ -167,8 +174,8 @@ void beatmap::update_element(float dt)
     combo_text_bg.set_string(std::to_string(combo) + "x");
     combo_text_bg.set_scale(1.0f + 0.5f * combo_gain.get());
 
-    kee::dim& progress_rect_w = std::get<kee::dims>(progress_rect.dimensions).w;
-    progress_rect_w.val = std::clamp(get_beat() / end_beat, 0.0f, 1.0f);
+    std::get<kee::dims>(progress_rect.dimensions).w.val = std::clamp(get_beat() / end_beat, 0.0f, 1.0f);
+    std::get<kee::dims>(load_rect.dimensions).h.val = std::max(1 - game_time / load_time, 0.0f);
 
     if (!music.IsPlaying())
     {
@@ -177,26 +184,6 @@ void beatmap::update_element(float dt)
     }
     else
         music.Update();
-}
-
-void beatmap::render_element_behind_children() const
-{
-    if (game_time >= load_time)
-        return;
-
-    kee::ui::rect load_rect = make_temp_child<kee::ui::rect>(
-        raylib::Color(255, 255, 255, 20),
-        pos(pos::type::beg, 0),
-        pos(pos::type::end, 0),
-        dims(
-            dim(dim::type::rel, 1),
-            dim(dim::type::rel, 1 - game_time / load_time)
-        ),
-        std::nullopt, std::nullopt,
-        kee::ui::common(false, std::nullopt, false)
-    );
-
-    load_rect.render();
 }
 
 beatmap_hit_object::beatmap_hit_object(float beat) :
@@ -225,20 +212,20 @@ beatmap_key::beatmap_key(const kee::ui::base::required& reqs, kee::scene::beatma
             dim(dim::type::aspect, key_id == KeyboardKey::KEY_SPACE ? 7.0f : 1.0f),
             dim(dim::type::rel, 0.25)
         ),
-        kee::ui::common(true, std::nullopt, false)
+        true
     ),
     beatmap_scene(beatmap_scene),
     combo_lost_alpha(add_transition<float>(0.0f)),
-    frame(add_child<kee::ui::rect>(
+    frame(add_child<kee::ui::rect>(std::nullopt,
         raylib::Color::Blank(),
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         border(border::type::rel_h, kee::key_border_parent_h),
+        true,
         ui::rect_outline(ui::rect_outline::type::rel_h, kee::key_border_width, std::nullopt), 
-        std::nullopt,
-        kee::ui::common(true, std::nullopt, true)
+        std::nullopt
     )),
-    frame_combo_lost(frame.add_child<kee::ui::rect>(
+    frame_combo_lost(frame.add_child<kee::ui::rect>(std::nullopt,
         raylib::Color(255, 0, 0, 0),
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
@@ -246,16 +233,14 @@ beatmap_key::beatmap_key(const kee::ui::base::required& reqs, kee::scene::beatma
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
-        std::nullopt, std::nullopt, 
-        kee::ui::common(false, -1, false)
+        false, std::nullopt, std::nullopt
     )),
-    key_text(add_child<kee::ui::text>(
+    key_text(add_child<kee::ui::text>(std::nullopt,
         std::nullopt,
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         ui::text_size(ui::text_size::type::rel_h, 0.5 * (1.0f - 2 * kee::key_border_parent_h)),
-        assets.font_light, std::string(), false, 
-        kee::ui::common(true, 0, false)
+        true, assets.font_light, std::string(), false
     )),
     keycode(key_id),
     combo_lost_time(0.0f)
@@ -360,9 +345,9 @@ void beatmap_key::render_element_ahead_children() const
             pos(pos::type::rel, 0.5),
             pos(pos::type::rel, 0.5),
             border(border::type::rel_h, start_progress + kee::key_border_parent_h),
+            true,
             ui::rect_outline(ui::rect_outline::type::rel_h_parent, std::max(end_progress - start_progress, kee::key_border_width), std::nullopt),
-            std::nullopt,
-            kee::ui::common(true, std::nullopt, false)
+            std::nullopt
         );
 
         hit_obj_rect.render();

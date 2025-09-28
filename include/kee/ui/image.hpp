@@ -23,9 +23,9 @@ public:
         kee::pos x, 
         kee::pos y,
         const std::variant<kee::dims, kee::border>& dimensions,
+        bool centered,
         bool flip_horizontal,
-        bool flip_vertical,
-        const kee::ui::common& common
+        bool flip_vertical
     );
 
     void set_image(const kee::ui::image_texture& new_img_texture);

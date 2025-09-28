@@ -19,10 +19,7 @@ window::window()
 }
 
 base::base(const kee::scene::window& window, kee::global_assets& assets) :
-    kee::ui::base(
-        kee::ui::base::required(boost::none, assets), 
-        kee::ui::common(false, std::nullopt, true)
-    ),
+    kee::ui::base(kee::ui::base::required(boost::none, assets)),
     window(window)
 {
     x = pos(pos::type::beg, 0);
@@ -32,6 +29,7 @@ base::base(const kee::scene::window& window, kee::global_assets& assets) :
         dim(dim::type::abs, static_cast<float>(window.impl.GetHeight()))
     );
 
+    centered = false;
     set_opt_color(raylib::Color::Blank());
 }
 

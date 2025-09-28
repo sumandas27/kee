@@ -5,38 +5,22 @@
 namespace kee {
 namespace ui {
 
-common::common(bool centered, std::optional<int> z_order, bool children_z_order_enabled) :
-    centered(centered),
-    z_order(z_order),
-    children_z_order_enabled(children_z_order_enabled)
-{ }
-
 base::base(
     const kee::ui::base::required& reqs, 
     kee::pos x, 
     kee::pos y, 
     const std::variant<kee::dims, kee::border>& dimensions, 
-    const kee::ui::common& common
+    bool centered
 ) :
     x(x),
     y(y),
     dimensions(dimensions),
-    centered(common.centered),
+    centered(centered),
     assets(reqs.assets),
-    z_order(common.z_order),
-    children_z_order_enabled(common.children_z_order_enabled),
     parent(reqs.parent)
 { 
     set_opt_color(raylib::Color::Blank());
 }
-
-base::base(const kee::ui::base::required& reqs, const kee::ui::common& common) :
-    centered(common.centered),
-    z_order(common.z_order),
-    assets(reqs.assets),
-    children_z_order_enabled(common.children_z_order_enabled),
-    parent(reqs.parent)
-{ }
 
 base::base(base&& other) noexcept :
     x(std::move(other.x)),
@@ -45,14 +29,12 @@ base::base(base&& other) noexcept :
     centered(other.centered),
     active_child(boost::none),
     assets(other.assets),
-    z_order(std::move(other.z_order)),
-    children_z_order_enabled(other.children_z_order_enabled),
     parent(other.parent),
     children(std::move(other.children)),
     transitions(std::move(other.transitions)),
     color(std::move(other.color))
 { 
-    for (std::unique_ptr<kee::ui::base>& child : children)
+    for (auto& [_, child] : children)
         child.get()->parent = *this;
 }
 
@@ -63,7 +45,7 @@ void base::handle_events()
     else
     {
         handle_element_events();
-        for (const std::unique_ptr<kee::ui::base>& child : children)
+        for (const auto& [_, child] : children)
             child->handle_events();
     }
 }
@@ -74,23 +56,14 @@ void base::update(float dt)
     for (const std::unique_ptr<kee::transition_base>& transition : transitions)
         transition->update(dt);
 
-    for (const std::unique_ptr<kee::ui::base>& child : children)
+    for (const auto& [_, child] : children)
         child->update(dt);
-
-    if (children_z_order_enabled)
-         std::sort(children.begin(), children.end(),
-            [](const std::unique_ptr<kee::ui::base>& l, const std::unique_ptr<kee::ui::base>& r) {
-                const int l_z_order = l->z_order.value_or(0);
-                const int r_z_order = r->z_order.value_or(0);
-                return l_z_order > r_z_order;
-            }
-        );
 }
 
 void base::render() const 
 { 
     render_element_behind_children();
-    for (const std::unique_ptr<kee::ui::base>& child : children)
+    for (const auto& [_, child] : children)
         child->render();
     render_element_ahead_children();
 }
@@ -161,6 +134,11 @@ raylib::Rectangle base::get_raw_rect_parent() const
 {
     return parent.value().get_raw_rect();
 }
+
+base::base(const kee::ui::base::required& reqs) :
+    assets(reqs.assets),
+    parent(reqs.parent)
+{ }
 
 void base::handle_element_events() { }
 

@@ -13,11 +13,11 @@ text::text(
     const std::optional<raylib::Color>& color, 
     kee::pos p_x, 
     kee::pos p_y, 
-    kee::ui::text_size p_str_size, 
+    kee::ui::text_size p_str_size,
+    bool centered,
     const raylib::Font& font,
     std::string_view p_string, 
-    bool font_cap_height_only,
-    const kee::ui::common& common
+    bool font_cap_height_only
 ) :
     kee::ui::base(
         reqs, p_x, p_y, 
@@ -25,7 +25,7 @@ text::text(
             dim(dim::type::abs, 0), 
             dim(dim::type::abs, 0)
         ), 
-        common
+        centered
     ),
     font(font),
     font_cap_height_only(font_cap_height_only)

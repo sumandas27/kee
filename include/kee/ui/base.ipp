@@ -4,15 +4,17 @@ namespace kee {
 namespace ui {
 
 template <std::derived_from<kee::ui::base> T, typename... Args>
-T& base::add_child(Args&&... args)
+T& base::add_child(std::optional<int> z_order, Args&&... args)
 {
+    std::println("ADD CHILD START");
     std::unique_ptr<T> child = std::make_unique<T>(
         kee::ui::base::required(*this, assets), 
         std::forward<Args>(args)...
     );
 
     T& ref = *child;
-    children.emplace_back(std::move(child));
+    children.emplace(z_order.value_or(0), std::move(child));
+    std::println("ADD CHILD END");
     return ref;
 }
 

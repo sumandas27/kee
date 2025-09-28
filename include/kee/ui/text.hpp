@@ -33,10 +33,10 @@ public:
         kee::pos p_x, 
         kee::pos p_y, 
         kee::ui::text_size p_str_size,
+        bool centered,
         const raylib::Font& font,
         std::string_view p_string,
-        bool font_cap_height_only,
-        const kee::ui::common& common
+        bool font_cap_height_only
     );
 
     void set_string(std::string_view new_str);

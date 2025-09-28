@@ -15,7 +15,7 @@ public:
         kee::pos x, 
         kee::pos y, 
         const std::variant<kee::dims, kee::border>& dimensions, 
-        const kee::ui::common& common
+        bool centered
     );
 
     std::function<void(button::event)> on_event;

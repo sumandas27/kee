@@ -1,7 +1,5 @@
 #pragma once
 
-#include <map>
-
 #include "kee/scene/base.hpp"
 #include "kee/ui/button.hpp"
 #include "kee/ui/image.hpp"

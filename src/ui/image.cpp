@@ -16,12 +16,12 @@ image::image(
     const raylib::Color& color,
     kee::pos x, 
     kee::pos y,
-    const std::variant<kee::dims, kee::border>& dimensions, 
+    const std::variant<kee::dims, kee::border>& dimensions,
+    bool centered,
     bool flip_horizontal,
-    bool flip_vertical,
-    const kee::ui::common& common
+    bool flip_vertical
 ) :
-    kee::ui::base(reqs, x, y, dimensions, common),
+    kee::ui::base(reqs, x, y, dimensions, centered),
     flip_horizontal(flip_horizontal),
     flip_vertical(flip_vertical),
     img_texture_ref(img_texture)

@@ -20,12 +20,12 @@ rect::rect(
     const std::optional<raylib::Color>& color, 
     kee::pos x, 
     kee::pos y, 
-    const std::variant<kee::dims, kee::border>& dims, 
+    const std::variant<kee::dims, kee::border>& dims,
+    bool centered, 
     std::optional<kee::ui::rect_outline> border,
-    std::optional<kee::ui::rect_roundness> roundness,
-    const kee::ui::common& common
+    std::optional<kee::ui::rect_roundness> roundness
 ) :
-    kee::ui::base(reqs, x, y, dims, common),
+    kee::ui::base(reqs, x, y, dims, centered),
     border(border),
     roundness(roundness)
 {

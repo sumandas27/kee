@@ -16,8 +16,7 @@ public:
         kee::pos x, 
         kee::pos y, 
         const std::variant<kee::dims, kee::border>& dimensions,
-        bool centered,
-        std::optional<int> z_order
+        bool centered
     );
 
     bool is_down() const;

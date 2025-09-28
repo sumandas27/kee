@@ -13,11 +13,11 @@ public:
         const std::optional<raylib::Color>& color, 
         kee::pos x,
         kee::pos y,
-        const std::variant<kee::dims, kee::border>& dims, 
+        const std::variant<kee::dims, kee::border>& dims,
+        bool centered,
         const raylib::Vector2& p0,
         const raylib::Vector2& p1,
-        const raylib::Vector2& p2,
-        const kee::ui::common& common
+        const raylib::Vector2& p2
     );
 
 private:

@@ -29,7 +29,7 @@ const std::unordered_map<int, int> editor::key_to_prio = []
 
 editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     kee::scene::base(window, assets),
-    obj_editor(add_child<object_editor>(keys, selected_key_ids, *this)),
+    obj_editor(add_child<object_editor>(std::nullopt, keys, selected_key_ids, *this)),
     approach_beats(2.0f),
     play_png("assets/img/play.png"),
     pause_png("assets/img/pause.png"),
@@ -44,7 +44,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     tick_l_button_scale(add_transition<float>(1.0f)),
     tick_r_button_scale(add_transition<float>(1.0f)),
     tick_curr_rect_x(add_transition<float>(static_cast<float>(tick_freq_idx * 2 + 1) / (tick_freq_count * 2))),
-    inspector_rect(add_child<kee::ui::rect>(
+    inspector_rect(add_child<kee::ui::rect>(std::nullopt,
         raylib::Color(20, 20, 20),
         pos(pos::type::rel, 0.8f),
         pos(pos::type::rel, 0.2f),
@@ -52,19 +52,18 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             dim(dim::type::rel, 0.2f),
             dim(dim::type::rel, 0.8f)
         ),
-        std::nullopt, std::nullopt,
-        kee::ui::common(false, 1, false)
+        false, std::nullopt, std::nullopt
     )),
-    beat_snap_button(inspector_rect.add_child<kee::ui::button>(
+    beat_snap_button(inspector_rect.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.05f),
         dims(
             dim(dim::type::aspect, 1),
             dim(dim::type::rel, 0.02f)
         ),
-        kee::ui::common(true, std::nullopt, false)
+        true
     )),
-    beat_snap_button_rect(beat_snap_button.add_child<kee::ui::rect>(
+    beat_snap_button_rect(beat_snap_button.add_child<kee::ui::rect>(std::nullopt,
         raylib::Color::Blank(),
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
@@ -72,36 +71,34 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
+        false,
         kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, 0.6f, raylib::Color::White()),
-        std::nullopt,
-        kee::ui::common(false, std::nullopt, false)
+        std::nullopt
     )),
-    beat_snap_text(inspector_rect.add_child<kee::ui::text>(
+    beat_snap_text(inspector_rect.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
         pos(pos::type::rel, 0.35f),
         pos(pos::type::rel, 0.05f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
-        assets.font_semi_bold, "BEAT SNAP", false,
-        kee::ui::common(true, std::nullopt, false)
+        true, assets.font_semi_bold, "BEAT SNAP", false
     )),
-    tick_text(inspector_rect.add_child<kee::ui::text>(
+    tick_text(inspector_rect.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.125f),
         ui::text_size(ui::text_size::type::rel_h, 0.06f),
-        assets.font_semi_bold, "1 / " + std::to_string(get_ticks_per_beat()), false,
-        kee::ui::common(true, std::nullopt, false)
+        true, assets.font_semi_bold, "1 / " + std::to_string(get_ticks_per_beat()), false
     )),
-    tick_l_button(inspector_rect.add_child<kee::ui::button>(
+    tick_l_button(inspector_rect.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0.2f),
         pos(pos::type::rel, 0.125f),
         dims(
             dim(dim::type::aspect, 1),
             dim(dim::type::rel, 0.035f)
         ),
-        kee::ui::common(true, std::nullopt, false)
+        true
     )),
-    tick_l_img(tick_l_button.add_child<kee::ui::image>(
+    tick_l_img(tick_l_button.add_child<kee::ui::image>(std::nullopt,
         arrow_png, raylib::Color::White(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
@@ -109,19 +106,18 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
-        false, false,
-        kee::ui::common(true, std::nullopt, false)
+        true, false, false
     )),
-    tick_r_button(inspector_rect.add_child<kee::ui::button>(
+    tick_r_button(inspector_rect.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0.8f),
         pos(pos::type::rel, 0.125f),
         dims(
             dim(dim::type::aspect, 1),
             dim(dim::type::rel, 0.035f)
         ),
-        kee::ui::common(true, std::nullopt, false)
+        true
     )),
-    tick_r_img(tick_r_button.add_child<kee::ui::image>(
+    tick_r_img(tick_r_button.add_child<kee::ui::image>(std::nullopt,
         arrow_png, raylib::Color::White(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
@@ -129,10 +125,9 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
-        true, false,
-        kee::ui::common(true, std::nullopt, false)
+        true, true, false
     )),
-    tick_frame(inspector_rect.add_child<kee::ui::rect>(
+    tick_frame(inspector_rect.add_child<kee::ui::rect>(std::nullopt,
         raylib::Color(30, 30, 30, 255),
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.18f),
@@ -140,10 +135,9 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 0.03f)
         ),
-        std::nullopt, std::nullopt,
-        kee::ui::common(false, std::nullopt, true)
+        false, std::nullopt, std::nullopt
     )),
-    tick_curr_rect(tick_frame.add_child<kee::ui::rect>(
+    tick_curr_rect(tick_frame.add_child<kee::ui::rect>(std::nullopt,
         raylib::Color(40, 40, 40, 255),
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.5f),
@@ -151,28 +145,27 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             dim(dim::type::rel, 1.0f / tick_freq_count),
             dim(dim::type::rel, 1)
         ),
-        std::nullopt, std::nullopt,
-        kee::ui::common(true, 1, false)
+        true, std::nullopt, std::nullopt
     )),
-    music_slider(add_child<kee::ui::slider>(
+    music_slider(add_child<kee::ui::slider>(std::nullopt,
         pos(pos::type::rel, 0.01f),
         pos(pos::type::rel, 0.22f),
         dims(
             dim(dim::type::rel, 0.78f),
             dim(dim::type::rel, 0.005f)
         ),
-        false, std::nullopt
+        false
     )),
-    pause_play(music_slider.add_child<kee::ui::button>(
+    pause_play(music_slider.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 40),
         dims(
             dim(dim::type::aspect, 1),
             dim(dim::type::abs, 60)
         ),
-        kee::ui::common(false, std::nullopt, false)
+        false
     )),
-    pause_play_img(pause_play.add_child<kee::ui::image>(
+    pause_play_img(pause_play.add_child<kee::ui::image>(std::nullopt,
         play_png,
         raylib::Color::White(),
         pos(pos::type::rel, 0.5),
@@ -181,34 +174,32 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
-        false, false,
-        kee::ui::common(true, std::nullopt, false)
+        true, false, false
     )),
-    music_time_text(music_slider.add_child<kee::ui::text>(
+    music_time_text(music_slider.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
         pos(pos::type::end, 0),
         pos(pos::type::beg, 30),
         ui::text_size(ui::text_size::type::abs, 80),
-        assets.font_regular, std::string(), false,
-        kee::ui::common(false, std::nullopt, false)
+        false, assets.font_regular, std::string(), false
     )),
-    key_border(add_child<kee::ui::base>(
+    key_border(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.4f),
         pos(pos::type::rel, 0.6f),
         dims(
             dim(dim::type::rel, 0.7f),
             dim(dim::type::rel, 0.5f)
         ),
-        kee::ui::common(true, std::nullopt, false)
+        true
     )),
-    key_frame(key_border.add_child<kee::ui::base>(
+    key_frame(key_border.add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         dims(
             dim(dim::type::aspect, 10),
             dim(dim::type::aspect, 4)
         ),
-        kee::ui::common(true, std::nullopt, false)
+        true
     )),
     music_start_offset(0.5f),
     music_bpm(100.0f),
@@ -219,23 +210,22 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
 {
     for (std::size_t i = 0; i < tick_freq_count; i++)
     {
-        tick_frame_texts.push_back(tick_frame.add_child<kee::ui::text>(
+        tick_frame_texts.push_back(tick_frame.add_child<kee::ui::text>(std::nullopt,
             raylib::Color::White(),
             pos(pos::type::rel, static_cast<float>(i * 2 + 1) / (tick_freq_count * 2)),
             pos(pos::type::rel, 0.5f),
             ui::text_size(ui::text_size::type::rel_h, 0.7f),
-            assets.font_regular, std::to_string(tick_freqs[i]), false,
-            kee::ui::common(true, 0, false)
+            true, assets.font_regular, std::to_string(tick_freqs[i]), false
         ));
 
-        tick_frame_buttons.push_back(tick_frame.add_child<kee::ui::button>(
+        tick_frame_buttons.push_back(tick_frame.add_child<kee::ui::button>(std::nullopt,
             pos(pos::type::rel, static_cast<float>(i * 2 + 1) / (tick_freq_count * 2)),
             pos(pos::type::rel, 0.5f),
             dims(
                 dim(dim::type::rel, 1.0f / tick_freq_count),
                 dim(dim::type::rel, 1)
             ),
-            kee::ui::common(true, 1, false)
+            true
         ));
 
         tick_frame_buttons.back().get().on_event = [&, idx = i](ui::button::event button_event)
@@ -405,17 +395,17 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
 
     for (const auto& [id, rel_pos] : kee::key_ui_data)
     {
-        kee::ui::base& key_holder = key_frame.add_child<kee::ui::base>(
+        kee::ui::base& key_holder = key_frame.add_child<kee::ui::base>(std::nullopt,
             pos(pos::type::rel, rel_pos.x),
             pos(pos::type::rel, rel_pos.y),
             dims(
                 dim(dim::type::aspect, id == KeyboardKey::KEY_SPACE ? 7.0f : 1.0f),
                 dim(dim::type::rel, 0.25)
             ),
-            kee::ui::common(true, std::nullopt, false)
+            true
         );
 
-        keys.emplace(id, key_holder.add_child<editor_key>(*this, id));
+        keys.emplace(id, key_holder.add_child<editor_key>(std::nullopt, *this, id));
     }
 
     /* TODO: for testing only */
@@ -595,11 +585,11 @@ hit_obj_ui::hit_obj_ui(const kee::ui::base::required& reqs, float beat, float du
             dim(dim::type::rel, duration / (2 * beat_width)),
             dim(dim::type::rel, rel_h)
         ),
+        false,
         kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, 0.15f, raylib::Color::Blue()), 
-        kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_h, 0.5f, kee::ui::rect_roundness::size_effect::extend_w),
-        kee::ui::common(false, std::nullopt, false)
+        kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_h, 0.5f, kee::ui::rect_roundness::size_effect::extend_w)
     ),
-    circle_l(add_child<kee::ui::rect>(
+    circle_l(add_child<kee::ui::rect>(std::nullopt,
         raylib::Color::Blue(),
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.5f),
@@ -607,11 +597,11 @@ hit_obj_ui::hit_obj_ui(const kee::ui::base::required& reqs, float beat, float du
             dim(dim::type::aspect, 1),
             dim(dim::type::rel, 0.4f)
         ),
+        true,
         std::nullopt,
-        kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f, std::nullopt),
-        kee::ui::common(true, std::nullopt, false)
+        kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f, std::nullopt)
     )),
-    circle_r(add_child<kee::ui::rect>(
+    circle_r(add_child<kee::ui::rect>(std::nullopt,
         raylib::Color::Blue(),
         pos(pos::type::rel, 1),
         pos(pos::type::rel, 0.5f),
@@ -619,9 +609,9 @@ hit_obj_ui::hit_obj_ui(const kee::ui::base::required& reqs, float beat, float du
             dim(dim::type::aspect, 1),
             dim(dim::type::rel, 0.4f)
         ),
+        true,
         std::nullopt,
-        kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f, std::nullopt),
-        kee::ui::common(true, std::nullopt, false)
+        kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f, std::nullopt)
     ))
 { }
 
@@ -688,40 +678,39 @@ object_editor::object_editor(
             dim(dim::type::rel, 1.0f),
             dim(dim::type::rel, 0.2f)
         ),
-        std::nullopt, std::nullopt,
-        kee::ui::common(false, std::nullopt, false)
+        false, std::nullopt, std::nullopt
     ),
-    obj_renderer(add_child<kee::ui::base>(
+    obj_renderer(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         dims(
             dim(dim::type::rel, 0.8f),
             dim(dim::type::rel, 1)
         ),
-        kee::ui::common(false, std::nullopt, false)
+        false
     )),
     keys(keys),
     selected_key_ids(selected_key_ids),
     editor_scene(editor_scene),
-    beat_hover_l(add_child<kee::ui::base>(
+    beat_hover_l(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         dims(
             dim(dim::type::rel, 0.01f),
             dim(dim::type::rel, 1)
         ),
-        kee::ui::common(false, std::nullopt, false)
+        false
     )),
-    beat_hover_r(add_child<kee::ui::base>(
+    beat_hover_r(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.99f),
         pos(pos::type::rel, 0),
         dims(
             dim(dim::type::rel, 0.01f),
             dim(dim::type::rel, 1)
         ),
-        kee::ui::common(false, std::nullopt, false)
+        false
     )),
-    settings_rect(add_child<kee::ui::rect>(
+    settings_rect(add_child<kee::ui::rect>(std::nullopt,
         raylib::Color(30, 30, 30),
         pos(pos::type::rel, 0.8f),
         pos(pos::type::rel, 0),
@@ -729,10 +718,9 @@ object_editor::object_editor(
             dim(dim::type::rel, 0.2f),
             dim(dim::type::rel, 1)
         ),
-        std::nullopt, std::nullopt,
-        kee::ui::common(false, std::nullopt, false)
+        false, std::nullopt, std::nullopt
     )),
-    key_label_rect(settings_rect.add_child<kee::ui::rect>(
+    key_label_rect(settings_rect.add_child<kee::ui::rect>(std::nullopt,
         raylib::Color(35, 35, 35),
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
@@ -740,10 +728,9 @@ object_editor::object_editor(
             dim(dim::type::rel, 0.075f),
             dim(dim::type::rel, 1)
         ),
-        std::nullopt, std::nullopt,
-        kee::ui::common(false, std::nullopt, false)
+        false, std::nullopt, std::nullopt
     )),
-    beat_indicator(add_child<kee::ui::triangle>(
+    beat_indicator(add_child<kee::ui::triangle>(std::nullopt,
         raylib::Color::Red(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.05f),
@@ -751,10 +738,10 @@ object_editor::object_editor(
             dim(dim::type::aspect, 1.5),
             dim(dim::type::rel, 0.1f)
         ),
+        true,
         raylib::Vector2(0, 0),
         raylib::Vector2(1, 0),
-        raylib::Vector2(0.5, 1),
-        kee::ui::common(true, 0, false)
+        raylib::Vector2(0.5, 1)
     )),
     selected_is_active(false),
     selected_has_moved(false),
@@ -973,8 +960,7 @@ void object_editor::handle_element_events()
                         dim(dim::type::rel, 0),
                         dim(dim::type::rel, 1)
                     ),
-                    std::nullopt, std::nullopt,
-                    kee::ui::common(false, std::nullopt, false)
+                    false, std::nullopt, std::nullopt
                 ));
             }
             else
@@ -1131,9 +1117,9 @@ void object_editor::render_element_behind_children() const
                 dim(dim::type::rel, render_rel_w),
                 dim(dim::type::rel, render_rel_h)
             ),
+            true,
             std::nullopt,
-            kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f, std::nullopt),
-            kee::ui::common(true, std::nullopt, false)
+            kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f, std::nullopt)
         );
 
         if (beat_render_rect.get_raw_rect().CheckCollision(obj_renderer.get_raw_rect()))
@@ -1147,8 +1133,7 @@ void object_editor::render_element_behind_children() const
                 pos(pos::type::rel, render_rel_x),
                 pos(pos::type::rel, 0.9f),
                 ui::text_size(ui::text_size::type::rel_h, 0.15f),
-                assets.font_semi_bold, std::to_string(whole_beat), true,
-                kee::ui::common(true, std::nullopt, false)
+                true, assets.font_semi_bold, std::to_string(whole_beat), true
             );
 
             if (whole_beat_text.get_raw_rect().CheckCollision(obj_renderer.get_raw_rect()))
@@ -1193,8 +1178,7 @@ void object_editor::render_element_ahead_children() const
                 pos(pos::type::rel, 0.5f),
                 pos(pos::type::rel, rel_y),
                 ui::text_size(ui::text_size::type::rel_h, 0.1f),
-                assets.font_semi_bold, key_str, false,
-                kee::ui::common(true, std::nullopt, false)
+                true, assets.font_semi_bold, key_str, false
             );
 
             key_to_render_text.render();
@@ -1239,11 +1223,11 @@ editor_key::editor_key(const kee::ui::base::required& reqs, kee::scene::editor& 
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_h, kee::key_border_parent_h),
-        kee::ui::common(true, std::nullopt, false)
+        true
     ),
     is_selected(false),
     editor_scene(editor_scene),
-    frame(add_child<kee::ui::rect>(
+    frame(add_child<kee::ui::rect>(std::nullopt,
         raylib::Color::Blank(),
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
@@ -1251,17 +1235,16 @@ editor_key::editor_key(const kee::ui::base::required& reqs, kee::scene::editor& 
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
+        true,
         ui::rect_outline(ui::rect_outline::type::rel_h, kee::key_border_width, std::nullopt),
-        std::nullopt,
-        kee::ui::common(true, std::nullopt, true)
+        std::nullopt
     )),
-    key_text(add_child<kee::ui::text>(
+    key_text(add_child<kee::ui::text>(std::nullopt,
         std::nullopt,
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
-        assets.font_light, std::string(), false,
-        kee::ui::common(true, 0, false)
+        true, assets.font_light, std::string(), false
     )),
     key_id(key_id),
     is_control_clicked(false)
@@ -1355,9 +1338,9 @@ void editor_key::render_hit_objects() const
             pos(pos::type::rel, 0.5),
             pos(pos::type::rel, 0.5),
             border(border::type::rel_h, start_progress),
+            true,
             ui::rect_outline(ui::rect_outline::type::rel_h_parent, std::max(end_progress - start_progress, kee::key_border_width), raylib::Color::Red()),
-            std::nullopt,
-            kee::ui::common(true, std::nullopt, false)
+            std::nullopt
         );
 
         hit_obj_rect.render();

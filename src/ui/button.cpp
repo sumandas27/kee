@@ -8,9 +8,9 @@ button::button(
     kee::pos x, 
     kee::pos y, 
     const std::variant<kee::dims, kee::border>& dimensions, 
-    const kee::ui::common& common
+    bool centered
 ) :
-    kee::ui::base(reqs, x, y, dimensions, common),
+    kee::ui::base(reqs, x, y, dimensions, centered),
     on_event([]([[maybe_unused]] button::event button_event){}),
     on_click_l([](){}),
     on_click_r([](){}),

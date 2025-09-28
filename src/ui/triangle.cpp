@@ -8,13 +8,13 @@ triangle::triangle(
     const std::optional<raylib::Color>& color, 
     kee::pos x,
     kee::pos y,
-    const std::variant<kee::dims, kee::border>& dims, 
+    const std::variant<kee::dims, kee::border>& dims,
+    bool centered,
     const raylib::Vector2& p0,
     const raylib::Vector2& p1,
-    const raylib::Vector2& p2,
-    const kee::ui::common& common
+    const raylib::Vector2& p2
 ) :
-    kee::ui::base(reqs, x, y, dims, common),
+    kee::ui::base(reqs, x, y, dims, centered),
     p0(p0),
     p1(p1),
     p2(p2)

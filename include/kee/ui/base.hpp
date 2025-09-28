@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <map>
 #include <variant>
 
 #include <boost/optional.hpp>
@@ -10,16 +11,6 @@
 
 namespace kee {
 namespace ui {
-
-class common
-{
-public:
-    common(bool centered, std::optional<int> z_order, bool children_z_order_enabled);
-
-    const bool centered;
-    const std::optional<int> z_order;
-    const bool children_z_order_enabled;
-};
 
 enum class mouse_state
 {
@@ -42,11 +33,12 @@ public:
         kee::pos x,
         kee::pos y,
         const std::variant<kee::dims, kee::border>& dimensions,
-        const kee::ui::common& common
+        bool centered
     );
     base(base&& other) noexcept;
     virtual ~base() = default;
 
+    /* TODO: maybe merge all these ??? */
     void handle_events();
     void update(float dt);
     void render() const;
@@ -57,7 +49,8 @@ public:
      * These functions will populate the first parameter for you.
      */
     template <std::derived_from<kee::ui::base> T, typename... Args>
-    T& add_child(Args&&... args);
+    T& add_child(std::optional<int> z_order, Args&&... args);
+    /* TODO: deprecated, remove soon */
     template <std::derived_from<kee::ui::base> T, typename... Args>
     T make_temp_child(Args&&... args) const;
 
@@ -91,7 +84,7 @@ protected:
     /**
      * Scene subclasses do *NOT* specify a `parent`, non-scene subclasses do.
      */
-    base(const kee::ui::base::required& reqs, const kee::ui::common& common);
+    base(const kee::ui::base::required& reqs);
 
     virtual void handle_element_events();
     virtual void update_element(float dt);
@@ -100,14 +93,11 @@ protected:
 
     kee::global_assets& assets;
 
-    std::optional<int> z_order;
-    bool children_z_order_enabled;
-
 private:
     raylib::Vector2 get_dims(const raylib::Rectangle& parent_raw_rect) const;
 
     boost::optional<const kee::ui::base&> parent;
-    std::vector<std::unique_ptr<kee::ui::base>> children;
+    std::multimap<int, std::unique_ptr<kee::ui::base>> children;
     std::vector<std::unique_ptr<kee::transition_base>> transitions;
 
     std::optional<raylib::Color> color;
