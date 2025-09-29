@@ -43,7 +43,7 @@ public:
     void set_scale(float new_scale);
 
 private:
-    void render_element_behind_children() const override;
+    void render_element() const override;
 
     void update_dims(
         std::optional<std::string_view> new_str, 

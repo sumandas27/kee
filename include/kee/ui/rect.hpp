@@ -73,7 +73,7 @@ public:
     std::optional<kee::ui::rect_roundness> roundness;
 
 protected:
-    void render_element_behind_children() const override;
+    void render_element() const override;
 
 private:
     float get_roundness() const;

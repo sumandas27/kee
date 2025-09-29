@@ -87,7 +87,7 @@ public:
 
 private:
     void handle_element_events() override;
-    void render_element_ahead_children() const override;
+    void render_element() const override;
 
     void combo_lose();
 

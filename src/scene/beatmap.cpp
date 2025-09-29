@@ -223,7 +223,7 @@ beatmap_key::beatmap_key(const kee::ui::base::required& reqs, kee::scene::beatma
     ),
     beatmap_scene(beatmap_scene),
     combo_lost_alpha(add_transition<float>(0.0f)),
-    frame(add_child<kee::ui::rect>(std::nullopt,
+    frame(add_child<kee::ui::rect>(-1,
         raylib::Color::Blank(),
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
@@ -232,17 +232,14 @@ beatmap_key::beatmap_key(const kee::ui::base::required& reqs, kee::scene::beatma
         ui::rect_outline(ui::rect_outline::type::rel_h, kee::key_border_width, std::nullopt), 
         std::nullopt
     )),
-    frame_combo_lost(frame.ref.add_child<kee::ui::rect>(std::nullopt,
+    frame_combo_lost(add_child<kee::ui::rect>(0,
         raylib::Color(255, 0, 0, 0),
-        pos(pos::type::beg, 0),
-        pos(pos::type::beg, 0),
-        dims(
-            dim(dim::type::rel, 1),
-            dim(dim::type::rel, 1)
-        ),
-        false, std::nullopt, std::nullopt
+        pos(pos::type::rel, 0.5),
+        pos(pos::type::rel, 0.5),
+        border(border::type::rel_h, kee::key_border_parent_h),
+        true, std::nullopt, std::nullopt
     )),
-    key_text(add_child<kee::ui::text>(std::nullopt,
+    key_text(add_child<kee::ui::text>(-1,
         std::nullopt,
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
@@ -252,8 +249,6 @@ beatmap_key::beatmap_key(const kee::ui::base::required& reqs, kee::scene::beatma
     keycode(key_id),
     combo_lost_time(0.0f)
 {
-    /* TODO: parent dimension verification ??? */
-
     set_opt_color(raylib::Color::White());
 
     const std::string key_str = (key_id != KeyboardKey::KEY_SPACE) 
@@ -335,7 +330,7 @@ void beatmap_key::handle_element_events()
     }
 }
 
-void beatmap_key::render_element_ahead_children() const
+void beatmap_key::render_element() const
 {
     for (const beatmap_hit_object& object : hit_objects)
     {

@@ -54,8 +54,12 @@ public:
         const std::variant<kee::dims, kee::border>& dimensions,
         bool centered
     );
-    base(base&& other) noexcept;
+    base(const base&) = delete;
+    base(base&&) = delete;
     virtual ~base() = default;
+
+    base& operator=(const base&) = delete;
+    base& operator=(base&&) = delete;
 
     /* TODO: maybe merge all these ??? */
     void handle_events();
@@ -69,7 +73,6 @@ public:
      */
     template <std::derived_from<kee::ui::base> T, typename... Args>
     kee::ui::handle<T> add_child(std::optional<int> z_order, Args&&... args);
-    /* TODO: deprecated, remove soon */
     template <std::derived_from<kee::ui::base> T, typename... Args>
     T make_temp_child(Args&&... args) const;
 
@@ -107,8 +110,7 @@ protected:
 
     virtual void handle_element_events();
     virtual void update_element(float dt);
-    virtual void render_element_behind_children() const;
-    virtual void render_element_ahead_children() const;
+    virtual void render_element() const;
 
     kee::global_assets& assets;
 

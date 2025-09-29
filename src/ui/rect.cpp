@@ -51,7 +51,7 @@ raylib::Rectangle rect::get_extended_raw_rect() const
     return base_raw_rect;
 }
 
-void rect::render_element_behind_children() const 
+void rect::render_element() const 
 {
     static const raylib::Rectangle src_rect(0, 0, global_assets::texture_empty_size, global_assets::texture_empty_size);
 

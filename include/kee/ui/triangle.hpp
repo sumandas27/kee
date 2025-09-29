@@ -21,7 +21,7 @@ public:
     );
 
 private:
-    void render_element_behind_children() const override;
+    void render_element() const override;
 
     /** 
      * These vectors are relative positions of the vertices in its raw rendering

@@ -31,7 +31,7 @@ public:
     void set_image(const kee::ui::image_texture& new_img_texture);
 
 private:
-    void render_element_behind_children() const override;
+    void render_element() const override;
 
     const bool flip_horizontal;
     const bool flip_vertical;

@@ -22,22 +22,6 @@ base::base(
     set_opt_color(raylib::Color::Blank());
 }
 
-base::base(base&& other) noexcept :
-    x(std::move(other.x)),
-    y(std::move(other.y)),
-    dimensions(std::move(other.dimensions)),
-    centered(other.centered),
-    active_child(boost::none),
-    assets(other.assets),
-    parent(other.parent),
-    children(std::move(other.children)),
-    transitions(std::move(other.transitions)),
-    color(std::move(other.color))
-{ 
-    for (auto& [_, child] : children)
-        child.get()->parent = *this;
-}
-
 void base::handle_events()
 {    
     if (active_child.has_value())
@@ -61,11 +45,20 @@ void base::update(float dt)
 }
 
 void base::render() const 
-{ 
-    render_element_behind_children();
-    for (const auto& [_, child] : children)
-        child->render();
-    render_element_ahead_children();
+{
+    auto it = children.cbegin();
+    while (it != children.cend() && it->first < 0)
+    {
+        it->second->render();
+        it++;
+    }
+
+    render_element();
+    while (it != children.cend())
+    {
+        it->second->render();
+        it++;
+    }
 }
 
 void base::set_opt_color(const std::optional<raylib::Color>& opt_color)
@@ -144,9 +137,7 @@ void base::handle_element_events() { }
 
 void base::update_element([[maybe_unused]] float dt) { }
 
-void base::render_element_behind_children() const { }
-
-void base::render_element_ahead_children() const { }
+void base::render_element() const { }
 
 raylib::Vector2 base::get_dims(const raylib::Rectangle& parent_raw_rect) const
 {

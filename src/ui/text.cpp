@@ -44,7 +44,7 @@ void text::set_scale(float new_scale)
     update_dims(std::nullopt, std::nullopt, new_scale);
 }
 
-void text::render_element_behind_children() const
+void text::render_element() const
 {
     raylib::Rectangle raw_rect = get_raw_rect();
     if (font_cap_height_only)

@@ -22,7 +22,7 @@ triangle::triangle(
     set_opt_color(color);
 }
 
-void triangle::render_element_behind_children() const
+void triangle::render_element() const
 {
     static const raylib::Rectangle src_rect(0, 0, global_assets::texture_empty_size, global_assets::texture_empty_size);
 

@@ -34,7 +34,7 @@ void image::set_image(const kee::ui::image_texture& new_img_texture)
     img_texture_ref = new_img_texture;
 }
 
-void image::render_element_behind_children() const
+void image::render_element() const
 {
     const raylib::Rectangle raw_rect = get_raw_rect();
     const raylib::Texture& img_texture = img_texture_ref.get().texture;
