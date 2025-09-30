@@ -3,6 +3,175 @@
 namespace kee {
 namespace scene {
 
+beatmap_hit_object::beatmap_hit_object(float beat) :
+    beat(beat),
+    duration(0.0f)
+{ }
+
+beatmap_hit_object::beatmap_hit_object(float beat, float duration) :
+    beat(beat),
+    duration(duration),
+    hold_is_held(false),
+    hold_press_complete(false)
+{ 
+    if (duration == 0.0f)
+        throw std::invalid_argument("A hold hit object must have non-zero hold duration!");
+
+    if (std::floor(beat + 1.0f) < beat + duration)
+        hold_next_combo = std::floor(beat + 1.0f);
+}
+
+beatmap_key::beatmap_key(const kee::ui::base::required& reqs, kee::scene::beatmap& beatmap_scene, int key_id, const raylib::Vector2& relative_pos) :
+    kee::ui::base(reqs,
+        pos(pos::type::rel, relative_pos.x),
+        pos(pos::type::rel, relative_pos.y),
+        dims(
+            dim(dim::type::aspect, key_id == KeyboardKey::KEY_SPACE ? 7.0f : 1.0f),
+            dim(dim::type::rel, 0.25)
+        ),
+        true
+    ),
+    beatmap_scene(beatmap_scene),
+    combo_lost_alpha(add_transition<float>(0.0f)),
+    frame(add_child<kee::ui::rect>(-1,
+        raylib::Color::Blank(),
+        pos(pos::type::rel, 0.5),
+        pos(pos::type::rel, 0.5),
+        border(border::type::rel_h, kee::key_border_parent_h),
+        true,
+        ui::rect_outline(ui::rect_outline::type::rel_h, kee::key_border_width, std::nullopt), 
+        std::nullopt
+    )),
+    frame_combo_lost(add_child<kee::ui::rect>(0,
+        raylib::Color(255, 0, 0, 0),
+        pos(pos::type::rel, 0.5),
+        pos(pos::type::rel, 0.5),
+        border(border::type::rel_h, kee::key_border_parent_h),
+        true, std::nullopt, std::nullopt
+    )),
+    key_text(add_child<kee::ui::text>(-1,
+        std::nullopt,
+        pos(pos::type::rel, 0.5),
+        pos(pos::type::rel, 0.5),
+        ui::text_size(ui::text_size::type::rel_h, 0.5 * (1.0f - 2 * kee::key_border_parent_h)),
+        true, assets.font_light, std::string(), false
+    )),
+    keycode(key_id),
+    combo_lost_time(0.0f)
+{
+    set_opt_color(raylib::Color::White());
+
+    const std::string key_str = (key_id != KeyboardKey::KEY_SPACE) 
+        ? std::string(1, static_cast<char>(key_id)) 
+        : "___";
+
+    key_text.ref.set_string(key_str);
+}
+
+const std::deque<beatmap_hit_object>& beatmap_key::get_hit_objects() const
+{
+    return hit_objects;
+}
+
+beatmap_hit_object& beatmap_key::front()
+{
+    return hit_objects.front();
+}
+
+void beatmap_key::push(const beatmap_hit_object& object)
+{
+    if (!hit_objects.empty() && object.beat <= hit_objects.back().beat + hit_objects.back().duration)
+        throw std::invalid_argument("A new hit object must be strictly after all other ones in its key!");
+
+    hit_objects.push_back(object);
+}
+
+void beatmap_key::pop()
+{
+    hit_objects.pop_front();
+}
+
+void beatmap_key::handle_element_events()
+{
+    set_opt_color(raylib::Keyboard::IsKeyDown(keycode) ? raylib::Color::Green() : raylib::Color::White());
+    frame_combo_lost.ref.set_opt_color(raylib::Color(255, 0, 0, static_cast<unsigned char>(combo_lost_alpha.get())));
+
+    if (hit_objects.empty())
+        return;
+
+    beatmap_hit_object& front = hit_objects.front();
+    if (front.duration == 0.0f || (!front.hold_press_complete && !front.hold_is_held))
+    {
+        if (beatmap_scene.get_beat() - front.beat > beatmap_scene.input_tolerance)
+        {
+            combo_lose();
+            if (front.duration == 0.0f)
+                pop();
+            else
+                front.hold_press_complete = true;
+        }
+    }
+    else if (front.hold_is_held && !raylib::Keyboard::IsKeyDown(keycode))
+    {
+        if (beatmap_scene.get_beat() < front.beat + front.duration - beatmap_scene.input_tolerance)
+        {
+            combo_lose();
+            front.hold_is_held = false;
+        }
+        else
+        {
+            beatmap_scene.combo_increment_with_sound();
+            pop();
+        }
+    }
+    else if (front.hold_is_held && front.hold_next_combo.has_value() && beatmap_scene.get_beat() >= front.hold_next_combo.value())
+    {
+        beatmap_scene.combo_increment_no_sound();
+        front.hold_next_combo = (front.hold_next_combo.value() + 1.0f < front.beat + front.duration)
+            ? std::make_optional(front.hold_next_combo.value() + 1.0f)
+            : std::nullopt;
+    }
+    else if (beatmap_scene.get_beat() - (front.beat + front.duration) > beatmap_scene.input_tolerance)
+    {
+        if (front.hold_is_held)
+            combo_lose();
+
+        pop();
+    }
+}
+
+void beatmap_key::render_element() const
+{
+    for (const beatmap_hit_object& object : hit_objects)
+    {
+        if (object.beat + object.duration < beatmap_scene.get_beat())
+            continue;
+
+        if (object.beat > beatmap_scene.get_beat() + beatmap_scene.approach_beats)
+            break;
+
+        const float start_progress = std::max((object.beat - beatmap_scene.get_beat()) / (2 * beatmap_scene.approach_beats), 0.0f);
+        const float end_progress = std::max((object.beat + object.duration - beatmap_scene.get_beat()) / (2 * beatmap_scene.approach_beats), 0.0f);
+        const kee::ui::rect hit_obj_rect = make_temp_child<kee::ui::rect>(
+            raylib::Color::Blank(),
+            pos(pos::type::rel, 0.5),
+            pos(pos::type::rel, 0.5),
+            border(border::type::rel_h, start_progress + kee::key_border_parent_h),
+            true,
+            ui::rect_outline(ui::rect_outline::type::rel_h_parent, std::max(end_progress - start_progress, kee::key_border_width), std::nullopt),
+            std::nullopt
+        );
+
+        hit_obj_rect.render();
+    }
+}
+
+void beatmap_key::combo_lose()
+{
+    beatmap_scene.combo_lose();
+    combo_lost_alpha.set(127.5f, 0.0f, 1.0f, transition_type::lin);
+}
+
 beatmap::beatmap(const kee::scene::window& window, kee::global_assets& assets) :
     kee::scene::base(window, assets),
     combo_gain(add_transition<float>(0.0f)),
@@ -191,175 +360,6 @@ void beatmap::update_element(float dt)
     }
     else
         music.Update();
-}
-
-beatmap_hit_object::beatmap_hit_object(float beat) :
-    beat(beat),
-    duration(0.0f)
-{ }
-
-beatmap_hit_object::beatmap_hit_object(float beat, float duration) :
-    beat(beat),
-    duration(duration),
-    hold_is_held(false),
-    hold_press_complete(false)
-{ 
-    if (duration == 0.0f)
-        throw std::invalid_argument("A hold hit object must have non-zero hold duration!");
-
-    if (std::floor(beat + 1.0f) < beat + duration)
-        hold_next_combo = std::floor(beat + 1.0f);
-}
-
-beatmap_key::beatmap_key(const kee::ui::base::required& reqs, kee::scene::beatmap& beatmap_scene, int key_id, const raylib::Vector2& relative_pos) :
-    kee::ui::base(reqs,
-        pos(pos::type::rel, relative_pos.x),
-        pos(pos::type::rel, relative_pos.y),
-        dims(
-            dim(dim::type::aspect, key_id == KeyboardKey::KEY_SPACE ? 7.0f : 1.0f),
-            dim(dim::type::rel, 0.25)
-        ),
-        true
-    ),
-    beatmap_scene(beatmap_scene),
-    combo_lost_alpha(add_transition<float>(0.0f)),
-    frame(add_child<kee::ui::rect>(-1,
-        raylib::Color::Blank(),
-        pos(pos::type::rel, 0.5),
-        pos(pos::type::rel, 0.5),
-        border(border::type::rel_h, kee::key_border_parent_h),
-        true,
-        ui::rect_outline(ui::rect_outline::type::rel_h, kee::key_border_width, std::nullopt), 
-        std::nullopt
-    )),
-    frame_combo_lost(add_child<kee::ui::rect>(0,
-        raylib::Color(255, 0, 0, 0),
-        pos(pos::type::rel, 0.5),
-        pos(pos::type::rel, 0.5),
-        border(border::type::rel_h, kee::key_border_parent_h),
-        true, std::nullopt, std::nullopt
-    )),
-    key_text(add_child<kee::ui::text>(-1,
-        std::nullopt,
-        pos(pos::type::rel, 0.5),
-        pos(pos::type::rel, 0.5),
-        ui::text_size(ui::text_size::type::rel_h, 0.5 * (1.0f - 2 * kee::key_border_parent_h)),
-        true, assets.font_light, std::string(), false
-    )),
-    keycode(key_id),
-    combo_lost_time(0.0f)
-{
-    set_opt_color(raylib::Color::White());
-
-    const std::string key_str = (key_id != KeyboardKey::KEY_SPACE) 
-        ? std::string(1, static_cast<char>(key_id)) 
-        : "___";
-
-    key_text.ref.set_string(key_str);
-}
-
-const std::deque<beatmap_hit_object>& beatmap_key::get_hit_objects() const
-{
-    return hit_objects;
-}
-
-beatmap_hit_object& beatmap_key::front()
-{
-    return hit_objects.front();
-}
-
-void beatmap_key::push(const beatmap_hit_object& object)
-{
-    if (!hit_objects.empty() && object.beat <= hit_objects.back().beat + hit_objects.back().duration)
-        throw std::invalid_argument("A new hit object must be strictly after all other ones in its key!");
-
-    hit_objects.push_back(object);
-}
-
-void beatmap_key::pop()
-{
-    hit_objects.pop_front();
-}
-
-void beatmap_key::handle_element_events()
-{
-    set_opt_color(raylib::Keyboard::IsKeyDown(keycode) ? raylib::Color::Green() : raylib::Color::White());
-    frame_combo_lost.ref.set_opt_color(raylib::Color(255, 0, 0, static_cast<unsigned char>(combo_lost_alpha.get())));
-
-    if (hit_objects.empty())
-        return;
-
-    beatmap_hit_object& front = hit_objects.front();
-    if (front.duration == 0.0f || (!front.hold_press_complete && !front.hold_is_held))
-    {
-        if (beatmap_scene.get_beat() - front.beat > beatmap_scene.input_tolerance)
-        {
-            combo_lose();
-            if (front.duration == 0.0f)
-                pop();
-            else
-                front.hold_press_complete = true;
-        }
-    }
-    else if (front.hold_is_held && !raylib::Keyboard::IsKeyDown(keycode))
-    {
-        if (beatmap_scene.get_beat() < front.beat + front.duration - beatmap_scene.input_tolerance)
-        {
-            combo_lose();
-            front.hold_is_held = false;
-        }
-        else
-        {
-            beatmap_scene.combo_increment_with_sound();
-            pop();
-        }
-    }
-    else if (front.hold_is_held && front.hold_next_combo.has_value() && beatmap_scene.get_beat() >= front.hold_next_combo.value())
-    {
-        beatmap_scene.combo_increment_no_sound();
-        front.hold_next_combo = (front.hold_next_combo.value() + 1.0f < front.beat + front.duration)
-            ? std::make_optional(front.hold_next_combo.value() + 1.0f)
-            : std::nullopt;
-    }
-    else if (beatmap_scene.get_beat() - (front.beat + front.duration) > beatmap_scene.input_tolerance)
-    {
-        if (front.hold_is_held)
-            combo_lose();
-
-        pop();
-    }
-}
-
-void beatmap_key::render_element() const
-{
-    for (const beatmap_hit_object& object : hit_objects)
-    {
-        if (object.beat + object.duration < beatmap_scene.get_beat())
-            continue;
-
-        if (object.beat > beatmap_scene.get_beat() + beatmap_scene.approach_beats)
-            break;
-
-        const float start_progress = std::max((object.beat - beatmap_scene.get_beat()) / (2 * beatmap_scene.approach_beats), 0.0f);
-        const float end_progress = std::max((object.beat + object.duration - beatmap_scene.get_beat()) / (2 * beatmap_scene.approach_beats), 0.0f);
-        const kee::ui::rect hit_obj_rect = make_temp_child<kee::ui::rect>(
-            raylib::Color::Blank(),
-            pos(pos::type::rel, 0.5),
-            pos(pos::type::rel, 0.5),
-            border(border::type::rel_h, start_progress + kee::key_border_parent_h),
-            true,
-            ui::rect_outline(ui::rect_outline::type::rel_h_parent, std::max(end_progress - start_progress, kee::key_border_width), std::nullopt),
-            std::nullopt
-        );
-
-        hit_obj_rect.render();
-    }
-}
-
-void beatmap_key::combo_lose()
-{
-    beatmap_scene.combo_lose();
-    combo_lost_alpha.set(127.5f, 0.0f, 1.0f, transition_type::lin);
 }
 
 } // namespace scene

@@ -3,15 +3,15 @@
 namespace kee {
 namespace ui {
 
-template <typename T>
+template <std::derived_from<kee::ui::base> T>
 handle<T>::~handle()
 {
     if (!has_moved)
         multimap.erase(it);
 }
 
-template <typename T>
-handle<T>::handle(handle&& other) :
+template <std::derived_from<kee::ui::base> T>
+handle<T>::handle(handle&& other) noexcept :
     ref(other.ref),
     multimap(other.multimap),
     it(other.it),
@@ -20,7 +20,7 @@ handle<T>::handle(handle&& other) :
     other.has_moved = true;
 }
 
-template <typename T>
+template <std::derived_from<kee::ui::base> T>
 handle<T>::handle(T& ref, std::multimap<int, std::unique_ptr<kee::ui::base>>& multimap, std::multimap<int, std::unique_ptr<kee::ui::base>>::iterator it) :
     ref(ref),
     multimap(multimap),
@@ -37,8 +37,8 @@ kee::ui::handle<T> base::add_child(std::optional<int> z_order, Args&&... args)
     );
 
     T& ref = *child;
-    auto it = children.emplace(z_order.value_or(0), std::move(child));
-    return kee::ui::handle<T>(ref, children, it);
+    auto it = children->emplace(z_order.value_or(0), std::move(child));
+    return kee::ui::handle<T>(ref, *children, it);
 }
 
 template <std::derived_from<kee::ui::base> T, typename... Args>

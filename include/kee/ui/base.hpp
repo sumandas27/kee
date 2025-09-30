@@ -14,12 +14,12 @@ namespace ui {
 
 class base;
 
-template <typename T>
+template <std::derived_from<kee::ui::base> T>
 class handle
 {
 public:
     handle(const handle&) = delete;
-    handle(handle&& other);
+    handle(handle&& other) noexcept;
     ~handle();
 
     handle& operator=(const handle&) = delete;
@@ -55,7 +55,7 @@ public:
         bool centered
     );
     base(const base&) = delete;
-    base(base&&) = delete;
+    base(base&& other) noexcept;
     virtual ~base() = default;
 
     base& operator=(const base&) = delete;
@@ -118,7 +118,11 @@ private:
     raylib::Vector2 get_dims(const raylib::Rectangle& parent_raw_rect) const;
 
     boost::optional<const kee::ui::base&> parent;
-    std::multimap<int, std::unique_ptr<kee::ui::base>> children;
+    /**
+     * Outer `unique_ptr` so handle references aren't invalidated on moves.
+     * Inner `unique_ptr` so multimap can store subclasses of `kee::ui::base`.
+     */
+    std::unique_ptr<std::multimap<int, std::unique_ptr<kee::ui::base>>> children;
     std::vector<std::unique_ptr<kee::transition_base>> transitions;
 
     std::optional<raylib::Color> color;

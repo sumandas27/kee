@@ -14,7 +14,6 @@ window::window()
     );
 
     impl.Init(raylib::Window::GetWidth(), raylib::Window::GetHeight());
-    std::println("{} and {}", raylib::Window::GetWidth(), raylib::Window::GetHeight());
     impl.SetTargetFPS(window_fps);
 }
 

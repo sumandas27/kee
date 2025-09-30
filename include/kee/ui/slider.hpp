@@ -35,6 +35,7 @@ private:
     kee::transition<kee::color>& fill_color;
     kee::transition<float>& thumb_scale;
 
+    /* TODO: make these not children */
     kee::ui::handle<kee::ui::rect> track;
     kee::ui::handle<kee::ui::rect> fill;
     kee::ui::handle<kee::ui::rect> thumb;

@@ -17,9 +17,26 @@ base::base(
     dimensions(dimensions),
     centered(centered),
     assets(reqs.assets),
-    parent(reqs.parent)
+    parent(reqs.parent),
+    children(std::make_unique<std::multimap<int, std::unique_ptr<kee::ui::base>>>())
 { 
     set_opt_color(raylib::Color::Blank());
+}
+
+base::base(base&& other) noexcept :
+    x(std::move(other.x)),
+    y(std::move(other.y)),
+    dimensions(std::move(other.dimensions)),
+    centered(other.centered),
+    active_child(boost::none),
+    assets(other.assets),
+    parent(other.parent),
+    children(std::move(other.children)),
+    transitions(std::move(other.transitions)),
+    color(std::move(other.color))
+{ 
+    for (auto& [_, child] : *children)
+        child.get()->parent = *this;
 }
 
 void base::handle_events()
@@ -29,7 +46,7 @@ void base::handle_events()
     else
     {
         handle_element_events();
-        for (const auto& [_, child] : children)
+        for (const auto& [_, child] : *children)
             child->handle_events();
     }
 }
@@ -40,21 +57,21 @@ void base::update(float dt)
     for (const std::unique_ptr<kee::transition_base>& transition : transitions)
         transition->update(dt);
 
-    for (const auto& [_, child] : children)
+    for (const auto& [_, child] : *children)
         child->update(dt);
 }
 
 void base::render() const 
 {
-    auto it = children.cbegin();
-    while (it != children.cend() && it->first < 0)
+    auto it = children->cbegin();
+    while (it != children->cend() && it->first < 0)
     {
         it->second->render();
         it++;
     }
 
     render_element();
-    while (it != children.cend())
+    while (it != children->cend())
     {
         it->second->render();
         it++;
@@ -130,7 +147,8 @@ raylib::Rectangle base::get_raw_rect_parent() const
 
 base::base(const kee::ui::base::required& reqs) :
     assets(reqs.assets),
-    parent(reqs.parent)
+    parent(reqs.parent),
+    children(std::make_unique<std::multimap<int, std::unique_ptr<kee::ui::base>>>())
 { }
 
 void base::handle_element_events() { }

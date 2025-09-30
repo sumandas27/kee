@@ -9,53 +9,7 @@
 namespace kee {
 namespace scene {
 
-class beatmap_key;
-
-class beatmap final : public kee::scene::base
-{
-public:
-    beatmap(const kee::scene::window& window, kee::global_assets& assets);
-
-    float get_beat() const;
-
-    void combo_increment_with_sound();
-    void combo_increment_no_sound();
-    void combo_lose();
-
-    const float input_tolerance;
-    const float approach_beats;
-
-private:
-    void handle_element_events() override;
-    void update_element(float dt) override;
-
-    kee::transition<float>& combo_gain;
-
-    std::optional<kee::ui::handle<kee::ui::rect>> load_rect;
-    kee::ui::handle<kee::ui::rect> progress_rect;
-    kee::ui::handle<kee::ui::text> combo_text;
-    kee::ui::handle<kee::ui::text> combo_text_bg;
-    kee::ui::handle<kee::ui::base> window_border;
-    kee::ui::handle<kee::ui::base> key_frame;
-
-    const float load_time;
-    const float max_combo_time;
-
-    const float music_start_offset;
-    const float music_bpm;
-
-    std::unordered_map<int, kee::ui::handle<beatmap_key>> keys;
-
-    raylib::Music music;
-    raylib::Sound hitsound;
-    raylib::Sound combo_lost_sfx;
-
-    unsigned int combo;
-    float combo_time;
-    float end_beat;
-
-    float game_time;
-};
+class beatmap;
 
 class beatmap_hit_object
 {
@@ -103,6 +57,52 @@ private:
 
     float combo_lost_time;
     std::deque<beatmap_hit_object> hit_objects;
+};
+
+class beatmap final : public kee::scene::base
+{
+public:
+    beatmap(const kee::scene::window& window, kee::global_assets& assets);
+
+    float get_beat() const;
+
+    void combo_increment_with_sound();
+    void combo_increment_no_sound();
+    void combo_lose();
+
+    const float input_tolerance;
+    const float approach_beats;
+
+private:
+    void handle_element_events() override;
+    void update_element(float dt) override;
+
+    kee::transition<float>& combo_gain;
+
+    std::optional<kee::ui::handle<kee::ui::rect>> load_rect;
+    kee::ui::handle<kee::ui::rect> progress_rect;
+    kee::ui::handle<kee::ui::text> combo_text;
+    kee::ui::handle<kee::ui::text> combo_text_bg;
+    kee::ui::handle<kee::ui::base> window_border;
+    kee::ui::handle<kee::ui::base> key_frame;
+
+    const float load_time;
+    const float max_combo_time;
+
+    const float music_start_offset;
+    const float music_bpm;
+
+    std::unordered_map<int, kee::ui::handle<beatmap_key>> keys;
+
+    raylib::Music music;
+    raylib::Sound hitsound;
+    raylib::Sound combo_lost_sfx;
+
+    unsigned int combo;
+    float combo_time;
+    float end_beat;
+
+    float game_time;
 };
 
 } // namespace scene
