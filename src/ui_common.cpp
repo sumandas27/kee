@@ -22,6 +22,11 @@ border::border(border::type border_type, float val) :
     val(val)
 { }
 
+keyboard_event::keyboard_event(int keycode, bool ctrl_modifier) :
+    keycode(keycode),
+    ctrl_modifier(ctrl_modifier)
+{ }
+
 transition_base::transition_base() :
     timer(0.0f)
 { }

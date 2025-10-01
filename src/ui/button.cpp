@@ -17,7 +17,7 @@ button::button(
     button_state(mouse_state::off)
 { }
 
-void button::handle_element_events()
+/*void button::handle_element_events()
 {
     const raylib::Vector2 mouse_pos = raylib::Mouse::GetPosition();
     const raylib::Rectangle raw_rect = get_raw_rect();
@@ -59,7 +59,7 @@ void button::handle_element_events()
         on_event(button::event::on_hot);
         button_state = mouse_state::hot;
     }
-}
+}*/
 
 } // namespace ui
 } // namespace kee

@@ -86,6 +86,16 @@ enum class mouse_state
     down
 };
 
+class keyboard_event
+{
+public:
+    keyboard_event(int keycode, bool ctrl_modifier);
+
+    int keycode;
+
+    bool ctrl_modifier;
+};
+
 /* TODO: merge with `transition` class ??? */
 enum class transition_type
 {

@@ -1,6 +1,6 @@
 #include "kee/scene/editor.hpp"
 
-#include <ranges>
+/*#include <ranges>
 
 namespace kee {
 namespace scene {
@@ -194,9 +194,9 @@ void editor_key::handle_element_events()
 }
 
 void editor_key::render_element() const
-{
+{*/
     /* TODO: if not selected render behind encode this */
-    if (is_selected)
+    /*if (is_selected)
         render_hit_objects();
 }
 
@@ -481,13 +481,13 @@ void object_editor::handle_element_events()
         editor_scene.active_child = *this;
 
         if (raylib::Mouse::IsButtonPressed(MouseButton::MOUSE_BUTTON_LEFT))
-        {
+        {*/
             /**
              * If two hit objects intersect with mouse position on-click, already selected objects take
              * priority. Then the top-rightmost one (top-most prioritized over right-most) gets selected 
              * since that is how hit objects are ordered when rendered.
              */
-            static const auto click_priority = [](const hit_obj_render& l, const hit_obj_render& r)
+            /*static const auto click_priority = [](const hit_obj_render& l, const hit_obj_render& r)
             {
                 if (l.hit_obj_ref->second.is_selected != r.hit_obj_ref->second.is_selected)
                     return r.hit_obj_ref->second.is_selected;
@@ -721,10 +721,10 @@ void object_editor::render_element() const
         hit_obj_ui new_hit_obj_render = make_temp_child<hit_obj_ui>(beg_beat, end_beat - beg_beat, editor_scene.get_beat(), beat_width, new_hit_object.value().rel_y);
         new_hit_obj_render.select();
         new_hit_obj_render.render();
-    }
+    }*/
 
     /* TODO: render after children, make its own ui elem i think */
-    const std::vector<int>& keys_to_render = selected_key_ids.empty() ? editor::prio_to_key : selected_key_ids;
+    /*const std::vector<int>& keys_to_render = selected_key_ids.empty() ? editor::prio_to_key : selected_key_ids;
     if (keys_to_render.size() <= 6)
         for (std::size_t i = 0; i < keys_to_render.size(); i++)
         {
@@ -1173,11 +1173,11 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         ));
 
         keys.emplace(id, key_holders.back().ref.add_child<editor_key>(std::nullopt, *this, id));
-    }
+    }*/
 
     /* TODO: for testing only */
 
-    keys.at(KeyboardKey::KEY_Q).ref.hit_objects.emplace(0.2f, editor_hit_object(KeyboardKey::KEY_Q, 16.0f));
+    /*keys.at(KeyboardKey::KEY_Q).ref.hit_objects.emplace(0.2f, editor_hit_object(KeyboardKey::KEY_Q, 16.0f));
     keys.at(KeyboardKey::KEY_W).ref.hit_objects.emplace(0.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
     keys.at(KeyboardKey::KEY_W).ref.hit_objects.emplace(4.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
     keys.at(KeyboardKey::KEY_W).ref.hit_objects.emplace(8.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
@@ -1344,4 +1344,4 @@ void editor::set_tick_freq_idx(std::size_t new_tick_freq_idx)
 }
 
 } // namespace scene
-} // namespace kee
+} // namespace kee*/

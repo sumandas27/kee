@@ -29,7 +29,8 @@ public:
     float progress;
 
 private:
-    void handle_element_events() override;
+    /* TODO: next remove */
+    //void handle_element_events() override;
     void update_element(float dt) override;
 
     kee::transition<kee::color>& fill_color;

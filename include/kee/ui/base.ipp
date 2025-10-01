@@ -42,7 +42,7 @@ kee::ui::handle<T> base::add_child(std::optional<int> z_order, Args&&... args)
 }
 
 template <std::derived_from<kee::ui::base> T, typename... Args>
-T base::make_temp_child(Args&&... args) const
+T base::make_temp_child(Args&&... args)
 {
     return T(
         kee::ui::base::required(*this, assets), 

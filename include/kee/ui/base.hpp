@@ -38,6 +38,7 @@ private:
     bool has_moved;
 };
 
+/* TODO: rename to (`element` as well to) widget ??? */
 /**
  * Contractually the first parameter of any non-scene subclass's constructor must be of 
  * type `const kee::base::required&` containing all required references for a UI element.
@@ -61,8 +62,10 @@ public:
     base& operator=(const base&) = delete;
     base& operator=(base&&) = delete;
 
-    /* TODO: maybe merge all these ??? */
-    void handle_events();
+    void on_key_down(keyboard_event event);
+    void on_key_up(keyboard_event event);
+    void on_char_press(char c); 
+
     void update(float dt);
     void render() const;
 
@@ -74,7 +77,7 @@ public:
     template <std::derived_from<kee::ui::base> T, typename... Args>
     kee::ui::handle<T> add_child(std::optional<int> z_order, Args&&... args);
     template <std::derived_from<kee::ui::base> T, typename... Args>
-    T make_temp_child(Args&&... args) const;
+    T make_temp_child(Args&&... args);
 
     template <typename T>
     kee::transition<T>& add_transition(const T& default_val);
@@ -100,15 +103,16 @@ public:
     std::variant<kee::dims, kee::border> dimensions;
     bool centered;
 
-    boost::optional<kee::ui::base&> active_child;
-
 protected:
     /**
      * Scene subclasses do *NOT* specify a `parent`, non-scene subclasses do.
      */
     base(const kee::ui::base::required& reqs);
+    
+    virtual bool on_element_key_down(keyboard_event event);
+    virtual bool on_element_key_up(keyboard_event event);
+    virtual bool on_element_char_press(char c);
 
-    virtual void handle_element_events();
     virtual void update_element(float dt);
     virtual void render_element() const;
 
@@ -117,7 +121,7 @@ protected:
 private:
     raylib::Vector2 get_dims(const raylib::Rectangle& parent_raw_rect) const;
 
-    boost::optional<const kee::ui::base&> parent;
+    boost::optional<kee::ui::base&> parent;
     /**
      * Outer `unique_ptr` so handle references aren't invalidated on moves.
      * Inner `unique_ptr` so multimap can store subclasses of `kee::ui::base`.
@@ -131,9 +135,9 @@ private:
 class base::required
 {
 public:
-    required(boost::optional<const kee::ui::base&> parent, kee::global_assets& assets);
+    required(boost::optional<kee::ui::base&> parent, kee::global_assets& assets);
 
-    boost::optional<const kee::ui::base&> parent;
+    boost::optional<kee::ui::base&> parent;
     kee::global_assets& assets;
 };
 

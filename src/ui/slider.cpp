@@ -59,7 +59,7 @@ bool slider::is_down() const
     return slider_state == mouse_state::down;
 }
 
-void slider::handle_element_events()
+/*void slider::handle_element_events()
 {
     const raylib::Vector2 mouse_pos = raylib::Mouse::GetPosition();
     const raylib::Rectangle raw_rect = get_raw_rect();
@@ -107,7 +107,7 @@ void slider::handle_element_events()
 
         slider_state = mouse_state::down;
     }
-}
+}*/
 
 void slider::update_element([[maybe_unused]] float dt)
 {

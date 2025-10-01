@@ -28,7 +28,6 @@ base::base(base&& other) noexcept :
     y(std::move(other.y)),
     dimensions(std::move(other.dimensions)),
     centered(other.centered),
-    active_child(boost::none),
     assets(other.assets),
     parent(other.parent),
     children(std::move(other.children)),
@@ -39,16 +38,25 @@ base::base(base&& other) noexcept :
         child.get()->parent = *this;
 }
 
-void base::handle_events()
-{    
-    if (active_child.has_value())
-        active_child.value().handle_element_events();
-    else
-    {
-        handle_element_events();
-        for (const auto& [_, child] : *children)
-            child->handle_events();
-    }
+void base::on_key_down(keyboard_event event)
+{
+    const bool consumed = on_element_key_down(event);
+    if (!consumed && parent.has_value())
+        parent.value().on_key_down(event);
+}
+
+void base::on_key_up(keyboard_event event)
+{
+    const bool consumed = on_element_key_up(event);
+    if (!consumed && parent.has_value())
+        parent.value().on_key_up(event);
+}
+
+void base::on_char_press(char c)
+{
+    const bool consumed = on_element_char_press(c);
+    if (!consumed && parent.has_value())
+        parent.value().on_char_press(c);
 }
 
 void base::update(float dt) 
@@ -151,7 +159,11 @@ base::base(const kee::ui::base::required& reqs) :
     children(std::make_unique<std::multimap<int, std::unique_ptr<kee::ui::base>>>())
 { }
 
-void base::handle_element_events() { }
+bool base::on_element_key_down([[maybe_unused]] keyboard_event event) { return false; }
+
+bool base::on_element_key_up([[maybe_unused]] keyboard_event event) { return false; }
+
+bool base::on_element_char_press([[maybe_unused]] char c) { return false; }
 
 void base::update_element([[maybe_unused]] float dt) { }
 
@@ -237,7 +249,7 @@ raylib::Vector2 base::get_dims(const raylib::Rectangle& parent_raw_rect) const
     return res;
 }
 
-base::required::required(boost::optional<const kee::ui::base&> parent, kee::global_assets& assets) :
+base::required::required(boost::optional<kee::ui::base&> parent, kee::global_assets& assets) :
     parent(parent),
     assets(assets)
 { }

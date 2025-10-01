@@ -35,25 +35,24 @@ public:
 
     const std::deque<beatmap_hit_object>& get_hit_objects() const;
 
+    void combo_lose();
+
     beatmap_hit_object& front();
     void push(const beatmap_hit_object& object);
     void pop();
 
 private:
-    void handle_element_events() override;
+    void update_element(float dt) override;
     void render_element() const override;
-
-    void combo_lose();
 
     kee::scene::beatmap& beatmap_scene;
 
     kee::transition<float>& combo_lost_alpha;
 
+    std::vector<kee::ui::rect> hit_obj_rects;
     kee::ui::handle<kee::ui::rect> frame;
     kee::ui::handle<kee::ui::rect> frame_combo_lost;
     kee::ui::handle<kee::ui::text> key_text;
-
-    const int keycode;
 
     float combo_lost_time;
     std::deque<beatmap_hit_object> hit_objects;
@@ -74,7 +73,9 @@ public:
     const float approach_beats;
 
 private:
-    void handle_element_events() override;
+    bool on_element_key_down(keyboard_event event) override;
+    bool on_element_key_up(keyboard_event event) override;
+
     void update_element(float dt) override;
 
     kee::transition<float>& combo_gain;

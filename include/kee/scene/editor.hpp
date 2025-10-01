@@ -1,6 +1,6 @@
 #pragma once
 
-#include "kee/scene/base.hpp"
+/*#include "kee/scene/base.hpp"
 #include "kee/ui/button.hpp"
 #include "kee/ui/image.hpp"
 #include "kee/ui/rect.hpp"
@@ -11,12 +11,12 @@
 namespace kee {
 namespace scene {
 
-class editor;
+class editor;*/
 
 /**
  * These objects will belong in an `std::set`, whose keys store the `beat` of the object.
  */
-class editor_hit_object
+/*class editor_hit_object
 {
 public:
     editor_hit_object(int key, float duration);
@@ -274,4 +274,4 @@ private:
 };
 
 } // namespace scene
-} // namespace kee
+} // namespace kee*/
