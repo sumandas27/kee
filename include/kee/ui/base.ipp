@@ -4,13 +4,6 @@ namespace kee {
 namespace ui {
 
 template <std::derived_from<kee::ui::base> T>
-handle<T>::~handle()
-{
-    if (!has_moved)
-        multimap.erase(it);
-}
-
-template <std::derived_from<kee::ui::base> T>
 handle<T>::handle(handle&& other) noexcept :
     ref(other.ref),
     multimap(other.multimap),
@@ -21,12 +14,27 @@ handle<T>::handle(handle&& other) noexcept :
 }
 
 template <std::derived_from<kee::ui::base> T>
+handle<T>::~handle()
+{
+    if (!has_moved)
+        multimap.erase(it);
+}
+
+template <std::derived_from<kee::ui::base> T>
 handle<T>::handle(T& ref, std::multimap<int, std::unique_ptr<kee::ui::base>>& multimap, std::multimap<int, std::unique_ptr<kee::ui::base>>::iterator it) :
     ref(ref),
     multimap(multimap),
     it(it),
     has_moved(false)
 { }
+
+template <std::derived_from<kee::ui::base> T>
+void handle<T>::change_z_order(int new_z_order)
+{
+    auto node = multimap.extract(it);
+    node.key() = new_z_order;
+    it = multimap.insert(std::move(node));
+}
 
 template <std::derived_from<kee::ui::base> T, typename... Args>
 kee::ui::handle<T> base::add_child(std::optional<int> z_order, Args&&... args)

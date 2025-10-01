@@ -109,9 +109,7 @@ editor_key::editor_key(const kee::ui::base::required& reqs, kee::scene::editor& 
         border(border::type::rel_h, kee::key_border_parent_h),
         true
     ),
-    is_selected(false),
-    editor_scene(editor_scene),
-    frame(add_child<kee::ui::rect>(std::nullopt,
+    frame(add_child<kee::ui::rect>(-1,
         raylib::Color::Blank(),
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
@@ -123,13 +121,15 @@ editor_key::editor_key(const kee::ui::base::required& reqs, kee::scene::editor& 
         ui::rect_outline(ui::rect_outline::type::rel_h, kee::key_border_width, std::nullopt),
         std::nullopt
     )),
-    key_text(add_child<kee::ui::text>(std::nullopt,
+    key_text(add_child<kee::ui::text>(-1,
         std::nullopt,
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
         true, assets.font_light, std::string(), false
     )),
+    is_selected(false),
+    editor_scene(editor_scene),
     key_id(key_id),
     is_control_clicked(false)
 {
@@ -194,13 +194,6 @@ void editor_key::handle_element_events()
 }
 
 void editor_key::render_element() const
-{*/
-    /* TODO: if not selected render behind encode this */
-    /*if (is_selected)
-        render_hit_objects();
-}
-
-void editor_key::render_hit_objects() const
 {
     for (const auto& [beat, object] : hit_objects)
     {
@@ -228,8 +221,8 @@ void editor_key::render_hit_objects() const
 
 object_editor::object_editor(
     const kee::ui::base::required& reqs,
-    const std::unordered_map<int, kee::ui::handle<editor_key>>& keys,
     const std::vector<int>& selected_key_ids,
+    std::unordered_map<int, kee::ui::handle<editor_key>>& keys,
     kee::scene::editor& editor_scene
 ) :
     kee::ui::rect(reqs,
@@ -251,8 +244,8 @@ object_editor::object_editor(
         ),
         false
     )),
-    keys(keys),
     selected_key_ids(selected_key_ids),
+    keys(keys),
     editor_scene(editor_scene),
     beat_hover_l(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0),
@@ -325,6 +318,24 @@ void object_editor::reset_render_hit_objs()
         hit_obj_ui render_ui = make_temp_child<hit_obj_ui>(beat, object.duration, editor_scene.get_beat(), object_editor::beat_width, rel_y);
         obj_render_info.push_back(hit_obj_render(std::move(render_ui), it));
     }
+
+    key_labels.clear();
+    if (keys_to_render.size() <= 6)
+        for (std::size_t i = 0; i < keys_to_render.size(); i++)
+        {
+            const float rel_y = object_editor::hit_objs_rel_y + object_editor::hit_objs_rel_h * (i + 1) / (keys_to_render.size() + 1);
+            const std::string key_str = (keys_to_render[i] != KeyboardKey::KEY_SPACE)
+                ? std::string(1, static_cast<char>(keys_to_render[i]))
+                : "__";
+
+            key_labels.push_back(key_label_rect.ref.add_child<kee::ui::text>(std::nullopt,
+                raylib::Color::White(),
+                pos(pos::type::rel, 0.5f),
+                pos(pos::type::rel, rel_y),
+                ui::text_size(ui::text_size::type::rel_h, 0.1f),
+                true, assets.font_semi_bold, key_str, false
+            ));
+        }
 }
 
 void object_editor::attempt_add_hit_obj()
@@ -332,7 +343,7 @@ void object_editor::attempt_add_hit_obj()
     const float new_beat = std::min(new_hit_object.value().click_beat, new_hit_object.value().current_beat);
     const float new_duration = std::max(new_hit_object.value().click_beat, new_hit_object.value().current_beat) - new_beat;
 
-    std::map<float, editor_hit_object>& hit_objects = editor_scene.keys.at(new_hit_object.value().key).ref.hit_objects;
+    std::map<float, editor_hit_object>& hit_objects = keys.at(new_hit_object.value().key).ref.hit_objects;
     const auto next_it = hit_objects.lower_bound(new_beat);
     const bool is_new_invalid =
         (next_it != hit_objects.end() && new_beat + new_duration + editor::beat_lock_threshold >= next_it->first) ||
@@ -353,7 +364,7 @@ void object_editor::handle_element_events()
     {
         for (hit_obj_render& hit_obj : obj_render_info)
             if (hit_obj.hit_obj_ref->second.is_selected)
-                editor_scene.keys.at(hit_obj.hit_obj_ref->second.key).ref.hit_objects.erase(hit_obj.hit_obj_ref);
+                keys.at(hit_obj.hit_obj_ref->second.key).ref.hit_objects.erase(hit_obj.hit_obj_ref);
 
         reset_render_hit_objs();
     }
@@ -424,7 +435,7 @@ void object_editor::handle_element_events()
                         const float old_duration = obj_selected.hit_obj_ref->second.duration;
                         const hit_obj_update_return new_obj = hit_obj_update_info(obj_selected, beat_drag_diff);
 
-                        auto map_node = editor_scene.keys.at(object.key).ref.hit_objects.extract(obj_selected.hit_obj_ref);
+                        auto map_node = keys.at(object.key).ref.hit_objects.extract(obj_selected.hit_obj_ref);
                         hit_obj_nodes.emplace_back(key, old_beat, old_duration, new_obj, obj_selected.hit_obj_ref, std::move(map_node));
                     }
                 }
@@ -432,7 +443,7 @@ void object_editor::handle_element_events()
                 bool is_move_valid = true;
                 for (hit_obj_node& node : hit_obj_nodes)
                 {
-                    std::map<float, editor_hit_object>& hit_objects = editor_scene.keys.at(node.key).ref.hit_objects;
+                    std::map<float, editor_hit_object>& hit_objects = keys.at(node.key).ref.hit_objects;
                     auto next_it = hit_objects.lower_bound(node.obj_new.beat);
                     
                     if (next_it != hit_objects.end() && node.obj_new.beat + node.obj_new.duration + editor::beat_lock_threshold >= next_it->first)
@@ -453,7 +464,7 @@ void object_editor::handle_element_events()
 
                     node.node.key() = obj_insert.beat;
                     node.node.mapped().duration = obj_insert.duration;
-                    node.invalid_to_populate = editor_scene.keys.at(node.key).ref.hit_objects.insert(std::move(node.node)).position;
+                    node.invalid_to_populate = keys.at(node.key).ref.hit_objects.insert(std::move(node.node)).position;
                 }
 
                 selected_is_active = false;
@@ -721,28 +732,7 @@ void object_editor::render_element() const
         hit_obj_ui new_hit_obj_render = make_temp_child<hit_obj_ui>(beg_beat, end_beat - beg_beat, editor_scene.get_beat(), beat_width, new_hit_object.value().rel_y);
         new_hit_obj_render.select();
         new_hit_obj_render.render();
-    }*/
-
-    /* TODO: render after children, make its own ui elem i think */
-    /*const std::vector<int>& keys_to_render = selected_key_ids.empty() ? editor::prio_to_key : selected_key_ids;
-    if (keys_to_render.size() <= 6)
-        for (std::size_t i = 0; i < keys_to_render.size(); i++)
-        {
-            const float rel_y = object_editor::hit_objs_rel_y + object_editor::hit_objs_rel_h * (i + 1) / (keys_to_render.size() + 1);
-            const std::string key_str = (keys_to_render[i] != KeyboardKey::KEY_SPACE)
-                ? std::string(1, static_cast<char>(keys_to_render[i]))
-                : "__";
-
-            const kee::ui::text key_to_render_text = key_label_rect.ref.make_temp_child<kee::ui::text>(
-                raylib::Color::White(),
-                pos(pos::type::rel, 0.5f),
-                pos(pos::type::rel, rel_y),
-                ui::text_size(ui::text_size::type::rel_h, 0.1f),
-                true, assets.font_semi_bold, key_str, false
-            );
-
-            key_to_render_text.render();
-        }
+    }
 }
 
 hit_obj_update_return object_editor::hit_obj_update_info(const hit_obj_render& hit_obj, float beat_drag_diff) const
@@ -798,7 +788,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     kee::scene::base(window, assets),
     approach_beats(2.0f),
     music_start_offset(0.5f),
-    obj_editor(add_child<object_editor>(std::nullopt, keys, selected_key_ids, *this)),
+    obj_editor(add_child<object_editor>(std::nullopt, selected_key_ids, keys, *this)),
     music_bpm(100.0f),
     play_png("assets/img/play.png"),
     pause_png("assets/img/pause.png"),
@@ -1223,6 +1213,8 @@ void editor::unselect()
     {
         keys.at(prev_id).ref.set_opt_color(raylib::Color::White());
         keys.at(prev_id).ref.is_selected = false;
+        keys.at(prev_id).ref.frame.change_z_order(-1);
+        keys.at(prev_id).ref.key_text.change_z_order(-1);
     }
 
     selected_key_ids.clear();
@@ -1233,6 +1225,8 @@ void editor::select(int id)
 {
     keys.at(id).ref.set_opt_color(raylib::Color::Green());
     keys.at(id).ref.is_selected = true;
+    keys.at(id).ref.frame.change_z_order(0);
+    keys.at(id).ref.key_text.change_z_order(0);
 
     selected_key_ids.insert(
         std::lower_bound(selected_key_ids.begin(), selected_key_ids.end(), id,

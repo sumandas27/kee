@@ -96,7 +96,6 @@ public:
     bool ctrl_modifier;
 };
 
-/* TODO: merge with `transition` class ??? */
 enum class transition_type
 {
     lin,

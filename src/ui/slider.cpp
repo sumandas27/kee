@@ -16,7 +16,7 @@ slider::slider(
     slider_state(mouse_state::off),
     fill_color(add_transition<kee::color>(kee::color::white())),
     thumb_scale(add_transition<float>(1.75f)),
-    track(add_child<kee::ui::rect>(0,
+    track(make_temp_child<kee::ui::rect>(
         raylib::Color(255, 255, 255, 40),
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
@@ -28,7 +28,7 @@ slider::slider(
         std::nullopt, 
         rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt)
     )),
-    fill(add_child<kee::ui::rect>(1,
+    fill(make_temp_child<kee::ui::rect>(
         raylib::Color::White(),
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
@@ -40,7 +40,7 @@ slider::slider(
         std::nullopt,
         rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt)
     )),
-    thumb(fill.ref.add_child<kee::ui::rect>(1,
+    thumb(fill.make_temp_child<kee::ui::rect>(
         std::nullopt,
         pos(pos::type::rel, 1.0f),
         pos(pos::type::rel, 0.5f),
@@ -63,7 +63,7 @@ bool slider::is_down() const
 {
     const raylib::Vector2 mouse_pos = raylib::Mouse::GetPosition();
     const raylib::Rectangle raw_rect = get_raw_rect();
-    const raylib::Rectangle raw_rect_thumb = thumb.ref.get_raw_rect();
+    const raylib::Rectangle raw_rect_thumb = thumb.get_raw_rect();
 
     const bool is_mouse_on_rect =
         mouse_pos.x >= raw_rect.x && mouse_pos.x <= raw_rect.x + raw_rect.width &&
@@ -111,9 +111,16 @@ bool slider::is_down() const
 
 void slider::update_element([[maybe_unused]] float dt)
 {
-    fill.ref.set_opt_color(fill_color.get().to_color());
-    std::get<kee::dims>(fill.ref.dimensions).w.val = progress;
-    std::get<kee::dims>(thumb.ref.dimensions).h.val = thumb_scale.get();
+    fill.set_opt_color(fill_color.get().to_color());
+    std::get<kee::dims>(fill.dimensions).w.val = progress;
+    std::get<kee::dims>(thumb.dimensions).h.val = thumb_scale.get();
+}
+
+void slider::render_element() const
+{
+    track.render();
+    fill.render();
+    thumb.render();
 }
 
 } // namespace ui

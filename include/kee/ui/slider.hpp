@@ -32,14 +32,14 @@ private:
     /* TODO: next remove */
     //void handle_element_events() override;
     void update_element(float dt) override;
+    void render_element() const override;
 
     kee::transition<kee::color>& fill_color;
     kee::transition<float>& thumb_scale;
 
-    /* TODO: make these not children */
-    kee::ui::handle<kee::ui::rect> track;
-    kee::ui::handle<kee::ui::rect> fill;
-    kee::ui::handle<kee::ui::rect> thumb;
+    kee::ui::rect track;
+    kee::ui::rect fill;
+    kee::ui::rect thumb;
 
     kee::mouse_state slider_state;
 };
