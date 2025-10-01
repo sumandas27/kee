@@ -25,6 +25,8 @@ public:
     handle& operator=(const handle&) = delete;
     handle& operator=(handle&&) = delete;
 
+    void change_z_order(int new_z_order);
+
     T& ref;
 
 private:

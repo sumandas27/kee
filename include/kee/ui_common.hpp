@@ -86,7 +86,6 @@ enum class mouse_state
     down
 };
 
-/* TODO: merge with `transition` class ??? */
 enum class transition_type
 {
     lin,

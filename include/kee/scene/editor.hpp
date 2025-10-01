@@ -104,18 +104,16 @@ public:
 
     std::map<float, editor_hit_object> hit_objects;
 
+    kee::ui::handle<kee::ui::rect> frame;
+    kee::ui::handle<kee::ui::text> key_text;
+
     bool is_selected;
 
 private:
     void handle_element_events() override;
     void render_element() const override;
 
-    void render_hit_objects() const;
-
     kee::scene::editor& editor_scene;
-
-    kee::ui::handle<kee::ui::rect> frame;
-    kee::ui::handle<kee::ui::text> key_text;
 
     const int key_id;
 
@@ -133,8 +131,8 @@ public:
 
     object_editor(
         const kee::ui::base::required& reqs,
-        const std::unordered_map<int, kee::ui::handle<editor_key>>& keys,
-        const std::vector<int>& selected_key_ids, 
+        const std::vector<int>& selected_key_ids,
+        std::unordered_map<int, kee::ui::handle<editor_key>>& keys,
         kee::scene::editor& editor_scene
     );
 
@@ -153,9 +151,9 @@ private:
 
     hit_obj_update_return hit_obj_update_info(const hit_obj_render& hit_obj, float beat_drag_diff) const;
 
-    const std::unordered_map<int, kee::ui::handle<editor_key>>& keys;
     const std::vector<int>& selected_key_ids;
 
+    std::unordered_map<int, kee::ui::handle<editor_key>>& keys;
     kee::scene::editor& editor_scene;
 
     kee::ui::handle<kee::ui::base> beat_hover_l;
@@ -164,6 +162,7 @@ private:
     kee::ui::handle<kee::ui::rect> key_label_rect;
     kee::ui::handle<kee::ui::triangle> beat_indicator;
 
+    std::vector<kee::ui::handle<kee::ui::text>> key_labels;
     std::optional<float> beat_drag_start;
     std::optional<kee::ui::rect> selection_rect;
     std::optional<drag_selection> hit_obj_drag_selection;
@@ -260,9 +259,7 @@ private:
     kee::ui::handle<kee::ui::base> key_frame;
 
     std::vector<kee::ui::handle<kee::ui::base>> key_holders;
-public:
     std::unordered_map<int, kee::ui::handle<editor_key>> keys;
-private:
 
     float mouse_wheel_move;
     bool is_beat_snap;
