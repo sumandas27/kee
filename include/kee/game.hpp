@@ -19,7 +19,7 @@ private:
 
     bool ctrl_modifier;
 
-    boost::optional<kee::ui::base&> widget_keyboard_focus;
+    boost::optional<kee::ui::base&> element_keyboard_focus;
     std::unique_ptr<kee::scene::base> curr_scene;
 };
 

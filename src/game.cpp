@@ -17,7 +17,7 @@ void game::main_loop()
             raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_LEFT_CONTROL) ||
             raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_RIGHT_CONTROL);
 
-        kee::ui::base& keyboard_handler = widget_keyboard_focus.value_or(*curr_scene);
+        kee::ui::base& keyboard_handler = element_keyboard_focus.value_or(*curr_scene);
         for (int key = KeyboardKey::KEY_NULL; key <= KeyboardKey::KEY_KB_MENU; key++)
         {
             if (raylib::Keyboard::IsKeyPressed(key))

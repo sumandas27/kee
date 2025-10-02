@@ -40,7 +40,6 @@ private:
     bool has_moved;
 };
 
-/* TODO: rename to (`element` as well to) widget ??? */
 /**
  * Contractually the first parameter of any non-scene subclass's constructor must be of 
  * type `const kee::base::required&` containing all required references for a UI element.
@@ -66,7 +65,9 @@ public:
 
     void on_key_down(keyboard_event event);
     void on_key_up(keyboard_event event);
-    void on_char_press(char c); 
+    void on_char_press(char c);
+
+    /* TODO: mouse events next */
 
     void update(float dt);
     void render() const;
