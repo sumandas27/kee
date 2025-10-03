@@ -38,18 +38,18 @@ base::base(base&& other) noexcept :
         child.get()->parent = *this;
 }
 
-void base::on_key_down(keyboard_event event)
+void base::on_key_down(int keycode, bool ctrl_modifier)
 {
-    const bool consumed = on_element_key_down(event);
+    const bool consumed = on_element_key_down(keycode, ctrl_modifier);
     if (!consumed && parent.has_value())
-        parent.value().on_key_down(event);
+        parent.value().on_key_down(keycode, ctrl_modifier);
 }
 
-void base::on_key_up(keyboard_event event)
+void base::on_key_up(int keycode, bool ctrl_modifier)
 {
-    const bool consumed = on_element_key_up(event);
+    const bool consumed = on_element_key_up(keycode, ctrl_modifier);
     if (!consumed && parent.has_value())
-        parent.value().on_key_up(event);
+        parent.value().on_key_up(keycode, ctrl_modifier);
 }
 
 void base::on_char_press(char c)
@@ -57,6 +57,37 @@ void base::on_char_press(char c)
     const bool consumed = on_element_char_press(c);
     if (!consumed && parent.has_value())
         parent.value().on_char_press(c);
+}
+
+void base::on_mouse_move(const raylib::Vector2& mouse_pos)
+{
+    on_element_mouse_move(mouse_pos);
+    for (const auto& [_, child] : *children)
+        child->on_mouse_move(mouse_pos);
+}
+
+bool base::on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l)
+{
+    for (auto it = children->rbegin(); it != children->rend(); it++)
+    {
+        std::unique_ptr<kee::ui::base>& child = it->second;
+        if (child->on_mouse_down(mouse_pos, is_mouse_l))
+            return true;
+    }
+
+    return on_element_mouse_down(mouse_pos, is_mouse_l);
+}
+
+bool base::on_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l)
+{
+    for (auto it = children->rbegin(); it != children->rend(); it++)
+    {
+        std::unique_ptr<kee::ui::base>& child = it->second;
+        if (child->on_mouse_up(mouse_pos, is_mouse_l))
+            return true;
+    }
+
+    return on_element_mouse_up(mouse_pos, is_mouse_l);
 }
 
 void base::update(float dt) 
@@ -159,11 +190,17 @@ base::base(const kee::ui::base::required& reqs) :
     children(std::make_unique<std::multimap<int, std::unique_ptr<kee::ui::base>>>())
 { }
 
-bool base::on_element_key_down([[maybe_unused]] keyboard_event event) { return false; }
+bool base::on_element_key_down([[maybe_unused]] int keycode, [[maybe_unused]] bool ctrl_modifier) { return false; }
 
-bool base::on_element_key_up([[maybe_unused]] keyboard_event event) { return false; }
+bool base::on_element_key_up([[maybe_unused]] int keycode, [[maybe_unused]] bool ctrl_modifier) { return false; }
 
 bool base::on_element_char_press([[maybe_unused]] char c) { return false; }
+
+void base::on_element_mouse_move([[maybe_unused]] const raylib::Vector2& mouse_pos) { }
+
+bool base::on_element_mouse_down([[maybe_unused]] const raylib::Vector2& mouse_pos, [[maybe_unused]] bool is_mouse_l) { return false; }
+
+bool base::on_element_mouse_up([[maybe_unused]] const raylib::Vector2& mouse_pos, [[maybe_unused]] bool is_mouse_l) { return false; }
 
 void base::update_element([[maybe_unused]] float dt) { }
 

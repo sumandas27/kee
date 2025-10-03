@@ -5,8 +5,6 @@
 namespace kee {
 namespace ui {
 
-/* TODO: update */
-
 class button : public kee::ui::base
 {
 public:
@@ -25,7 +23,9 @@ public:
     std::function<void()> on_click_r;
 
 protected:
-    //void handle_element_events() override;
+    void on_element_mouse_move(const raylib::Vector2& mouse_pos) override;
+    bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l) override;
+    bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l) override;
 
 private:
     kee::mouse_state button_state;

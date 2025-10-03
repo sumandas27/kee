@@ -5,7 +5,12 @@ namespace scene {
 
 window::window()
 {
+#ifdef __APPLE__
+    static constexpr int window_fps = 60;
+#elif
     static constexpr int window_fps = 144;
+#endif
+
     impl.SetConfigFlags(
         ConfigFlags::FLAG_BORDERLESS_WINDOWED_MODE |    /* Make window take up the entire screen */
         ConfigFlags::FLAG_WINDOW_UNDECORATED |          /* Remove toolbars when displaying the game */
@@ -13,7 +18,7 @@ window::window()
         ConfigFlags::FLAG_WINDOW_HIGHDPI                /* Correct rendering on Apple machines */
     );
 
-    impl.Init(raylib::Window::GetWidth(), raylib::Window::GetHeight());
+    impl.Init(2560, 1440);
     impl.SetTargetFPS(window_fps);
 }
 

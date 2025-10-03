@@ -86,16 +86,6 @@ enum class mouse_state
     down
 };
 
-class keyboard_event
-{
-public:
-    keyboard_event(int keycode, bool ctrl_modifier);
-
-    int keycode;
-
-    bool ctrl_modifier;
-};
-
 enum class transition_type
 {
     lin,

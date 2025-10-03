@@ -63,9 +63,13 @@ public:
     base& operator=(const base&) = delete;
     base& operator=(base&&) = delete;
 
-    void on_key_down(keyboard_event event);
-    void on_key_up(keyboard_event event);
+    void on_key_down(int keycode, bool ctrl_modifier);
+    void on_key_up(int keycode, bool ctrl_modifier);
     void on_char_press(char c);
+
+    void on_mouse_move(const raylib::Vector2& mouse_pos);
+    bool on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l);
+    bool on_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l);
 
     /* TODO: mouse events next */
 
@@ -112,9 +116,13 @@ protected:
      */
     base(const kee::ui::base::required& reqs);
     
-    virtual bool on_element_key_down(keyboard_event event);
-    virtual bool on_element_key_up(keyboard_event event);
+    virtual bool on_element_key_down(int keycode, bool ctrl_modifier);
+    virtual bool on_element_key_up(int keycode, bool ctrl_modifier);
     virtual bool on_element_char_press(char c);
+
+    virtual void on_element_mouse_move(const raylib::Vector2& mouse_pos);
+    virtual bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l);
+    virtual bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l);
 
     virtual void update_element(float dt);
     virtual void render_element() const;

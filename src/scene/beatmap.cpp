@@ -276,16 +276,16 @@ void beatmap::combo_lose()
     combo_gain.set(0.0f);
 }
 
-bool beatmap::on_element_key_down(keyboard_event event)
+bool beatmap::on_element_key_down(int keycode, bool ctrl_modifier)
 {
-    if (!keys.contains(event.keycode))
+    if (!keys.contains(keycode))
         return true;
 
-    keys.at(event.keycode).ref.set_opt_color(raylib::Color::Green());
-    if (keys.at(event.keycode).ref.get_hit_objects().empty())
+    keys.at(keycode).ref.set_opt_color(raylib::Color::Green());
+    if (keys.at(keycode).ref.get_hit_objects().empty())
         return true;
 
-    beatmap_hit_object& front = keys.at(event.keycode).ref.front();
+    beatmap_hit_object& front = keys.at(keycode).ref.front();
     const bool is_active = (get_beat() >= front.beat - input_tolerance);
     const bool is_hold_held = (front.duration != 0.0f && front.hold_is_held);
     if (!is_active || is_hold_held)
@@ -300,7 +300,7 @@ bool beatmap::on_element_key_down(keyboard_event event)
         combo_increment_with_sound();
 
         if (front.duration == 0.0f)
-            keys.at(event.keycode).ref.pop();
+            keys.at(keycode).ref.pop();
     }
 
     if (front.duration == 0.0f)
@@ -317,28 +317,28 @@ bool beatmap::on_element_key_down(keyboard_event event)
     return true;
 }
 
-bool beatmap::on_element_key_up(keyboard_event event)
+bool beatmap::on_element_key_up(int keycode, bool ctrl_modifier)
 {
-    if (!keys.contains(event.keycode))
+    if (!keys.contains(keycode))
         return true;
 
-    keys.at(event.keycode).ref.set_opt_color(raylib::Color::White());
-    if (keys.at(event.keycode).ref.get_hit_objects().empty())
+    keys.at(keycode).ref.set_opt_color(raylib::Color::White());
+    if (keys.at(keycode).ref.get_hit_objects().empty())
         return true;
 
-    beatmap_hit_object& front = keys.at(event.keycode).ref.front();
+    beatmap_hit_object& front = keys.at(keycode).ref.front();
     if (front.duration == 0.0f || !front.hold_is_held)
         return true;
     
     if (get_beat() < front.beat + front.duration - input_tolerance)
     {
-        keys.at(event.keycode).ref.combo_lose();
+        keys.at(keycode).ref.combo_lose();
         front.hold_is_held = false;
     }
     else
     {
         combo_increment_with_sound();
-        keys.at(event.keycode).ref.pop();
+        keys.at(keycode).ref.pop();
     }
     
     return true;

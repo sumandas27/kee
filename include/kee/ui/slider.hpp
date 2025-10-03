@@ -29,8 +29,10 @@ public:
     float progress;
 
 private:
-    /* TODO: next remove */
-    //void handle_element_events() override;
+    void on_element_mouse_move(const raylib::Vector2& mouse_pos) override;
+    bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l) override;
+    bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l) override;    
+
     void update_element(float dt) override;
     void render_element() const override;
 

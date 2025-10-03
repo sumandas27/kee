@@ -17,15 +17,33 @@ void game::main_loop()
             raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_LEFT_CONTROL) ||
             raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_RIGHT_CONTROL);
 
-        kee::ui::base& keyboard_handler = element_keyboard_focus.value_or(*curr_scene);
+        kee::ui::base& keyboard_handler = element_keyboard_capture.value_or(*curr_scene);
         for (int key = KeyboardKey::KEY_NULL; key <= KeyboardKey::KEY_KB_MENU; key++)
         {
             if (raylib::Keyboard::IsKeyPressed(key))
-                keyboard_handler.on_key_down(keyboard_event(key, ctrl_modifier));
+                keyboard_handler.on_key_down(key, ctrl_modifier);
 
             if (raylib::Keyboard::IsKeyReleased(key))
-                keyboard_handler.on_key_up(keyboard_event(key, ctrl_modifier));
+                keyboard_handler.on_key_up(key, ctrl_modifier);
         }
+
+        /* TODO: impl char callback */
+
+        const raylib::Vector2 new_mouse_pos = raylib::Mouse::GetPosition();
+        if (mouse_pos != new_mouse_pos)
+        {
+            curr_scene->on_mouse_move(new_mouse_pos);
+            mouse_pos = new_mouse_pos;
+        }
+
+        if (raylib::Mouse::IsButtonPressed(MouseButton::MOUSE_BUTTON_LEFT))
+            curr_scene->on_mouse_down(mouse_pos, true);
+        if (raylib::Mouse::IsButtonReleased(MouseButton::MOUSE_BUTTON_LEFT))
+            curr_scene->on_mouse_up(mouse_pos, true);
+        if (raylib::Mouse::IsButtonPressed(MouseButton::MOUSE_BUTTON_RIGHT))
+            curr_scene->on_mouse_down(mouse_pos, false);
+        if (raylib::Mouse::IsButtonReleased(MouseButton::MOUSE_BUTTON_RIGHT))
+            curr_scene->on_mouse_up(mouse_pos, false);
 
         const float dt = window.impl.GetFrameTime();
         curr_scene->update(dt);

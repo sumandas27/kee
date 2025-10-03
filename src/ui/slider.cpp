@@ -59,9 +59,8 @@ bool slider::is_down() const
     return slider_state == mouse_state::down;
 }
 
-/*void slider::handle_element_events()
+void slider::on_element_mouse_move(const raylib::Vector2& mouse_pos)
 {
-    const raylib::Vector2 mouse_pos = raylib::Mouse::GetPosition();
     const raylib::Rectangle raw_rect = get_raw_rect();
     const raylib::Rectangle raw_rect_thumb = thumb.get_raw_rect();
 
@@ -76,19 +75,8 @@ bool slider::is_down() const
     const bool is_mouse_on_slider = is_mouse_on_rect || is_mouse_on_thumb;
     if (slider_state == mouse_state::down)
     {
-        if (raylib::Mouse::IsButtonReleased(MouseButton::MOUSE_BUTTON_LEFT))
-        {
-            on_event(slider::event::on_release);
-            thumb_scale.set(std::nullopt, 1.75f, 0.5f, kee::transition_type::exp);
-
-            fill_color.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
-            slider_state = mouse_state::hot;
-        }
-        else
-        {
-            const float mouse_progress = (mouse_pos.x - raw_rect.x) / raw_rect.width;
-            progress = std::clamp(mouse_progress, 0.0f, 1.0f);
-        }
+        const float mouse_progress = (mouse_pos.x - raw_rect.x) / raw_rect.width;
+        progress = std::clamp(mouse_progress, 0.0f, 1.0f);
     }
     else if (!is_mouse_on_slider && slider_state != mouse_state::off)
     {
@@ -100,14 +88,32 @@ bool slider::is_down() const
         fill_color.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
         slider_state = mouse_state::hot;
     }
-    else if (raylib::Mouse::IsButtonPressed(MouseButton::MOUSE_BUTTON_LEFT) && slider_state == mouse_state::hot)
-    {
-        on_event(slider::event::on_down);
-        thumb_scale.set(std::nullopt, 1.5f, 0.5f, kee::transition_type::exp);
+}
 
-        slider_state = mouse_state::down;
-    }
-}*/
+bool slider::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l)
+{
+    if (slider_state != mouse_state::hot || !is_mouse_l)
+        return false;
+
+    on_event(slider::event::on_down);
+    thumb_scale.set(std::nullopt, 1.5f, 0.5f, kee::transition_type::exp);
+
+    slider_state = mouse_state::down;
+    return true;
+}
+
+bool slider::on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l)
+{
+    if (slider_state != mouse_state::down || !is_mouse_l)
+        return false;
+
+    on_event(slider::event::on_release);
+    thumb_scale.set(std::nullopt, 1.75f, 0.5f, kee::transition_type::exp);
+    fill_color.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
+    
+    slider_state = mouse_state::hot;
+    return true;
+}
 
 void slider::update_element([[maybe_unused]] float dt)
 {

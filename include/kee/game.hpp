@@ -19,7 +19,9 @@ private:
 
     bool ctrl_modifier;
 
-    boost::optional<kee::ui::base&> element_keyboard_focus;
+    raylib::Vector2 mouse_pos;
+
+    boost::optional<kee::ui::base&> element_keyboard_capture;
     std::unique_ptr<kee::scene::base> curr_scene;
 };
 
