@@ -17,10 +17,6 @@ private:
     kee::global_assets assets;
     raylib::AudioDevice audio;
 
-    bool ctrl_modifier;
-
-    raylib::Vector2 mouse_pos;
-
     boost::optional<kee::ui::base&> element_keyboard_capture;
     std::unique_ptr<kee::scene::base> curr_scene;
 };

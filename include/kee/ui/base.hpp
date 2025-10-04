@@ -67,11 +67,10 @@ public:
     void on_key_up(int keycode, bool ctrl_modifier);
     void on_char_press(char c);
 
-    void on_mouse_move(const raylib::Vector2& mouse_pos);
-    bool on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l);
-    bool on_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l);
-
-    /* TODO: mouse events next */
+    void on_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_modifier);
+    bool on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier);
+    bool on_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier);
+    bool on_mouse_scroll(float scroll_amount);
 
     void update(float dt);
     void render() const;
@@ -120,9 +119,10 @@ protected:
     virtual bool on_element_key_up(int keycode, bool ctrl_modifier);
     virtual bool on_element_char_press(char c);
 
-    virtual void on_element_mouse_move(const raylib::Vector2& mouse_pos);
-    virtual bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l);
-    virtual bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l);
+    virtual void on_element_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_modifier);
+    virtual bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier);
+    virtual bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier);
+    virtual bool on_element_mouse_scroll(float scroll_amount);
 
     virtual void update_element(float dt);
     virtual void render_element() const;

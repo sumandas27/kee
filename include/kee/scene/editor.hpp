@@ -1,6 +1,6 @@
 #pragma once
 
-/*#include "kee/scene/base.hpp"
+#include "kee/scene/base.hpp"
 #include "kee/ui/button.hpp"
 #include "kee/ui/image.hpp"
 #include "kee/ui/rect.hpp"
@@ -11,12 +11,12 @@
 namespace kee {
 namespace scene {
 
-class editor;*/
+class editor;
 
 /**
  * These objects will belong in an `std::set`, whose keys store the `beat` of the object.
  */
-/*class editor_hit_object
+class editor_hit_object
 {
 public:
     editor_hit_object(int key, float duration);
@@ -104,20 +104,19 @@ public:
 
     std::map<float, editor_hit_object> hit_objects;
 
+    std::vector<kee::ui::rect> hit_obj_rects;
     kee::ui::handle<kee::ui::rect> frame;
     kee::ui::handle<kee::ui::text> key_text;
 
     bool is_selected;
 
 private:
-    void handle_element_events() override;
+    void update_element(float dt) override;
     void render_element() const override;
 
     kee::scene::editor& editor_scene;
 
     const int key_id;
-
-    bool is_control_clicked;
 };
 
 class object_editor final : public kee::ui::rect
@@ -145,16 +144,25 @@ public:
     std::optional<new_hit_obj_data> new_hit_object;
 
 private:
-    void handle_element_events() override;
+    bool on_element_key_down(int keycode, bool ctrl_modifier) override;
+    void on_element_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_modifier) override;
+    bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier) override;
+    bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier) override;
+
     void update_element(float dt) override;
     void render_element() const override;
 
+    float get_beat_drag_diff() const;
     hit_obj_update_return hit_obj_update_info(const hit_obj_render& hit_obj, float beat_drag_diff) const;
 
     const std::vector<int>& selected_key_ids;
 
     std::unordered_map<int, kee::ui::handle<editor_key>>& keys;
     kee::scene::editor& editor_scene;
+
+    std::vector<kee::ui::rect> beat_render_rects;
+    std::vector<kee::ui::text> whole_beat_texts;
+    std::optional<hit_obj_ui> new_hit_obj_render;
 
     kee::ui::handle<kee::ui::base> beat_hover_l;
     kee::ui::handle<kee::ui::base> beat_hover_r;
@@ -208,7 +216,9 @@ private:
     static constexpr std::size_t tick_freq_count = 8;
     static constexpr std::array<int, tick_freq_count> tick_freqs = { 1, 2, 3, 4, 6, 8, 12, 16 };
 
-    void handle_element_events() override;
+    bool on_element_key_down(int keycode, bool ctrl_modifier) override;
+    bool on_element_mouse_scroll(float mouse_scroll) override;
+
     void update_element(float dt) override;
 
     void set_tick_freq_idx(std::size_t new_tick_freq_idx);
@@ -271,4 +281,4 @@ private:
 };
 
 } // namespace scene
-} // namespace kee*/
+} // namespace kee

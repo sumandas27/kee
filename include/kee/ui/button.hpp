@@ -18,14 +18,14 @@ public:
         bool centered
     );
 
-    std::function<void(button::event)> on_event;
-    std::function<void()> on_click_l;
-    std::function<void()> on_click_r;
+    std::function<void(button::event, bool)> on_event;
+    std::function<void(bool)> on_click_l;
+    std::function<void(bool)> on_click_r;
 
 protected:
-    void on_element_mouse_move(const raylib::Vector2& mouse_pos) override;
-    bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l) override;
-    bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l) override;
+    void on_element_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_modifier) override;
+    bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier) override;
+    bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier) override;
 
 private:
     kee::mouse_state button_state;

@@ -7,7 +7,7 @@ window::window()
 {
 #ifdef __APPLE__
     static constexpr int window_fps = 60;
-#elif
+#else
     static constexpr int window_fps = 144;
 #endif
 

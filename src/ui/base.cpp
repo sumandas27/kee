@@ -59,35 +59,47 @@ void base::on_char_press(char c)
         parent.value().on_char_press(c);
 }
 
-void base::on_mouse_move(const raylib::Vector2& mouse_pos)
+void base::on_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_modifier)
 {
-    on_element_mouse_move(mouse_pos);
+    on_element_mouse_move(mouse_pos, ctrl_modifier);
     for (const auto& [_, child] : *children)
-        child->on_mouse_move(mouse_pos);
+        child->on_mouse_move(mouse_pos, ctrl_modifier);
 }
 
-bool base::on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l)
+bool base::on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier)
 {
     for (auto it = children->rbegin(); it != children->rend(); it++)
     {
         std::unique_ptr<kee::ui::base>& child = it->second;
-        if (child->on_mouse_down(mouse_pos, is_mouse_l))
+        if (child->on_mouse_down(mouse_pos, is_mouse_l, ctrl_modifier))
             return true;
     }
 
-    return on_element_mouse_down(mouse_pos, is_mouse_l);
+    return on_element_mouse_down(mouse_pos, is_mouse_l, ctrl_modifier);
 }
 
-bool base::on_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l)
+bool base::on_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier)
 {
     for (auto it = children->rbegin(); it != children->rend(); it++)
     {
         std::unique_ptr<kee::ui::base>& child = it->second;
-        if (child->on_mouse_up(mouse_pos, is_mouse_l))
+        if (child->on_mouse_up(mouse_pos, is_mouse_l, ctrl_modifier))
             return true;
     }
 
-    return on_element_mouse_up(mouse_pos, is_mouse_l);
+    return on_element_mouse_up(mouse_pos, is_mouse_l, ctrl_modifier);
+}
+
+bool base::on_mouse_scroll(float scroll_amount)
+{
+    for (auto it = children->rbegin(); it != children->rend(); it++)
+    {
+        std::unique_ptr<kee::ui::base>& child = it->second;
+        if (child->on_mouse_scroll(scroll_amount))
+            return true;
+    }
+
+    return on_element_mouse_scroll(scroll_amount);
 }
 
 void base::update(float dt) 
@@ -190,17 +202,45 @@ base::base(const kee::ui::base::required& reqs) :
     children(std::make_unique<std::multimap<int, std::unique_ptr<kee::ui::base>>>())
 { }
 
-bool base::on_element_key_down([[maybe_unused]] int keycode, [[maybe_unused]] bool ctrl_modifier) { return false; }
+bool base::on_element_key_down(
+    [[maybe_unused]] int keycode, 
+    [[maybe_unused]] bool ctrl_modifier
+) { 
+    return false; 
+}
 
-bool base::on_element_key_up([[maybe_unused]] int keycode, [[maybe_unused]] bool ctrl_modifier) { return false; }
+bool base::on_element_key_up(
+    [[maybe_unused]] int keycode, 
+    [[maybe_unused]] bool ctrl_modifier
+) { 
+    return false; 
+}
 
 bool base::on_element_char_press([[maybe_unused]] char c) { return false; }
 
-void base::on_element_mouse_move([[maybe_unused]] const raylib::Vector2& mouse_pos) { }
+void base::on_element_mouse_move(
+    [[maybe_unused]] const raylib::Vector2& mouse_pos,
+    [[maybe_unused]] bool ctrl_modifier
+) 
+{ }
 
-bool base::on_element_mouse_down([[maybe_unused]] const raylib::Vector2& mouse_pos, [[maybe_unused]] bool is_mouse_l) { return false; }
+bool base::on_element_mouse_down(
+    [[maybe_unused]] const raylib::Vector2& mouse_pos, 
+    [[maybe_unused]] bool is_mouse_l,
+    [[maybe_unused]] bool ctrl_modifier
+) { 
+    return false; 
+}
 
-bool base::on_element_mouse_up([[maybe_unused]] const raylib::Vector2& mouse_pos, [[maybe_unused]] bool is_mouse_l) { return false; }
+bool base::on_element_mouse_up(
+    [[maybe_unused]] const raylib::Vector2& mouse_pos, 
+    [[maybe_unused]] bool is_mouse_l,
+    [[maybe_unused]] bool ctrl_modifier
+) { 
+    return false; 
+}
+
+bool base::on_element_mouse_scroll([[maybe_unused]] float scroll_amount) { return false; }
 
 void base::update_element([[maybe_unused]] float dt) { }
 

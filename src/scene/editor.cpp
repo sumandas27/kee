@@ -1,6 +1,6 @@
 #include "kee/scene/editor.hpp"
 
-/*#include <ranges>
+#include <ranges>
 
 namespace kee {
 namespace scene {
@@ -130,16 +130,17 @@ editor_key::editor_key(const kee::ui::base::required& reqs, kee::scene::editor& 
     )),
     is_selected(false),
     editor_scene(editor_scene),
-    key_id(key_id),
-    is_control_clicked(false)
+    key_id(key_id)
 {
-    on_event = [&](ui::button::event button_event)
+    on_event = [&](ui::button::event button_event, bool ctrl_modifier)
     {
         switch (button_event)
         {
         case ui::button::event::on_down_l:
-            if (raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_LEFT_CONTROL))
-                this->is_control_clicked = true;
+            if (!ctrl_modifier)
+                this->editor_scene.unselect();
+
+            this->editor_scene.select(this->key_id);
             break;
         case ui::button::event::on_down_r: {
             this->editor_scene.unselect();
@@ -161,14 +162,7 @@ editor_key::editor_key(const kee::ui::base::required& reqs, kee::scene::editor& 
         }
     };
 
-    on_click_l = [&]()
-    {
-        if (!this->is_control_clicked)
-            this->editor_scene.unselect();
-        this->editor_scene.select(this->key_id);
-    };
-
-    on_click_r = [&]()
+    on_click_r = [&]([[maybe_unused]] bool ctrl_modifier)
     {
         this->editor_scene.obj_editor.ref.attempt_add_hit_obj();
 
@@ -185,16 +179,9 @@ editor_key::editor_key(const kee::ui::base::required& reqs, kee::scene::editor& 
     key_text.ref.set_string(key_str);
 }
 
-void editor_key::handle_element_events()
+void editor_key::update_element([[maybe_unused]] float dt)
 {
-    kee::ui::button::handle_element_events();
-
-    if (is_control_clicked && !raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_LEFT_CONTROL))
-        is_control_clicked = false;
-}
-
-void editor_key::render_element() const
-{
+    hit_obj_rects.clear();
     for (const auto& [beat, object] : hit_objects)
     {
         if (beat + object.duration < editor_scene.get_beat() - editor::beat_lock_threshold)
@@ -205,7 +192,7 @@ void editor_key::render_element() const
 
         const float start_progress = std::max((beat - editor_scene.get_beat()) / (2 * editor_scene.approach_beats), 0.0f);
         const float end_progress = std::max((beat + object.duration - editor_scene.get_beat()) / (2 * editor_scene.approach_beats), 0.0f);
-        const kee::ui::rect hit_obj_rect = make_temp_child<kee::ui::rect>(
+        hit_obj_rects.push_back(make_temp_child<kee::ui::rect>(
             raylib::Color::Blank(),
             pos(pos::type::rel, 0.5),
             pos(pos::type::rel, 0.5),
@@ -213,10 +200,14 @@ void editor_key::render_element() const
             true,
             ui::rect_outline(ui::rect_outline::type::rel_h_parent, std::max(end_progress - start_progress, kee::key_border_width), raylib::Color::Red()),
             std::nullopt
-        );
-
-        hit_obj_rect.render();
+        ));
     }
+}
+
+void editor_key::render_element() const
+{
+    for (const kee::ui::rect& hit_obj_rect : hit_obj_rects)
+        hit_obj_rect.render();
 }
 
 object_editor::object_editor(
@@ -358,22 +349,25 @@ void object_editor::attempt_add_hit_obj()
     new_hit_object.reset();
 }
 
-void object_editor::handle_element_events()
+bool object_editor::on_element_key_down(int keycode, [[maybe_unused]] bool ctrl_modifier)
 {
-    if (raylib::Keyboard::IsKeyPressed(KeyboardKey::KEY_BACKSPACE) && !selected_is_active)
-    {
-        for (hit_obj_render& hit_obj : obj_render_info)
-            if (hit_obj.hit_obj_ref->second.is_selected)
-                keys.at(hit_obj.hit_obj_ref->second.key).ref.hit_objects.erase(hit_obj.hit_obj_ref);
+    /* TODO: add keyboard active child system so this works */
 
-        reset_render_hit_objs();
-    }
+    if (keycode != KeyboardKey::KEY_BACKSPACE || selected_is_active)
+        return false;
 
+    for (hit_obj_render& hit_obj : obj_render_info)
+        if (hit_obj.hit_obj_ref->second.is_selected)
+            keys.at(hit_obj.hit_obj_ref->second.key).ref.hit_objects.erase(hit_obj.hit_obj_ref);
+
+    reset_render_hit_objs();
+    return true; 
+}
+
+void object_editor::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[maybe_unused]] bool ctrl_modifier)
+{
     if (editor_scene.is_music_playing())
         return;
-
-    const raylib::Vector2 mouse_pos = raylib::Mouse::GetPosition();
-    const raylib::Rectangle obj_renderer_rect = obj_renderer.ref.get_raw_rect();
 
     const float mouse_in_rect_percent = (mouse_pos.x - get_raw_rect().x) / get_raw_rect().width;
     const float mouse_beat_diff = (mouse_in_rect_percent - 0.5f) * beat_width * 2;
@@ -386,238 +380,6 @@ void object_editor::handle_element_events()
     else
         beat_drag_multiplier = 0;
 
-    if (beat_drag_start.has_value())
-    {
-        const bool mouse_released_l = raylib::Mouse::IsButtonReleased(MouseButton::MOUSE_BUTTON_LEFT) && !new_hit_object.has_value();
-        const bool mouse_released_r = raylib::Mouse::IsButtonReleased(MouseButton::MOUSE_BUTTON_RIGHT) && new_hit_object.has_value();
-        if (!mouse_released_l && !mouse_released_r)
-            return;
-
-        if (mouse_released_l)
-        {
-            if (!selected_is_active)
-            {
-                const raylib::Rectangle selection_raw_rect = selection_rect.value().get_raw_rect();
-                selection_rect.reset();
-
-                if (selected_has_moved)
-                {
-                    selected_beat = std::numeric_limits<float>::max();
-                    for (hit_obj_render& obj : obj_render_info)
-                        if (selection_raw_rect.CheckCollision(obj.render_ui.get_extended_raw_rect()))
-                        {
-                            selected_beat = std::min(selected_beat, obj.hit_obj_ref->first);
-                            obj.hit_obj_ref->second.is_selected = true;
-                            obj.render_ui.select();
-                        }
-
-                    selected_reference_beat = selected_beat;
-                }
-            }
-            else
-            {
-                float beat_drag_diff = 0.0f;
-                if (beat_drag_start.has_value() && selected_is_active)
-                {
-                    beat_drag_diff = mouse_beat - beat_drag_start.value();
-                    if (editor_scene.is_beat_snap_enabled())
-                        beat_drag_diff = std::round(beat_drag_diff * editor_scene.get_ticks_per_beat()) / editor_scene.get_ticks_per_beat();
-                }
-
-                std::vector<hit_obj_node> hit_obj_nodes;
-                for (hit_obj_render& obj_selected : obj_render_info)
-                {
-                    editor_hit_object& object = obj_selected.hit_obj_ref->second;
-                    if (object.is_selected)
-                    {
-                        const int key = obj_selected.hit_obj_ref->second.key;
-                        const float old_beat = obj_selected.hit_obj_ref->first;
-                        const float old_duration = obj_selected.hit_obj_ref->second.duration;
-                        const hit_obj_update_return new_obj = hit_obj_update_info(obj_selected, beat_drag_diff);
-
-                        auto map_node = keys.at(object.key).ref.hit_objects.extract(obj_selected.hit_obj_ref);
-                        hit_obj_nodes.emplace_back(key, old_beat, old_duration, new_obj, obj_selected.hit_obj_ref, std::move(map_node));
-                    }
-                }
-
-                bool is_move_valid = true;
-                for (hit_obj_node& node : hit_obj_nodes)
-                {
-                    std::map<float, editor_hit_object>& hit_objects = keys.at(node.key).ref.hit_objects;
-                    auto next_it = hit_objects.lower_bound(node.obj_new.beat);
-                    
-                    if (next_it != hit_objects.end() && node.obj_new.beat + node.obj_new.duration + editor::beat_lock_threshold >= next_it->first)
-                        is_move_valid = false;
-                    else if (next_it != hit_objects.begin() && std::prev(next_it)->first + std::prev(next_it)->second.duration + editor::beat_lock_threshold >= node.obj_new.beat)
-                        is_move_valid = false;
-
-                    if (!is_move_valid)
-                        break;
-                }
-
-                selected_reference_beat = std::numeric_limits<float>::max();
-                for (hit_obj_node& node : hit_obj_nodes)
-                {
-                    const hit_obj_update_return obj_insert = is_move_valid ? node.obj_new : hit_obj_update_return(node.old_beat, node.old_duration);
-                    if (selected_reference_beat > obj_insert.beat)
-                        selected_reference_beat = obj_insert.beat;
-
-                    node.node.key() = obj_insert.beat;
-                    node.node.mapped().duration = obj_insert.duration;
-                    node.invalid_to_populate = keys.at(node.key).ref.hit_objects.insert(std::move(node.node)).position;
-                }
-
-                selected_is_active = false;
-                selected_beat = selected_reference_beat;
-                hit_obj_drag_selection.reset();
-            }
-        }
-        else if (mouse_released_r)
-        {
-            attempt_add_hit_obj();        
-            new_hit_obj_from_editor = false;
-        }
-
-        beat_drag_start.reset();
-        selected_has_moved = false;
-        editor_scene.active_child = boost::none;
-    }
-    else if (obj_renderer_rect.CheckCollision(mouse_pos))
-    {
-        if (!raylib::Mouse::IsButtonPressed(MouseButton::MOUSE_BUTTON_LEFT) && !raylib::Mouse::IsButtonPressed(MouseButton::MOUSE_BUTTON_RIGHT))
-            return;
-
-        mouse_pos_start = mouse_pos;
-        beat_drag_start = mouse_beat;
-        editor_scene.active_child = *this;
-
-        if (raylib::Mouse::IsButtonPressed(MouseButton::MOUSE_BUTTON_LEFT))
-        {*/
-            /**
-             * If two hit objects intersect with mouse position on-click, already selected objects take
-             * priority. Then the top-rightmost one (top-most prioritized over right-most) gets selected 
-             * since that is how hit objects are ordered when rendered.
-             */
-            /*static const auto click_priority = [](const hit_obj_render& l, const hit_obj_render& r)
-            {
-                if (l.hit_obj_ref->second.is_selected != r.hit_obj_ref->second.is_selected)
-                    return r.hit_obj_ref->second.is_selected;
-
-                const raylib::Rectangle l_rect = l.render_ui.get_extended_raw_rect();
-                const raylib::Rectangle r_rect = r.render_ui.get_extended_raw_rect();
-
-                return (l_rect.y != r_rect.y)
-                    ? l_rect.y > r_rect.y
-                    : l_rect.x < r_rect.x;
-            };
-
-            auto obj_rects_clicked = obj_render_info | std::views::filter(
-                [&mouse_pos](const hit_obj_render& obj){ return obj.render_ui.get_extended_raw_rect().CheckCollision(mouse_pos); }
-            );
-
-            auto obj_selected_it = std::ranges::max_element(obj_rects_clicked, click_priority);
-            if (obj_selected_it == std::ranges::end(obj_rects_clicked))
-            {
-                for (hit_obj_render& obj : obj_render_info)
-                    if (obj.hit_obj_ref->second.is_selected)
-                    {
-                        obj.hit_obj_ref->second.is_selected = false;
-                        obj.render_ui.unselect();
-                    }
-
-                selection_rect.emplace(make_temp_child<kee::ui::rect>(
-                    raylib::Color(255, 255, 255, 50),
-                    pos(pos::type::rel, 0),
-                    pos(pos::type::rel, 0),
-                    dims(
-                        dim(dim::type::rel, 0),
-                        dim(dim::type::rel, 1)
-                    ),
-                    false, std::nullopt, std::nullopt
-                ));
-            }
-            else
-            {
-                bool is_drag_possible = true;
-                if (!obj_selected_it->hit_obj_ref->second.is_selected)
-                {
-                    if (raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_LEFT_CONTROL))
-                        is_drag_possible = false;
-                    else
-                        for (hit_obj_render& obj : obj_render_info)
-                            if (obj.hit_obj_ref->second.is_selected)
-                            {
-                                obj.hit_obj_ref->second.is_selected = false;
-                                obj.render_ui.unselect();
-                            }
-
-                    obj_selected_it->hit_obj_ref->second.is_selected = true;
-                    obj_selected_it->render_ui.select();
-                }
-                else
-                {
-                    is_drag_possible = std::none_of(obj_render_info.begin(), obj_render_info.end(), 
-                        [&](const hit_obj_render& obj) 
-                        {
-                            const bool distinct_from_selected = &obj != &(*obj_selected_it);
-                            return distinct_from_selected && obj.hit_obj_ref->second.is_selected;
-                        }
-                    );
-                }
-
-                if (is_drag_possible && obj_selected_it->hit_obj_ref->second.duration > editor::beat_lock_threshold)
-                {
-                    const bool collide_with_l_dot = obj_selected_it->render_ui.circle_l.ref.get_raw_rect().CheckCollision(mouse_pos);
-                    const bool collide_with_r_dot = obj_selected_it->render_ui.circle_r.ref.get_raw_rect().CheckCollision(mouse_pos);
-
-                    if (collide_with_l_dot || collide_with_r_dot)
-                    {
-                        const float selected_obj_midpoint_x = obj_selected_it->render_ui.get_raw_rect().x + obj_selected_it->render_ui.get_raw_rect().width / 2;
-
-                        hit_obj_drag_selection = drag_selection(obj_selected_it->hit_obj_ref);
-                        hit_obj_drag_selection.value().is_left = (collide_with_l_dot && collide_with_r_dot)
-                            ? mouse_pos.x < selected_obj_midpoint_x
-                            : collide_with_l_dot;
-                    }
-                }
-
-                selected_beat = obj_selected_it->hit_obj_ref->first;
-                selected_is_active = true;
-                selected_reference_beat = (hit_obj_drag_selection.has_value() && !hit_obj_drag_selection.value().is_left) 
-                    ? obj_selected_it->hit_obj_ref->first + obj_selected_it->hit_obj_ref->second.duration
-                    : obj_selected_it->hit_obj_ref->first;
-            }
-        }
-        else if (raylib::Mouse::IsButtonPressed(MouseButton::MOUSE_BUTTON_RIGHT))
-        {
-            const float mouse_rel_y = (mouse_pos.y - obj_renderer_rect.y) / obj_renderer_rect.height;
-
-            const std::vector<int>& keys_to_render = selected_key_ids.empty() ? editor::prio_to_key : selected_key_ids;
-            const float key_rel_y_range = object_editor::hit_objs_rel_h / (keys_to_render.size() + 1);
-            const float keys_rel_y_beg = object_editor::hit_objs_rel_y + object_editor::hit_objs_rel_h * 1 / (keys_to_render.size() + 1) - key_rel_y_range / 2;
-            const float keys_rel_y_end = object_editor::hit_objs_rel_y + object_editor::hit_objs_rel_h * keys_to_render.size() / (keys_to_render.size() + 1) + key_rel_y_range / 2;
-
-            std::size_t selected_key_idx;
-            if (mouse_rel_y < keys_rel_y_beg)
-                selected_key_idx = 0;
-            else if (mouse_rel_y > keys_rel_y_end)
-                selected_key_idx = keys_to_render.size() - 1;
-            else
-                selected_key_idx = static_cast<std::size_t>((mouse_rel_y - keys_rel_y_beg) / key_rel_y_range);
-
-            const float rel_y = object_editor::hit_objs_rel_y + object_editor::hit_objs_rel_h * (selected_key_idx + 1) / (keys_to_render.size() + 1);     
-            float start_beat = mouse_beat;
-            if (editor_scene.is_beat_snap_enabled())
-                start_beat = std::round(start_beat * editor_scene.get_ticks_per_beat()) / editor_scene.get_ticks_per_beat();
-
-            new_hit_object = new_hit_obj_data(keys_to_render[selected_key_idx], rel_y, start_beat, start_beat);
-            new_hit_obj_from_editor = true;
-        }
-    }
-}
-
-void object_editor::update_element([[maybe_unused]] float dt)
-{
     if (selection_rect.has_value())
     {
         const float selection_start_beat = std::min(mouse_beat, beat_drag_start.value());
@@ -641,38 +403,255 @@ void object_editor::update_element([[maybe_unused]] float dt)
         new_hit_object.value().current_beat = current_beat;
     }
 
-    if (beat_drag_start.has_value() && !selected_has_moved && raylib::Mouse::GetPosition() != mouse_pos_start)
+    if (beat_drag_start.has_value() && !selected_has_moved && mouse_pos != mouse_pos_start)
     {
         if (selected_is_active && std::abs(std::fmod(selected_reference_beat, 1.0f / editor_scene.get_ticks_per_beat())) > editor_scene.beat_lock_threshold && editor_scene.is_beat_snap_enabled())
             selected_reference_beat = std::round(selected_reference_beat * editor_scene.get_ticks_per_beat()) / editor_scene.get_ticks_per_beat();
 
         selected_has_moved = true;
     }
+}
 
-    float beat_drag_diff = 0.0f;
-    if (beat_drag_start.has_value() && selected_is_active)
+bool object_editor::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier)
+{
+    /**
+     * If two hit objects intersect with mouse position on-click, already selected objects take
+     * priority. Then the top-rightmost one (top-most prioritized over right-most) gets selected 
+     * since that is how hit objects are ordered when rendered.
+     */
+    static const auto click_priority = [](const hit_obj_render& l, const hit_obj_render& r)
     {
-        beat_drag_diff = mouse_beat - beat_drag_start.value();
+        if (l.hit_obj_ref->second.is_selected != r.hit_obj_ref->second.is_selected)
+            return r.hit_obj_ref->second.is_selected;
+
+        const raylib::Rectangle l_rect = l.render_ui.get_extended_raw_rect();
+        const raylib::Rectangle r_rect = r.render_ui.get_extended_raw_rect();
+
+        return (l_rect.y != r_rect.y)
+            ? l_rect.y > r_rect.y
+            : l_rect.x < r_rect.x;
+    };
+
+    const raylib::Rectangle obj_renderer_rect = obj_renderer.ref.get_raw_rect();
+    if (!obj_renderer_rect.CheckCollision(mouse_pos) || editor_scene.is_music_playing())
+        return false;
+
+    mouse_pos_start = mouse_pos;
+    beat_drag_start = mouse_beat;
+
+    if (is_mouse_l)
+    {
+        auto obj_rects_clicked = obj_render_info | std::views::filter(
+            [&mouse_pos](const hit_obj_render& obj){ return obj.render_ui.get_extended_raw_rect().CheckCollision(mouse_pos); }
+        );
+
+        auto obj_selected_it = std::ranges::max_element(obj_rects_clicked, click_priority);
+        if (obj_selected_it == std::ranges::end(obj_rects_clicked))
+        {
+            for (hit_obj_render& obj : obj_render_info)
+                if (obj.hit_obj_ref->second.is_selected)
+                {
+                    obj.hit_obj_ref->second.is_selected = false;
+                    obj.render_ui.unselect();
+                }
+
+            selection_rect.emplace(make_temp_child<kee::ui::rect>(
+                raylib::Color(255, 255, 255, 50),
+                pos(pos::type::rel, 0),
+                pos(pos::type::rel, 0),
+                dims(
+                    dim(dim::type::rel, 0),
+                    dim(dim::type::rel, 1)
+                ),
+                false, std::nullopt, std::nullopt
+            ));
+
+            return true;
+        }
+        
+        bool is_drag_possible = true;
+        if (!obj_selected_it->hit_obj_ref->second.is_selected)
+        {
+            if (ctrl_modifier)
+                is_drag_possible = false;
+            else
+                for (hit_obj_render& obj : obj_render_info)
+                    if (obj.hit_obj_ref->second.is_selected)
+                    {
+                        obj.hit_obj_ref->second.is_selected = false;
+                        obj.render_ui.unselect();
+                    }
+
+            obj_selected_it->hit_obj_ref->second.is_selected = true;
+            obj_selected_it->render_ui.select();
+        }
+        else
+        {
+            is_drag_possible = std::none_of(obj_render_info.begin(), obj_render_info.end(), 
+                [&](const hit_obj_render& obj) 
+                {
+                    const bool distinct_from_selected = &obj != &(*obj_selected_it);
+                    return distinct_from_selected && obj.hit_obj_ref->second.is_selected;
+                }
+            );
+        }
+
+        if (is_drag_possible && obj_selected_it->hit_obj_ref->second.duration > editor::beat_lock_threshold)
+        {
+            const bool collide_with_l_dot = obj_selected_it->render_ui.circle_l.ref.get_raw_rect().CheckCollision(mouse_pos);
+            const bool collide_with_r_dot = obj_selected_it->render_ui.circle_r.ref.get_raw_rect().CheckCollision(mouse_pos);
+
+            if (collide_with_l_dot || collide_with_r_dot)
+            {
+                const float selected_obj_midpoint_x = obj_selected_it->render_ui.get_raw_rect().x + obj_selected_it->render_ui.get_raw_rect().width / 2;
+
+                hit_obj_drag_selection = drag_selection(obj_selected_it->hit_obj_ref);
+                hit_obj_drag_selection.value().is_left = (collide_with_l_dot && collide_with_r_dot)
+                    ? mouse_pos.x < selected_obj_midpoint_x
+                    : collide_with_l_dot;
+            }
+        }
+
+        selected_beat = obj_selected_it->hit_obj_ref->first;
+        selected_is_active = true;
+        selected_reference_beat = (hit_obj_drag_selection.has_value() && !hit_obj_drag_selection.value().is_left) 
+            ? obj_selected_it->hit_obj_ref->first + obj_selected_it->hit_obj_ref->second.duration
+            : obj_selected_it->hit_obj_ref->first;
+    }
+    else
+    {
+        const float mouse_rel_y = (mouse_pos.y - obj_renderer_rect.y) / obj_renderer_rect.height;
+
+        const std::vector<int>& keys_to_render = selected_key_ids.empty() ? editor::prio_to_key : selected_key_ids;
+        const float key_rel_y_range = object_editor::hit_objs_rel_h / (keys_to_render.size() + 1);
+        const float keys_rel_y_beg = object_editor::hit_objs_rel_y + object_editor::hit_objs_rel_h * 1 / (keys_to_render.size() + 1) - key_rel_y_range / 2;
+        const float keys_rel_y_end = object_editor::hit_objs_rel_y + object_editor::hit_objs_rel_h * keys_to_render.size() / (keys_to_render.size() + 1) + key_rel_y_range / 2;
+
+        std::size_t selected_key_idx;
+        if (mouse_rel_y < keys_rel_y_beg)
+            selected_key_idx = 0;
+        else if (mouse_rel_y > keys_rel_y_end)
+            selected_key_idx = keys_to_render.size() - 1;
+        else
+            selected_key_idx = static_cast<std::size_t>((mouse_rel_y - keys_rel_y_beg) / key_rel_y_range);
+
+        const float rel_y = object_editor::hit_objs_rel_y + object_editor::hit_objs_rel_h * (selected_key_idx + 1) / (keys_to_render.size() + 1);     
+        float start_beat = mouse_beat;
         if (editor_scene.is_beat_snap_enabled())
-            beat_drag_diff = std::round(beat_drag_diff * editor_scene.get_ticks_per_beat()) / editor_scene.get_ticks_per_beat();
+            start_beat = std::round(start_beat * editor_scene.get_ticks_per_beat()) / editor_scene.get_ticks_per_beat();
+
+        new_hit_object = new_hit_obj_data(keys_to_render[selected_key_idx], rel_y, start_beat, start_beat);
+        new_hit_obj_from_editor = true;
     }
 
+    return true;
+}
+
+bool object_editor::on_element_mouse_up([[maybe_unused]] const raylib::Vector2& mouse_pos, bool is_mouse_l, [[maybe_unused]] bool ctrl_modifier)
+{
+    if (editor_scene.is_music_playing() || !beat_drag_start.has_value() || is_mouse_l == new_hit_object.has_value())
+        return false;
+
+    if (!is_mouse_l)
+    {
+        attempt_add_hit_obj();        
+        new_hit_obj_from_editor = false;
+
+        beat_drag_start.reset();
+        selected_has_moved = false;
+        return true;
+    }
+
+    if (!selected_is_active)
+    {
+        const raylib::Rectangle selection_raw_rect = selection_rect.value().get_raw_rect();
+        selection_rect.reset();
+
+        if (selected_has_moved)
+        {
+            selected_beat = std::numeric_limits<float>::max();
+            for (hit_obj_render& obj : obj_render_info)
+                if (selection_raw_rect.CheckCollision(obj.render_ui.get_extended_raw_rect()))
+                {
+                    selected_beat = std::min(selected_beat, obj.hit_obj_ref->first);
+                    obj.hit_obj_ref->second.is_selected = true;
+                    obj.render_ui.select();
+                }
+
+            selected_reference_beat = selected_beat;
+        }
+    }
+    else
+    {
+        const float beat_drag_diff = get_beat_drag_diff();
+
+        std::vector<hit_obj_node> hit_obj_nodes;
+        for (hit_obj_render& obj_selected : obj_render_info)
+        {
+            editor_hit_object& object = obj_selected.hit_obj_ref->second;
+            if (object.is_selected)
+            {
+                const int key = obj_selected.hit_obj_ref->second.key;
+                const float old_beat = obj_selected.hit_obj_ref->first;
+                const float old_duration = obj_selected.hit_obj_ref->second.duration;
+                const hit_obj_update_return new_obj = hit_obj_update_info(obj_selected, beat_drag_diff);
+
+                auto map_node = keys.at(object.key).ref.hit_objects.extract(obj_selected.hit_obj_ref);
+                hit_obj_nodes.emplace_back(key, old_beat, old_duration, new_obj, obj_selected.hit_obj_ref, std::move(map_node));
+            }
+        }
+
+        bool is_move_valid = true;
+        for (hit_obj_node& node : hit_obj_nodes)
+        {
+            std::map<float, editor_hit_object>& hit_objects = keys.at(node.key).ref.hit_objects;
+            auto next_it = hit_objects.lower_bound(node.obj_new.beat);
+            
+            if (next_it != hit_objects.end() && node.obj_new.beat + node.obj_new.duration + editor::beat_lock_threshold >= next_it->first)
+                is_move_valid = false;
+            else if (next_it != hit_objects.begin() && std::prev(next_it)->first + std::prev(next_it)->second.duration + editor::beat_lock_threshold >= node.obj_new.beat)
+                is_move_valid = false;
+
+            if (!is_move_valid)
+                break;
+        }
+
+        selected_reference_beat = std::numeric_limits<float>::max();
+        for (hit_obj_node& node : hit_obj_nodes)
+        {
+            const hit_obj_update_return obj_insert = is_move_valid ? node.obj_new : hit_obj_update_return(node.old_beat, node.old_duration);
+            if (selected_reference_beat > obj_insert.beat)
+                selected_reference_beat = obj_insert.beat;
+
+            node.node.key() = obj_insert.beat;
+            node.node.mapped().duration = obj_insert.duration;
+            node.invalid_to_populate = keys.at(node.key).ref.hit_objects.insert(std::move(node.node)).position;
+        }
+
+        selected_is_active = false;
+        selected_beat = selected_reference_beat;
+        hit_obj_drag_selection.reset();
+    }
+
+    beat_drag_start.reset();
+    selected_has_moved = false;
+    return true;
+}
+
+void object_editor::update_element([[maybe_unused]] float dt)
+{
+    const float beat_drag_diff = get_beat_drag_diff();
     for (hit_obj_render& hit_obj : obj_render_info)
     {
         hit_obj_update_return update = hit_obj_update_info(hit_obj, beat_drag_diff);
         hit_obj.render_ui.update(update.beat, update.duration, editor_scene.get_beat(), beat_width);
     }
 
-    const float beat_delta = beat_drag_multiplier * beat_drag_speed * dt;
-    editor_scene.set_beat(editor_scene.get_beat() + beat_delta);
-}
-
-void object_editor::render_element() const
-{
-    kee::ui::rect::render_element();
-
     const int beat_start_tick = static_cast<int>(std::floor(editor_scene.get_beat() - beat_width) * editor_scene.get_ticks_per_beat());
     const int beat_end_tick = static_cast<int>(std::ceil(editor_scene.get_beat() + beat_width) * editor_scene.get_ticks_per_beat());
+    
+    beat_render_rects.clear();
+    whole_beat_texts.clear();
     for (int beat_tick = beat_start_tick; beat_tick <= beat_end_tick; beat_tick++)
     {
         const float beat_render = static_cast<float>(beat_tick) / editor_scene.get_ticks_per_beat();
@@ -682,7 +661,7 @@ void object_editor::render_element() const
         const float render_rel_w = is_whole_beat ? 0.005f : 0.003f;
         const float render_rel_h = is_whole_beat ? 0.1f : 0.05f;
 
-        const kee::ui::rect beat_render_rect = make_temp_child<kee::ui::rect>(
+        beat_render_rects.push_back(make_temp_child<kee::ui::rect>(
             raylib::Color::White(),
             pos(pos::type::rel, render_rel_x),
             pos(pos::type::rel, 0.75f),
@@ -693,26 +672,45 @@ void object_editor::render_element() const
             true,
             std::nullopt,
             kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f, std::nullopt)
-        );
-
-        if (beat_render_rect.get_raw_rect().CheckCollision(obj_renderer.ref.get_raw_rect()))
-            beat_render_rect.render();
+        ));
 
         if (is_whole_beat)
         {
             const int whole_beat = beat_tick / editor_scene.get_ticks_per_beat();
-            const kee::ui::text whole_beat_text = make_temp_child<kee::ui::text>(
+            whole_beat_texts.push_back(make_temp_child<kee::ui::text>(
                 raylib::Color::White(),
                 pos(pos::type::rel, render_rel_x),
                 pos(pos::type::rel, 0.9f),
                 ui::text_size(ui::text_size::type::rel_h, 0.15f),
                 true, assets.font_semi_bold, std::to_string(whole_beat), true
-            );
-
-            if (whole_beat_text.get_raw_rect().CheckCollision(obj_renderer.ref.get_raw_rect()))
-                whole_beat_text.render();
+            ));
         }
     }
+
+    if (new_hit_object.has_value())
+    {
+        const float beg_beat = std::min(new_hit_object.value().click_beat, new_hit_object.value().current_beat);
+        const float end_beat = std::max(new_hit_object.value().click_beat, new_hit_object.value().current_beat);
+        
+        new_hit_obj_render.emplace(make_temp_child<hit_obj_ui>(beg_beat, end_beat - beg_beat, editor_scene.get_beat(), beat_width, new_hit_object.value().rel_y));
+        new_hit_obj_render.value().select();
+    }
+
+    const float beat_delta = beat_drag_multiplier * beat_drag_speed * dt;
+    editor_scene.set_beat(editor_scene.get_beat() + beat_delta);
+}
+
+void object_editor::render_element() const
+{
+    kee::ui::rect::render_element();
+
+    for (const kee::ui::rect& beat_render_rect : beat_render_rects)
+        if (beat_render_rect.get_raw_rect().CheckCollision(obj_renderer.ref.get_raw_rect()))
+            beat_render_rect.render();
+
+    for (const kee::ui::text& whole_beat_text : whole_beat_texts)
+        if (whole_beat_text.get_raw_rect().CheckCollision(obj_renderer.ref.get_raw_rect()))
+            whole_beat_text.render();
 
     for (const auto& [object_rect, obj_ref] : obj_render_info)
         if (object_rect.get_raw_rect().CheckCollision(obj_renderer.ref.get_raw_rect()) && !obj_ref->second.is_selected)
@@ -725,14 +723,21 @@ void object_editor::render_element() const
     if (selection_rect.has_value())
         selection_rect.value().render();
     else if (new_hit_object.has_value())
-    {
-        const float beg_beat = std::min(new_hit_object.value().click_beat, new_hit_object.value().current_beat);
-        const float end_beat = std::max(new_hit_object.value().click_beat, new_hit_object.value().current_beat);
+        new_hit_obj_render.value().render();
+}
 
-        hit_obj_ui new_hit_obj_render = make_temp_child<hit_obj_ui>(beg_beat, end_beat - beg_beat, editor_scene.get_beat(), beat_width, new_hit_object.value().rel_y);
-        new_hit_obj_render.select();
-        new_hit_obj_render.render();
+float object_editor::get_beat_drag_diff() const
+{
+    if (beat_drag_start.has_value() && selected_is_active)
+    {
+        float beat_drag_diff = mouse_beat - beat_drag_start.value();
+        if (editor_scene.is_beat_snap_enabled())
+            beat_drag_diff = std::round(beat_drag_diff * editor_scene.get_ticks_per_beat()) / editor_scene.get_ticks_per_beat();
+    
+        return beat_drag_diff;
     }
+    else
+        return 0.0f;
 }
 
 hit_obj_update_return object_editor::hit_obj_update_info(const hit_obj_render& hit_obj, float beat_drag_diff) const
@@ -985,7 +990,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             true
         ));
 
-        tick_frame_buttons.back().ref.on_event = [&, idx = i](ui::button::event button_event)
+        tick_frame_buttons.back().ref.on_event = [&, idx = i](ui::button::event button_event, [[maybe_unused]] bool ctrl_modifier)
         {
             switch (button_event)
             {
@@ -1000,7 +1005,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             }
         };
 
-        tick_frame_buttons.back().ref.on_click_l = [&, idx = i]()
+        tick_frame_buttons.back().ref.on_click_l = [&, idx = i]([[maybe_unused]] bool ctrl_modifier)
         {
             this->set_tick_freq_idx(idx);
         };
@@ -1008,7 +1013,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         tick_frame_text_colors.push_back(add_transition<kee::color>(kee::color::white()));
     }
 
-    tick_l_button.ref.on_event = [&](ui::button::event button_event)
+    tick_l_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] bool ctrl_modifier)
     {
         switch (button_event)
         {
@@ -1028,13 +1033,13 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         }
     };
 
-    tick_l_button.ref.on_click_l = [&]()
+    tick_l_button.ref.on_click_l = [&]([[maybe_unused]] bool ctrl_modifier)
     {
         if (this->tick_freq_idx != 0)
             this->set_tick_freq_idx(this->tick_freq_idx - 1);
     };
 
-    tick_r_button.ref.on_event = [&](ui::button::event button_event)
+    tick_r_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] bool ctrl_modifier)
     {
         switch (button_event)
         {
@@ -1054,13 +1059,13 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         }
     };
 
-    tick_r_button.ref.on_click_l = [&]()
+    tick_r_button.ref.on_click_l = [&]([[maybe_unused]] bool ctrl_modifier)
     {
         if (this->tick_freq_idx != editor::tick_freq_count - 1)
             this->set_tick_freq_idx(this->tick_freq_idx + 1);
     };
 
-    beat_snap_button.ref.on_click_l = [&]()
+    beat_snap_button.ref.on_click_l = [&]([[maybe_unused]] bool ctrl_modifier)
     {
         if (this->is_beat_snap)
         {
@@ -1074,15 +1079,13 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         }
     };
 
-    beat_snap_button.ref.on_event = [&](ui::button::event button_event)
+    beat_snap_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] bool ctrl_modifier)
     {
         switch (button_event)
         {
-        case ui::button::event::on_hot: {
-            const kee::color new_color = this->is_beat_snap ? kee::color::red() : kee::color::green();
-            this->beat_snap_button_color.set(std::nullopt, new_color, 0.5f, kee::transition_type::exp);
+        case ui::button::event::on_hot:
+            this->beat_snap_button_color.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
             break;
-        }
         case ui::button::event::on_leave:
             this->beat_snap_button_color.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
             break;
@@ -1097,11 +1100,9 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         {
         case ui::slider::event::on_down:
             music_is_playing = music.IsPlaying();
-            this->active_child = music_slider.ref;
             this->music.Pause();
             break;
         case ui::slider::event::on_release:
-            this->active_child = boost::none;
             this->music.Seek(music_slider.ref.progress * this->music.GetTimeLength());
             if (music_is_playing)
                 this->music.Resume();
@@ -1111,7 +1112,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         }
     };
 
-    pause_play.ref.on_event = [&](ui::button::event button_event)
+    pause_play.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] bool ctrl_modifier)
     {
         switch (button_event)
         {
@@ -1131,7 +1132,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         }
     };
 
-    pause_play.ref.on_click_l = [&]()
+    pause_play.ref.on_click_l = [&]([[maybe_unused]] bool ctrl_modifier)
     { 
         if (this->music.IsPlaying())
         {
@@ -1163,11 +1164,11 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         ));
 
         keys.emplace(id, key_holders.back().ref.add_child<editor_key>(std::nullopt, *this, id));
-    }*/
+    }
 
     /* TODO: for testing only */
 
-    /*keys.at(KeyboardKey::KEY_Q).ref.hit_objects.emplace(0.2f, editor_hit_object(KeyboardKey::KEY_Q, 16.0f));
+    keys.at(KeyboardKey::KEY_Q).ref.hit_objects.emplace(0.2f, editor_hit_object(KeyboardKey::KEY_Q, 16.0f));
     keys.at(KeyboardKey::KEY_W).ref.hit_objects.emplace(0.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
     keys.at(KeyboardKey::KEY_W).ref.hit_objects.emplace(4.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
     keys.at(KeyboardKey::KEY_W).ref.hit_objects.emplace(8.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
@@ -1237,27 +1238,32 @@ void editor::select(int id)
     obj_editor.ref.reset_render_hit_objs();
 }
 
-void editor::handle_element_events()
+bool editor::on_element_key_down(int keycode, bool ctrl_modifier)
 {
-    if (raylib::Keyboard::IsKeyPressed(KeyboardKey::KEY_SPACE))
+    if (keycode != KeyboardKey::KEY_SPACE)
+        return false;
+
+    if (ctrl_modifier)
     {
-        if (raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_LEFT_CONTROL))
-        {
-            for (int prev_id : selected_key_ids)
-                keys.at(prev_id).ref.set_opt_color(raylib::Color::White());
+        for (int prev_id : selected_key_ids)
+            keys.at(prev_id).ref.set_opt_color(raylib::Color::White());
 
-            unselect();
-        }
-        else
-            pause_play.ref.on_click_l();
+        unselect();
     }
+    else
+        pause_play.ref.on_click_l(ctrl_modifier);
 
+    return true;
+}
+
+bool editor::on_element_mouse_scroll(float mouse_scroll)
+{
     if (is_music_playing())
-        return;
+        return false;
 
-    mouse_wheel_move += raylib::Mouse::GetWheelMove();
+    mouse_wheel_move += mouse_scroll;
     if (std::abs(mouse_wheel_move) < 1.0f)
-        return;
+        return false;
 
     float new_beat = get_beat();
     float beat_steps = 0;
@@ -1284,6 +1290,7 @@ void editor::handle_element_events()
     }
 
     set_beat(new_beat);
+    return true;
 }
 
 void editor::update_element([[maybe_unused]] float dt)
@@ -1338,4 +1345,4 @@ void editor::set_tick_freq_idx(std::size_t new_tick_freq_idx)
 }
 
 } // namespace scene
-} // namespace kee*/
+} // namespace kee

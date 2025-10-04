@@ -29,9 +29,9 @@ public:
     float progress;
 
 private:
-    void on_element_mouse_move(const raylib::Vector2& mouse_pos) override;
-    bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l) override;
-    bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l) override;    
+    void on_element_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_modifier) override;
+    bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier) override;
+    bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier) override;    
 
     void update_element(float dt) override;
     void render_element() const override;

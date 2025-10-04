@@ -11,13 +11,13 @@ button::button(
     bool centered
 ) :
     kee::ui::base(reqs, x, y, dimensions, centered),
-    on_event([]([[maybe_unused]] button::event button_event){}),
-    on_click_l([](){}),
-    on_click_r([](){}),
+    on_event([]([[maybe_unused]] button::event button_event, [[maybe_unused]] bool ctrl_modifier){}),
+    on_click_l([]([[maybe_unused]] bool ctrl_modifier){}),
+    on_click_r([]([[maybe_unused]] bool ctrl_modifier){}),
     button_state(mouse_state::off)
 { }
 
-void button::on_element_mouse_move(const raylib::Vector2& mouse_pos)
+void button::on_element_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_modifier)
 {
     const raylib::Rectangle raw_rect = get_raw_rect();
     const bool is_mouse_on_button =
@@ -26,37 +26,37 @@ void button::on_element_mouse_move(const raylib::Vector2& mouse_pos)
 
     if (!is_mouse_on_button && button_state != mouse_state::off)
     {
-        on_event(button::event::on_leave);
+        on_event(button::event::on_leave, ctrl_modifier);
         button_state = mouse_state::off;
         is_down_l.reset();
     }
     else if (is_mouse_on_button && button_state == mouse_state::off)
     {
-        on_event(button::event::on_hot);
+        on_event(button::event::on_hot, ctrl_modifier);
         button_state = mouse_state::hot;
     }
 }
 
-bool button::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l)
+bool button::on_element_mouse_down([[maybe_unused]] const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier)
 {
     if (button_state != mouse_state::hot)
         return false;
 
-    on_event(is_mouse_l ? button::event::on_down_l : button::event::on_down_r);
+    on_event(is_mouse_l ? button::event::on_down_l : button::event::on_down_r, ctrl_modifier);
     button_state = mouse_state::down;
     is_down_l = is_mouse_l;
     return true;
 }
 
-bool button::on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l)
+bool button::on_element_mouse_up([[maybe_unused]] const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier)
 {
     if (button_state != mouse_state::down || is_mouse_l != is_down_l.value())
         return false;
 
-    is_mouse_l ? on_click_l() : on_click_r();
+    is_mouse_l ? on_click_l(ctrl_modifier) : on_click_r(ctrl_modifier);
     is_down_l.reset();
 
-    on_event(button::event::on_hot);
+    on_event(button::event::on_hot, ctrl_modifier);
     button_state = mouse_state::hot;
     return true;
 }

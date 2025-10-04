@@ -170,16 +170,6 @@ constexpr kee::color color::white()
     return kee::color(255, 255, 255, 255);
 }
 
-constexpr kee::color color::red()
-{
-    return kee::color(255, 0, 0, 255);
-}
-
-constexpr kee::color color::green()
-{
-    return kee::color(0, 255, 0, 255);
-}
-
 constexpr color::color() :
     color(0, 0, 0, 0)
 { }
