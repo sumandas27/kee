@@ -8,6 +8,8 @@
 
 namespace kee {
 
+/* TODO: take by const reference everywhere */
+
 class pos
 {
 public:

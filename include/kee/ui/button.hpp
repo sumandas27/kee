@@ -22,7 +22,6 @@ public:
     std::function<void(bool)> on_click_l;
     std::function<void(bool)> on_click_r;
 
-protected:
     void on_element_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_modifier) override;
     bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier) override;
     bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier) override;

@@ -45,7 +45,7 @@ kee::ui::handle<T> base::add_child(std::optional<int> z_order, Args&&... args)
     );
 
     T& ref = *child;
-    auto it = children->emplace(z_order.value_or(0), std::move(child));
+    auto it = children->emplace(z_order.value_or(06), std::move(child));
     return kee::ui::handle<T>(ref, *children, it);
 }
 

@@ -73,7 +73,7 @@ public:
     bool on_mouse_scroll(float scroll_amount);
 
     void update(float dt);
-    void render() const;
+    virtual void render() const;
 
     /**
      * When adding a UI element as a child, pass in the element type's constructor params
@@ -98,6 +98,9 @@ public:
      */
     raylib::Rectangle get_raw_rect() const;
     raylib::Rectangle get_raw_rect_parent() const;
+
+    void take_render_priority();
+    void release_render_priority();
 
     kee::pos x;
     kee::pos y;
@@ -141,6 +144,8 @@ private:
     std::vector<std::unique_ptr<kee::transition_base>> transitions;
 
     std::optional<raylib::Color> color;
+
+    bool has_render_priority;
 };
 
 class base::required

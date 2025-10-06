@@ -2,6 +2,7 @@
 
 #include "kee/scene/base.hpp"
 #include "kee/ui/button.hpp"
+#include "kee/ui/dropdown.hpp"
 #include "kee/ui/image.hpp"
 #include "kee/ui/rect.hpp"
 #include "kee/ui/slider.hpp"
@@ -136,6 +137,7 @@ public:
     );
 
     void reset_render_hit_objs();
+    bool delete_selected_hit_objs();
     void attempt_add_hit_obj();
 
     kee::ui::handle<kee::ui::base> obj_renderer;
@@ -144,7 +146,6 @@ public:
     std::optional<new_hit_obj_data> new_hit_object;
 
 private:
-    bool on_element_key_down(int keycode, bool ctrl_modifier) override;
     void on_element_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_modifier) override;
     bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier) override;
     bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier) override;
@@ -216,6 +217,8 @@ private:
     static constexpr std::size_t tick_freq_count = 8;
     static constexpr std::array<int, tick_freq_count> tick_freqs = { 1, 2, 3, 4, 6, 8, 12, 16 };
 
+    static constexpr std::array<float, 6> playback_speeds = { 0.25f, 0.5f, 0.75f, 1.0f, 1.5f, 2.0f };
+
     bool on_element_key_down(int keycode, bool ctrl_modifier) override;
     bool on_element_mouse_scroll(float mouse_scroll) override;
 
@@ -226,9 +229,8 @@ private:
     const float music_start_offset;
     const float music_bpm;
 
-    kee::ui::image_texture play_png;
-    kee::ui::image_texture pause_png;
-    kee::ui::image_texture arrow_png;
+    kee::image_texture pause_png;
+    kee::image_texture arrow_png;
 
     std::size_t tick_freq_idx;
 
@@ -260,6 +262,9 @@ private:
     std::vector<kee::ui::handle<kee::ui::text>> tick_frame_texts;
     std::vector<kee::ui::handle<kee::ui::button>> tick_frame_buttons;
     std::vector<std::reference_wrapper<kee::transition<kee::color>>> tick_frame_text_colors;
+
+    kee::ui::handle<kee::ui::text> playback_speed_text;
+    kee::ui::handle<kee::ui::dropdown> playback_dropdown;
 
     kee::ui::handle<kee::ui::slider> music_slider;
     kee::ui::handle<kee::ui::button> pause_play;

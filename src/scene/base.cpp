@@ -22,6 +22,30 @@ window::window()
     impl.SetTargetFPS(window_fps);
 }
 
+void base::render() const
+{
+    kee::ui::base::render();
+
+    if (render_priority.has_value())
+        render_priority.value().render();
+}
+
+bool base::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier)
+{
+    if (render_priority.has_value() && render_priority.value().on_mouse_down(mouse_pos, is_mouse_l, ctrl_modifier))
+        return true;
+
+    return kee::ui::base::on_element_mouse_down(mouse_pos, is_mouse_l, ctrl_modifier);
+}
+
+bool base::on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier)
+{
+    if (render_priority.has_value() && render_priority.value().on_mouse_up(mouse_pos, is_mouse_l, ctrl_modifier))
+        return true;
+
+    return kee::ui::base::on_element_mouse_up(mouse_pos, is_mouse_l, ctrl_modifier);
+}
+
 base::base(const kee::scene::window& window, kee::global_assets& assets) :
     kee::ui::base(kee::ui::base::required(boost::none, assets)),
     window(window)

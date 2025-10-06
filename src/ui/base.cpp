@@ -1,5 +1,6 @@
 #include "kee/ui/base.hpp"
 
+#include "kee/scene/base.hpp"
 #include "kee/ui/rect.hpp"
 
 namespace kee {
@@ -18,7 +19,8 @@ base::base(
     centered(centered),
     assets(reqs.assets),
     parent(reqs.parent),
-    children(std::make_unique<std::multimap<int, std::unique_ptr<kee::ui::base>>>())
+    children(std::make_unique<std::multimap<int, std::unique_ptr<kee::ui::base>>>()),
+    has_render_priority(false)
 { 
     set_opt_color(raylib::Color::Blank());
 }
@@ -32,7 +34,8 @@ base::base(base&& other) noexcept :
     parent(other.parent),
     children(std::move(other.children)),
     transitions(std::move(other.transitions)),
-    color(std::move(other.color))
+    color(std::move(other.color)),
+    has_render_priority(other.has_render_priority)
 { 
     for (auto& [_, child] : *children)
         child.get()->parent = *this;
@@ -117,14 +120,16 @@ void base::render() const
     auto it = children->cbegin();
     while (it != children->cend() && it->first < 0)
     {
-        it->second->render();
+        if (!it->second->has_render_priority)
+            it->second->render();
         it++;
     }
 
     render_element();
     while (it != children->cend())
     {
-        it->second->render();
+        if (!it->second->has_render_priority)
+            it->second->render();
         it++;
     }
 }
@@ -196,10 +201,47 @@ raylib::Rectangle base::get_raw_rect_parent() const
     return parent.value().get_raw_rect();
 }
 
+void base::take_render_priority()
+{
+    std::reference_wrapper<kee::ui::base> scene = *this;
+    while (scene.get().parent.has_value())
+        scene = scene.get().parent.value();
+
+    if (auto scene_ptr = dynamic_cast<kee::scene::base*>(&scene.get()))
+    {
+        if (!scene_ptr->render_priority.has_value())
+        {
+            scene_ptr->render_priority.emplace(*this);
+            has_render_priority = true;
+        }
+    }
+    else
+        throw std::logic_error("Root element is not a scene!");
+}
+
+void base::release_render_priority()
+{
+    std::reference_wrapper<kee::ui::base> scene = *this;
+    while (scene.get().parent.has_value())
+        scene = scene.get().parent.value();
+
+    if (auto scene_ptr = dynamic_cast<kee::scene::base*>(&scene.get()))
+    {
+        if (scene_ptr->render_priority.has_value() && &scene_ptr->render_priority.value() == this)
+        {
+            scene_ptr->render_priority.reset();
+            has_render_priority = false;
+        }
+    }
+    else
+        throw std::logic_error("Root element is not a scene!");
+}
+
 base::base(const kee::ui::base::required& reqs) :
     assets(reqs.assets),
     parent(reqs.parent),
-    children(std::make_unique<std::multimap<int, std::unique_ptr<kee::ui::base>>>())
+    children(std::make_unique<std::multimap<int, std::unique_ptr<kee::ui::base>>>()),
+    has_render_priority(false)
 { }
 
 bool base::on_element_key_down(

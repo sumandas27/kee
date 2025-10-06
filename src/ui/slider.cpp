@@ -24,8 +24,7 @@ slider::slider(
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
-        false,
-        std::nullopt, 
+        false, std::nullopt, 
         rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt)
     )),
     fill(make_temp_child<kee::ui::rect>(

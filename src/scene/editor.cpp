@@ -329,6 +329,19 @@ void object_editor::reset_render_hit_objs()
         }
 }
 
+bool object_editor::delete_selected_hit_objs()
+{
+    if (selected_is_active)
+        return false;
+
+    for (hit_obj_render& hit_obj : obj_render_info)
+        if (hit_obj.hit_obj_ref->second.is_selected)
+            keys.at(hit_obj.hit_obj_ref->second.key).ref.hit_objects.erase(hit_obj.hit_obj_ref);
+
+    reset_render_hit_objs();
+    return true;
+}
+
 void object_editor::attempt_add_hit_obj()
 {
     const float new_beat = std::min(new_hit_object.value().click_beat, new_hit_object.value().current_beat);
@@ -347,21 +360,6 @@ void object_editor::attempt_add_hit_obj()
     }
 
     new_hit_object.reset();
-}
-
-bool object_editor::on_element_key_down(int keycode, [[maybe_unused]] bool ctrl_modifier)
-{
-    /* TODO: add keyboard active child system so this works */
-
-    if (keycode != KeyboardKey::KEY_BACKSPACE || selected_is_active)
-        return false;
-
-    for (hit_obj_render& hit_obj : obj_render_info)
-        if (hit_obj.hit_obj_ref->second.is_selected)
-            keys.at(hit_obj.hit_obj_ref->second.key).ref.hit_objects.erase(hit_obj.hit_obj_ref);
-
-    reset_render_hit_objs();
-    return true; 
 }
 
 void object_editor::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[maybe_unused]] bool ctrl_modifier)
@@ -789,13 +787,14 @@ const std::unordered_map<int, int> editor::key_to_prio = []
     return res;
 }();
 
+/* TODO: create smaller rect in inspector to store ui elements so everything is aligned */
+
 editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     kee::scene::base(window, assets),
     approach_beats(2.0f),
     music_start_offset(0.5f),
     obj_editor(add_child<object_editor>(std::nullopt, selected_key_ids, keys, *this)),
     music_bpm(100.0f),
-    play_png("assets/img/play.png"),
     pause_png("assets/img/pause.png"),
     arrow_png("assets/img/arrow.png"),
     tick_freq_idx(3),
@@ -870,7 +869,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
-        true, false, false
+        true, false, false, 0.0f
     )),
     tick_r_button(inspector_rect.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0.8f),
@@ -889,7 +888,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
-        true, true, false
+        true, true, false, 0.0f
     )),
     tick_frame(inspector_rect.ref.add_child<kee::ui::rect>(std::nullopt,
         raylib::Color(30, 30, 30, 255),
@@ -911,6 +910,29 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         ),
         true, std::nullopt, std::nullopt
     )),
+    playback_speed_text(inspector_rect.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0.295f),
+        pos(pos::type::rel, 0.255f),
+        ui::text_size(ui::text_size::type::rel_h, 0.025f),
+        true, assets.font_semi_bold, "PLAYBACK SPEED:", false
+    )),
+    playback_dropdown(inspector_rect.ref.add_child<kee::ui::dropdown>(std::nullopt,
+        pos(pos::type::rel, 0.75f),
+        pos(pos::type::rel, 0.255f),
+        dims(
+            dim(dim::type::rel, 0.3f),
+            dim(dim::type::rel, 0.03f)
+        ),
+        true, 
+        std::vector<std::string>(
+            std::from_range,
+            playback_speeds | std::views::transform([](float playback_speed){
+                return std::format("{:.2f}x", playback_speed);
+            })
+        ),
+        std::ranges::distance(playback_speeds.begin(), std::ranges::find(playback_speeds, 1.0f))
+    )),
     music_slider(add_child<kee::ui::slider>(std::nullopt,
         pos(pos::type::rel, 0.01f),
         pos(pos::type::rel, 0.22f),
@@ -930,7 +952,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         false
     )),
     pause_play_img(pause_play.ref.add_child<kee::ui::image>(std::nullopt,
-        play_png,
+        assets.play_png,
         raylib::Color::White(),
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
@@ -938,7 +960,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
-        true, false, false
+        true, false, false, 0.0f
     )),
     music_time_text(music_slider.ref.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
@@ -1137,7 +1159,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         if (this->music.IsPlaying())
         {
             this->music.Pause();
-            this->pause_play_img.ref.set_image(play_png);
+            this->pause_play_img.ref.set_image(this->assets.play_png);
         }
         else
         {
@@ -1240,20 +1262,25 @@ void editor::select(int id)
 
 bool editor::on_element_key_down(int keycode, bool ctrl_modifier)
 {
-    if (keycode != KeyboardKey::KEY_SPACE)
-        return false;
-
-    if (ctrl_modifier)
+    switch (keycode)
     {
-        for (int prev_id : selected_key_ids)
-            keys.at(prev_id).ref.set_opt_color(raylib::Color::White());
+    case KeyboardKey::KEY_SPACE:
+        if (ctrl_modifier)
+        {
+            for (int prev_id : selected_key_ids)
+                keys.at(prev_id).ref.set_opt_color(raylib::Color::White());
 
-        unselect();
+            unselect();
+        }
+        else
+            pause_play.ref.on_click_l(ctrl_modifier);
+
+        return true;
+    case KeyboardKey::KEY_BACKSPACE:
+        return obj_editor.ref.delete_selected_hit_objs();
+    default:
+        return false;
     }
-    else
-        pause_play.ref.on_click_l(ctrl_modifier);
-
-    return true;
 }
 
 bool editor::on_element_mouse_scroll(float mouse_scroll)

@@ -2,6 +2,13 @@
 
 namespace kee {
 
+image_texture::image_texture(const std::filesystem::path& img_path) :
+    texture(img_path.string())
+{
+    texture.GenMipmaps();
+    texture.SetFilter(TextureFilter::TEXTURE_FILTER_TRILINEAR);
+}
+
 global_assets::global_assets() :
     font_light(global_assets::gen_sdf_font("assets/fonts/Montserrat-Light.ttf")),
     font_regular(global_assets::gen_sdf_font("assets/fonts/Montserrat-Regular.ttf")),
@@ -18,7 +25,8 @@ global_assets::global_assets() :
     sdf_triangle_loc_size(shader_sdf_triangle.GetLocation("size")),
     sdf_triangle_loc_p0(shader_sdf_triangle.GetLocation("p0")),
     sdf_triangle_loc_p1(shader_sdf_triangle.GetLocation("p1")),
-    sdf_triangle_loc_p2(shader_sdf_triangle.GetLocation("p2"))
+    sdf_triangle_loc_p2(shader_sdf_triangle.GetLocation("p2")),
+    play_png("assets/img/play.png")
 {
     const raylib::Image img_empty(global_assets::texture_empty_size, global_assets::texture_empty_size, raylib::Color::Blank());
     texture_empty = raylib::Texture(img_empty);
