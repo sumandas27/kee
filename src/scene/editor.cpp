@@ -1116,6 +1116,11 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         }
     };
 
+    playback_dropdown.ref.on_select = [&](std::size_t idx)
+    {
+        this->music.SetPitch(this->playback_speeds[idx]);
+    };
+
     music_slider.ref.on_event = [&, music_is_playing = music.IsPlaying()](ui::slider::event slider_event) mutable
     {
         switch (slider_event)

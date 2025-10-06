@@ -67,9 +67,9 @@ public:
     void on_key_up(int keycode, bool ctrl_modifier);
     void on_char_press(char c);
 
+    virtual bool on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier);
+    virtual bool on_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier);
     void on_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_modifier);
-    bool on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier);
-    bool on_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier);
     bool on_mouse_scroll(float scroll_amount);
 
     void update(float dt);
@@ -82,6 +82,11 @@ public:
      */
     template <std::derived_from<kee::ui::base> T, typename... Args>
     kee::ui::handle<T> add_child(std::optional<int> z_order, Args&&... args);
+
+    /**
+     * You the developer are responsible for manually handling events, updating, and rendering temporary
+     * children. Unlike regular children, child references to temporary elements are invalidated when moved.
+     */
     template <std::derived_from<kee::ui::base> T, typename... Args>
     T make_temp_child(Args&&... args);
 
@@ -122,9 +127,9 @@ protected:
     virtual bool on_element_key_up(int keycode, bool ctrl_modifier);
     virtual bool on_element_char_press(char c);
 
-    virtual void on_element_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_modifier);
     virtual bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier);
     virtual bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier);
+    virtual void on_element_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_modifier);
     virtual bool on_element_mouse_scroll(float scroll_amount);
 
     virtual void update_element(float dt);

@@ -34,6 +34,11 @@ text::text(
     update_dims(p_string, p_str_size, 1.0f);
 }
 
+const std::string& text::get_string() const
+{
+    return str;
+}
+
 void text::set_string(std::string_view new_str)
 {
     update_dims(new_str, std::nullopt, std::nullopt);

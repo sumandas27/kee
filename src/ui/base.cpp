@@ -62,13 +62,6 @@ void base::on_char_press(char c)
         parent.value().on_char_press(c);
 }
 
-void base::on_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_modifier)
-{
-    on_element_mouse_move(mouse_pos, ctrl_modifier);
-    for (const auto& [_, child] : *children)
-        child->on_mouse_move(mouse_pos, ctrl_modifier);
-}
-
 bool base::on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier)
 {
     for (auto it = children->rbegin(); it != children->rend(); it++)
@@ -91,6 +84,13 @@ bool base::on_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool c
     }
 
     return on_element_mouse_up(mouse_pos, is_mouse_l, ctrl_modifier);
+}
+
+void base::on_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_modifier)
+{
+    on_element_mouse_move(mouse_pos, ctrl_modifier);
+    for (const auto& [_, child] : *children)
+        child->on_mouse_move(mouse_pos, ctrl_modifier);
 }
 
 bool base::on_mouse_scroll(float scroll_amount)
@@ -260,12 +260,6 @@ bool base::on_element_key_up(
 
 bool base::on_element_char_press([[maybe_unused]] char c) { return false; }
 
-void base::on_element_mouse_move(
-    [[maybe_unused]] const raylib::Vector2& mouse_pos,
-    [[maybe_unused]] bool ctrl_modifier
-) 
-{ }
-
 bool base::on_element_mouse_down(
     [[maybe_unused]] const raylib::Vector2& mouse_pos, 
     [[maybe_unused]] bool is_mouse_l,
@@ -281,6 +275,12 @@ bool base::on_element_mouse_up(
 ) { 
     return false; 
 }
+
+void base::on_element_mouse_move(
+    [[maybe_unused]] const raylib::Vector2& mouse_pos,
+    [[maybe_unused]] bool ctrl_modifier
+) 
+{ }
 
 bool base::on_element_mouse_scroll([[maybe_unused]] float scroll_amount) { return false; }
 

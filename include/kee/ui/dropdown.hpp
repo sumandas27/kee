@@ -22,6 +22,8 @@ public:
         std::size_t start_idx
     );
 
+    std::function<void(std::size_t)> on_select;
+
 private:
     void on_element_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_modifier) override;
     bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier) override;
@@ -30,9 +32,12 @@ private:
     void update_element(float dt) override;
     void render_element() const override;
 
+    const std::size_t num_options;
+
     kee::transition<kee::color>& dropdown_outline_color;
     kee::transition<float>& dropdown_img_rotation;
     kee::transition<float>& options_height;
+    kee::transition<float>& options_curr_rect_y;
 
     kee::ui::rect dropdown_rect;
     kee::ui::base dropdown_text_frame;
@@ -42,10 +47,14 @@ private:
     kee::ui::image dropdown_img;
 
     kee::ui::rect options_rect;
+    kee::ui::rect options_rect_border;
+    kee::ui::rect options_curr_rect;
+    std::vector<kee::ui::button> options_buttons;
+    std::vector<kee::ui::base> options_button_text_frames;
+    std::vector<kee::ui::text> options_button_texts;
 
+    raylib::Rectangle options_render_rect;
     bool is_dropped_down;
-
-    std::vector<std::string> options;
 };
 
 } // namespace ui

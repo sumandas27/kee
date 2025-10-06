@@ -39,6 +39,8 @@ public:
         bool font_cap_height_only
     );
 
+    const std::string& get_string() const;
+
     void set_string(std::string_view new_str);
     void set_scale(float new_scale);
 
