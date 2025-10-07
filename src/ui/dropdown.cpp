@@ -31,6 +31,15 @@ dropdown::dropdown(
         rect_outline(rect_outline::type::rel_w, 0.02f, raylib::Color::White()),
         std::nullopt
     )),
+    dropdown_button(make_temp_child<kee::ui::button>(
+        pos(pos::type::beg, 0),
+        pos(pos::type::beg, 0),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 1)
+        ),
+        false
+    )),
     dropdown_text_frame(make_temp_child<kee::ui::base>(
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
@@ -53,13 +62,13 @@ dropdown::dropdown(
         ),
         false
     )),
-    dropdown_button(dropdown_button_frame.make_temp_child<kee::ui::button>(
+    dropdown_img_frame(dropdown_button_frame.make_temp_child<kee::ui::base>(
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_w, 0.3f),
         true
     )),
-    dropdown_img(dropdown_button.make_temp_child<kee::ui::image>(
+    dropdown_img(dropdown_img_frame.make_temp_child<kee::ui::image>(
         assets.play_png,
         raylib::Color::White(),
         pos(pos::type::rel, 0.5f),

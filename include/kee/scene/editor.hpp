@@ -282,6 +282,9 @@ private:
     raylib::Music music;
     float music_time;
 
+    std::vector<std::map<float, editor_hit_object>::iterator> clipboard;
+    float clipboard_reference_beat;
+
     std::vector<int> selected_key_ids;
 };
 

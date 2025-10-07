@@ -40,10 +40,11 @@ private:
     kee::transition<float>& options_curr_rect_y;
 
     kee::ui::rect dropdown_rect;
+    kee::ui::button dropdown_button;
     kee::ui::base dropdown_text_frame;
     kee::ui::text dropdown_text;
     kee::ui::base dropdown_button_frame;
-    kee::ui::button dropdown_button;
+    kee::ui::base dropdown_img_frame;
     kee::ui::image dropdown_img;
 
     kee::ui::rect options_rect;

@@ -510,11 +510,16 @@ bool object_editor::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool
             }
         }
 
-        selected_beat = obj_selected_it->hit_obj_ref->first;
-        selected_is_active = true;
+        selected_beat = std::numeric_limits<float>::max();
+        for (hit_obj_render& obj : obj_render_info)
+            if (selected_beat > obj.hit_obj_ref->first && obj.hit_obj_ref->second.is_selected)
+                selected_beat = obj.hit_obj_ref->first;
+
         selected_reference_beat = (hit_obj_drag_selection.has_value() && !hit_obj_drag_selection.value().is_left) 
             ? obj_selected_it->hit_obj_ref->first + obj_selected_it->hit_obj_ref->second.duration
-            : obj_selected_it->hit_obj_ref->first;
+            : selected_beat;
+
+        selected_is_active = true;
     }
     else
     {
@@ -1281,6 +1286,69 @@ bool editor::on_element_key_down(int keycode, bool ctrl_modifier)
             pause_play.ref.on_click_l(ctrl_modifier);
 
         return true;
+    case KeyboardKey::KEY_A:
+        if (!ctrl_modifier)
+            return false;
+
+        for (hit_obj_render& hit_obj : obj_editor.ref.obj_render_info)
+        {
+            hit_obj.render_ui.select();
+            hit_obj.hit_obj_ref->second.is_selected = true;
+        }
+
+        return true;
+    case KeyboardKey::KEY_C:
+        if (!ctrl_modifier)
+            return false;
+
+        clipboard.clear();
+        clipboard_reference_beat = std::numeric_limits<float>::max();
+
+        for (hit_obj_render& hit_obj : obj_editor.ref.obj_render_info)
+            if (hit_obj.hit_obj_ref->second.is_selected)
+            {
+                clipboard.push_back(hit_obj.hit_obj_ref);
+                if (clipboard_reference_beat > hit_obj.hit_obj_ref->first)
+                    clipboard_reference_beat = hit_obj.hit_obj_ref->first;
+            }
+
+        return true;
+    case KeyboardKey::KEY_V: {
+        if (!ctrl_modifier)
+            return false;
+
+        const float paste_beat = get_beat();
+        bool is_paste_valid = true;
+
+        for (auto obj : clipboard)
+        {
+            std::map<float, editor_hit_object>& hit_objects = keys.at(obj->second.key).ref.hit_objects;
+            const float new_beat = paste_beat + obj->first - clipboard_reference_beat;
+            auto next_it = hit_objects.lower_bound(new_beat);
+            
+            if (next_it != hit_objects.end() && new_beat + obj->second.duration + editor::beat_lock_threshold >= next_it->first)
+                is_paste_valid = false;
+            else if (next_it != hit_objects.begin() && std::prev(next_it)->first + std::prev(next_it)->second.duration + editor::beat_lock_threshold >= new_beat)
+                is_paste_valid = false;
+
+            if (!is_paste_valid)
+                break;
+        }
+
+        if (is_paste_valid)
+        {
+            for (auto obj : clipboard)
+            {
+                std::map<float, editor_hit_object>& hit_objects = keys.at(obj->second.key).ref.hit_objects;
+                const float new_beat = paste_beat + obj->first - clipboard_reference_beat;
+                hit_objects.emplace(new_beat, editor_hit_object(obj->second.key, obj->second.duration));
+            }
+
+            obj_editor.ref.reset_render_hit_objs();
+        }
+
+        return true;
+    }
     case KeyboardKey::KEY_BACKSPACE:
         return obj_editor.ref.delete_selected_hit_objs();
     default:
