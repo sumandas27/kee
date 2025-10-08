@@ -3,6 +3,7 @@ set(CMAKE_CXX_STANDARD 23)
 project(kee)
 
 add_subdirectory(externals/boost EXCLUDE_FROM_ALL)
+add_subdirectory(externals/magic_enum)
 add_subdirectory(externals/raylib)
 add_subdirectory(externals/raylib-cpp)
 
@@ -16,4 +17,4 @@ if (MSVC)
 endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(${PROJECT_NAME} PRIVATE raylib raylib_cpp Boost::optional)
+target_link_libraries(${PROJECT_NAME} PRIVATE Boost::optional magic_enum raylib raylib_cpp)
