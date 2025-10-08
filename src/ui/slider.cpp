@@ -58,7 +58,7 @@ bool slider::is_down() const
     return slider_state == mouse_state::down;
 }
 
-void slider::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[maybe_unused]] bool ctrl_modifier)
+void slider::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
 {
     const raylib::Rectangle raw_rect = get_raw_rect();
     const raylib::Rectangle raw_rect_thumb = thumb.get_raw_rect();
@@ -89,7 +89,7 @@ void slider::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[maybe_unu
     }
 }
 
-bool slider::on_element_mouse_down([[maybe_unused]] const raylib::Vector2& mouse_pos, bool is_mouse_l, [[maybe_unused]] bool ctrl_modifier)
+bool slider::on_element_mouse_down([[maybe_unused]] const raylib::Vector2& mouse_pos, bool is_mouse_l, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
 {
     if (slider_state != mouse_state::hot || !is_mouse_l)
         return false;
@@ -101,7 +101,7 @@ bool slider::on_element_mouse_down([[maybe_unused]] const raylib::Vector2& mouse
     return true;
 }
 
-bool slider::on_element_mouse_up([[maybe_unused]] const raylib::Vector2& mouse_pos, bool is_mouse_l, [[maybe_unused]] bool ctrl_modifier)
+bool slider::on_element_mouse_up([[maybe_unused]] const raylib::Vector2& mouse_pos, bool is_mouse_l, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
 {
     if (slider_state != mouse_state::down || !is_mouse_l)
         return false;

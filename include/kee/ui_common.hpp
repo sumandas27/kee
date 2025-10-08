@@ -1,10 +1,21 @@
 #pragma once
 
-#include "kee/global_assets.hpp"
-
 #include <array>
 #include <optional>
 #include <print>
+
+/**
+ * Disabling MSVC warnings on magic_enum's source code.
+ */
+#ifdef _MSC_VER
+    #pragma warning(disable: 4244)
+#endif
+#include <magic_enum/magic_enum_containers.hpp>
+#ifdef _MSC_VER
+    #pragma warning(default: 4244)
+#endif
+
+#include "kee/global_assets.hpp"
 
 namespace kee {
 
@@ -86,6 +97,12 @@ enum class mouse_state
     off,
     hot,
     down
+};
+
+enum class mods
+{
+    ctrl,
+    shift
 };
 
 enum class transition_type

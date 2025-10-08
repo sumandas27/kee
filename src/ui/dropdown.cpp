@@ -123,7 +123,7 @@ dropdown::dropdown(
             false
         ));
 
-        options_buttons[i].on_event = [&, idx = i](button::event button_event, [[maybe_unused]] bool ctrl_modifier)
+        options_buttons[i].on_event = [&, idx = i](button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
         {
             switch (button_event)
             {
@@ -138,7 +138,7 @@ dropdown::dropdown(
             }
         };
 
-        options_buttons[i].on_click_l = [&, idx = i]([[maybe_unused]] bool ctrl_modifier)
+        options_buttons[i].on_click_l = [&, idx = i]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
         {
             this->options_curr_rect_y.set(std::nullopt, (idx + 1.0f) / (this->num_options + 1.0f), 0.2f, kee::transition_type::exp);
             this->dropdown_text.set_string(this->options_button_texts[idx].get_string());
@@ -161,7 +161,7 @@ dropdown::dropdown(
         ));
     }
 
-    dropdown_button.on_event = [&](button::event button_event, [[maybe_unused]] bool ctrl_modifier)
+    dropdown_button.on_event = [&](button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
         switch (button_event)
         {
@@ -176,7 +176,7 @@ dropdown::dropdown(
         }
     };
 
-    dropdown_button.on_click_l = [&]([[maybe_unused]] bool ctrl_modifier)
+    dropdown_button.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
         this->is_dropped_down = !this->is_dropped_down;
         if (this->is_dropped_down)
@@ -194,38 +194,38 @@ dropdown::dropdown(
     };
 }
 
-void dropdown::on_element_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_modifier)
+void dropdown::on_element_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods)
 {
     for (kee::ui::button& options_button : options_buttons)
-        options_button.on_element_mouse_move(mouse_pos, ctrl_modifier);
+        options_button.on_element_mouse_move(mouse_pos, mods);
 
-    dropdown_button.on_element_mouse_move(mouse_pos, ctrl_modifier);
+    dropdown_button.on_element_mouse_move(mouse_pos, mods);
 }
 
-bool dropdown::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier)
+bool dropdown::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods)
 {
     if (is_dropped_down && !get_raw_rect().CheckCollision(mouse_pos) && !options_render_rect.CheckCollision(mouse_pos))
     {
-        dropdown_button.on_click_l(false);
+        dropdown_button.on_click_l(magic_enum::containers::bitset<kee::mods>());
         return false;
     }
 
     if (options_render_rect.CheckCollision(mouse_pos))
         for (kee::ui::button& options_button : options_buttons)
-            if (options_button.on_element_mouse_down(mouse_pos, is_mouse_l, ctrl_modifier))
+            if (options_button.on_element_mouse_down(mouse_pos, is_mouse_l, mods))
                 return true;
 
-    return dropdown_button.on_element_mouse_down(mouse_pos, is_mouse_l, ctrl_modifier);
+    return dropdown_button.on_element_mouse_down(mouse_pos, is_mouse_l, mods);
 }
 
-bool dropdown::on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier)
+bool dropdown::on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods)
 {
     if (options_render_rect.CheckCollision(mouse_pos))
         for (kee::ui::button& options_button : options_buttons)
-            if (options_button.on_element_mouse_up(mouse_pos, is_mouse_l, ctrl_modifier))
+            if (options_button.on_element_mouse_up(mouse_pos, is_mouse_l, mods))
                 return true;
 
-    return dropdown_button.on_element_mouse_up(mouse_pos, is_mouse_l, ctrl_modifier);
+    return dropdown_button.on_element_mouse_up(mouse_pos, is_mouse_l, mods);
 }
 
 void dropdown::update_element([[maybe_unused]] float dt)

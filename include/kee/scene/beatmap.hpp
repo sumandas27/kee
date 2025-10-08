@@ -73,8 +73,8 @@ public:
     const float approach_beats;
 
 private:
-    bool on_element_key_down(int keycode, bool ctrl_modifier) override;
-    bool on_element_key_up(int keycode, bool ctrl_modifier) override;
+    bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
+    bool on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
 
     void update_element(float dt) override;
 

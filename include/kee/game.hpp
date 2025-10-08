@@ -1,7 +1,5 @@
 #pragma once
 
-#include <magic_enum/magic_enum.hpp>
-
 #include "kee/scene/base.hpp"
 #include "kee/global_assets.hpp"
 

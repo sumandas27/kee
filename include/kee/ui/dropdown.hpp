@@ -25,9 +25,9 @@ public:
     std::function<void(std::size_t)> on_select;
 
 private:
-    void on_element_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_modifier) override;
-    bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier) override;
-    bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier) override;
+    void on_element_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods) override;
+    bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods) override;
+    bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods) override;
 
     void update_element(float dt) override;
     void render_element() const override;

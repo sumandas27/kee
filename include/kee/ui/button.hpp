@@ -18,13 +18,13 @@ public:
         bool centered
     );
 
-    std::function<void(button::event, bool)> on_event;
-    std::function<void(bool)> on_click_l;
-    std::function<void(bool)> on_click_r;
+    std::function<void(button::event, magic_enum::containers::bitset<kee::mods>)> on_event;
+    std::function<void(magic_enum::containers::bitset<kee::mods>)> on_click_l;
+    std::function<void(magic_enum::containers::bitset<kee::mods>)> on_click_r;
 
-    void on_element_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_modifier) override;
-    bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier) override;
-    bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier) override;
+    void on_element_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods) override;
+    bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods) override;
+    bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods) override;
 
 private:
     kee::mouse_state button_state;

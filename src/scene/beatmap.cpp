@@ -276,7 +276,7 @@ void beatmap::combo_lose()
     combo_gain.set(0.0f);
 }
 
-bool beatmap::on_element_key_down(int keycode, [[maybe_unused]] bool ctrl_modifier)
+bool beatmap::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
 {
     if (!keys.contains(keycode))
         return true;
@@ -317,7 +317,7 @@ bool beatmap::on_element_key_down(int keycode, [[maybe_unused]] bool ctrl_modifi
     return true;
 }
 
-bool beatmap::on_element_key_up(int keycode, [[maybe_unused]] bool ctrl_modifier)
+bool beatmap::on_element_key_up(int keycode, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
 {
     if (!keys.contains(keycode))
         return true;

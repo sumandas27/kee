@@ -11,13 +11,13 @@ button::button(
     bool centered
 ) :
     kee::ui::base(reqs, x, y, dimensions, centered),
-    on_event([]([[maybe_unused]] button::event button_event, [[maybe_unused]] bool ctrl_modifier){}),
-    on_click_l([]([[maybe_unused]] bool ctrl_modifier){}),
-    on_click_r([]([[maybe_unused]] bool ctrl_modifier){}),
+    on_event([]([[maybe_unused]] button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods){}),
+    on_click_l([]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods){}),
+    on_click_r([]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods){}),
     button_state(mouse_state::off)
 { }
 
-void button::on_element_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_modifier)
+void button::on_element_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods)
 {
     const raylib::Rectangle raw_rect = get_raw_rect();
     const bool is_mouse_on_button =
@@ -26,37 +26,37 @@ void button::on_element_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_m
 
     if (!is_mouse_on_button && button_state != mouse_state::off)
     {
-        on_event(button::event::on_leave, ctrl_modifier);
+        on_event(button::event::on_leave, mods);
         button_state = mouse_state::off;
         is_down_l.reset();
     }
     else if (is_mouse_on_button && button_state == mouse_state::off)
     {
-        on_event(button::event::on_hot, ctrl_modifier);
+        on_event(button::event::on_hot, mods);
         button_state = mouse_state::hot;
     }
 }
 
-bool button::on_element_mouse_down([[maybe_unused]] const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier)
+bool button::on_element_mouse_down([[maybe_unused]] const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods)
 {
     if (button_state != mouse_state::hot)
         return false;
 
-    on_event(is_mouse_l ? button::event::on_down_l : button::event::on_down_r, ctrl_modifier);
+    on_event(is_mouse_l ? button::event::on_down_l : button::event::on_down_r, mods);
     button_state = mouse_state::down;
     is_down_l = is_mouse_l;
     return true;
 }
 
-bool button::on_element_mouse_up([[maybe_unused]] const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier)
+bool button::on_element_mouse_up([[maybe_unused]] const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods)
 {
     if (button_state != mouse_state::down || is_mouse_l != is_down_l.value())
         return false;
 
-    is_mouse_l ? on_click_l(ctrl_modifier) : on_click_r(ctrl_modifier);
+    is_mouse_l ? on_click_l(mods) : on_click_r(mods);
     is_down_l.reset();
 
-    on_event(button::event::on_hot, ctrl_modifier);
+    on_event(button::event::on_hot, mods);
     button_state = mouse_state::hot;
     return true;
 }

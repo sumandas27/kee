@@ -177,15 +177,18 @@ public:
     std::optional<new_hit_obj_data> new_hit_object;
 
 private:
-    void on_element_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_modifier) override;
-    bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier) override;
-    bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier) override;
+    void on_element_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods) override;
+    bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods) override;
+    bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods) override;
 
     void update_element(float dt) override;
     void render_element() const override;
 
     float get_beat_drag_diff() const;
     hit_obj_position hit_obj_update_info(const hit_obj_render& hit_obj, float beat_drag_diff) const;
+
+    void handle_mouse_up(bool is_mouse_l);
+    void attempt_move_op();
 
     const std::vector<int>& selected_key_ids;
 
@@ -253,7 +256,7 @@ private:
 
     static constexpr std::array<float, 6> playback_speeds = { 0.25f, 0.5f, 0.75f, 1.0f, 1.5f, 2.0f };
 
-    bool on_element_key_down(int keycode, bool ctrl_modifier) override;
+    bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
     bool on_element_mouse_scroll(float mouse_scroll) override;
 
     void update_element(float dt) override;

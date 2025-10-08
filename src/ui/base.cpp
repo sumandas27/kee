@@ -41,18 +41,18 @@ base::base(base&& other) noexcept :
         child.get()->parent = *this;
 }
 
-void base::on_key_down(int keycode, bool ctrl_modifier)
+void base::on_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods)
 {
-    const bool consumed = on_element_key_down(keycode, ctrl_modifier);
+    const bool consumed = on_element_key_down(keycode, mods);
     if (!consumed && parent.has_value())
-        parent.value().on_key_down(keycode, ctrl_modifier);
+        parent.value().on_key_down(keycode, mods);
 }
 
-void base::on_key_up(int keycode, bool ctrl_modifier)
+void base::on_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods)
 {
-    const bool consumed = on_element_key_up(keycode, ctrl_modifier);
+    const bool consumed = on_element_key_up(keycode, mods);
     if (!consumed && parent.has_value())
-        parent.value().on_key_up(keycode, ctrl_modifier);
+        parent.value().on_key_up(keycode, mods);
 }
 
 void base::on_char_press(char c)
@@ -62,35 +62,35 @@ void base::on_char_press(char c)
         parent.value().on_char_press(c);
 }
 
-bool base::on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier)
+bool base::on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods)
 {
     for (auto it = children->rbegin(); it != children->rend(); it++)
     {
         std::unique_ptr<kee::ui::base>& child = it->second;
-        if (child->on_mouse_down(mouse_pos, is_mouse_l, ctrl_modifier))
+        if (child->on_mouse_down(mouse_pos, is_mouse_l, mods))
             return true;
     }
 
-    return on_element_mouse_down(mouse_pos, is_mouse_l, ctrl_modifier);
+    return on_element_mouse_down(mouse_pos, is_mouse_l, mods);
 }
 
-bool base::on_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, bool ctrl_modifier)
+bool base::on_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods)
 {
     for (auto it = children->rbegin(); it != children->rend(); it++)
     {
         std::unique_ptr<kee::ui::base>& child = it->second;
-        if (child->on_mouse_up(mouse_pos, is_mouse_l, ctrl_modifier))
+        if (child->on_mouse_up(mouse_pos, is_mouse_l, mods))
             return true;
     }
 
-    return on_element_mouse_up(mouse_pos, is_mouse_l, ctrl_modifier);
+    return on_element_mouse_up(mouse_pos, is_mouse_l, mods);
 }
 
-void base::on_mouse_move(const raylib::Vector2& mouse_pos, bool ctrl_modifier)
+void base::on_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods)
 {
-    on_element_mouse_move(mouse_pos, ctrl_modifier);
+    on_element_mouse_move(mouse_pos, mods);
     for (const auto& [_, child] : *children)
-        child->on_mouse_move(mouse_pos, ctrl_modifier);
+        child->on_mouse_move(mouse_pos, mods);
 }
 
 bool base::on_mouse_scroll(float scroll_amount)
@@ -246,14 +246,14 @@ base::base(const kee::ui::base::required& reqs) :
 
 bool base::on_element_key_down(
     [[maybe_unused]] int keycode, 
-    [[maybe_unused]] bool ctrl_modifier
+    [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods
 ) { 
     return false; 
 }
 
 bool base::on_element_key_up(
     [[maybe_unused]] int keycode, 
-    [[maybe_unused]] bool ctrl_modifier
+    [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods
 ) { 
     return false; 
 }
@@ -263,7 +263,7 @@ bool base::on_element_char_press([[maybe_unused]] char c) { return false; }
 bool base::on_element_mouse_down(
     [[maybe_unused]] const raylib::Vector2& mouse_pos, 
     [[maybe_unused]] bool is_mouse_l,
-    [[maybe_unused]] bool ctrl_modifier
+    [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods
 ) { 
     return false; 
 }
@@ -271,14 +271,14 @@ bool base::on_element_mouse_down(
 bool base::on_element_mouse_up(
     [[maybe_unused]] const raylib::Vector2& mouse_pos, 
     [[maybe_unused]] bool is_mouse_l,
-    [[maybe_unused]] bool ctrl_modifier
+    [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods
 ) { 
     return false; 
 }
 
 void base::on_element_mouse_move(
     [[maybe_unused]] const raylib::Vector2& mouse_pos,
-    [[maybe_unused]] bool ctrl_modifier
+    [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods
 ) 
 { }
 
