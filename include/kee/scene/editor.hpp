@@ -1,5 +1,7 @@
 #pragma once
 
+#include <deque>
+
 #include "kee/scene/base.hpp"
 #include "kee/ui/button.hpp"
 #include "kee/ui/dropdown.hpp"
@@ -54,24 +56,33 @@ public:
     std::map<float, editor_hit_object>::iterator hit_obj_ref;
 };
 
-class hit_obj_update_return
+class hit_obj_position
 {
 public:
-    hit_obj_update_return(float beat, float duration);
+    hit_obj_position(float beat, float duration);
 
     float beat;
     float duration;
 };
 
+class hit_obj_metadata
+{
+public:
+    hit_obj_metadata(int key, float beat, float duration);
+
+    int key;
+    hit_obj_position position;
+};
+
 class hit_obj_node
 {
 public:
-    hit_obj_node(int key, float old_beat, float old_duration, hit_obj_update_return obj_new, std::map<float, editor_hit_object>::iterator& hit_obj_ref, std::map<float, editor_hit_object>::node_type node);
+    hit_obj_node(int key, float old_beat, float old_duration, hit_obj_position obj_new, std::map<float, editor_hit_object>::iterator& hit_obj_ref, std::map<float, editor_hit_object>::node_type node);
 
     int key;
     float old_beat;
     float old_duration;
-    hit_obj_update_return obj_new;
+    hit_obj_position obj_new;
 
     std::map<float, editor_hit_object>::iterator& invalid_to_populate;
     std::map<float, editor_hit_object>::node_type node;
@@ -96,6 +107,26 @@ public:
 
     std::map<float, editor_hit_object>::iterator hold_obj_ref;
     bool is_left;
+};
+
+class editor_event
+{
+public:
+    enum class type;
+
+    editor_event(type event_type, const std::vector<hit_obj_metadata>& objs, std::optional<float> move_beat_offset);
+
+    type event_type;
+
+    std::vector<hit_obj_metadata> objs;
+    std::optional<float> move_beat_offset;
+};
+
+enum class editor_event::type
+{
+    add,
+    remove,
+    move
 };
 
 class editor_key : public kee::ui::button
@@ -154,7 +185,7 @@ private:
     void render_element() const override;
 
     float get_beat_drag_diff() const;
-    hit_obj_update_return hit_obj_update_info(const hit_obj_render& hit_obj, float beat_drag_diff) const;
+    hit_obj_position hit_obj_update_info(const hit_obj_render& hit_obj, float beat_drag_diff) const;
 
     const std::vector<int>& selected_key_ids;
 
@@ -208,6 +239,9 @@ public:
 
     void unselect();
     void select(int id);
+
+    void add_event(const editor_event& e);
+    void process_event(const editor_event& e);
 
     const float approach_beats;
 
@@ -284,6 +318,9 @@ private:
 
     std::vector<std::map<float, editor_hit_object>::iterator> clipboard;
     float clipboard_reference_beat;
+
+    std::size_t event_history_idx;
+    std::deque<editor_event> event_history;
 
     std::vector<int> selected_key_ids;
 };

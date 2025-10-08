@@ -55,12 +55,17 @@ hit_obj_render::hit_obj_render(hit_obj_ui&& render_ui, std::map<float, editor_hi
     hit_obj_ref(hit_obj_ref)
 { }
 
-hit_obj_update_return::hit_obj_update_return(float beat, float duration) :
+hit_obj_position::hit_obj_position(float beat, float duration) :
     beat(beat),
     duration(duration)
 { }
 
-hit_obj_node::hit_obj_node(int key, float old_beat, float old_duration, hit_obj_update_return obj_new, std::map<float, editor_hit_object>::iterator& hit_obj_ref, std::map<float, editor_hit_object>::node_type node) :
+hit_obj_metadata::hit_obj_metadata(int key, float beat, float duration) :
+    key(key),
+    position(beat, duration)
+{ }
+
+hit_obj_node::hit_obj_node(int key, float old_beat, float old_duration, hit_obj_position obj_new, std::map<float, editor_hit_object>::iterator& hit_obj_ref, std::map<float, editor_hit_object>::node_type node) :
     key(key),
     old_beat(old_beat),
     old_duration(old_duration),
@@ -100,6 +105,12 @@ new_hit_obj_data::new_hit_obj_data(int key, float rel_y, float click_beat, float
 
 drag_selection::drag_selection(std::map<float, editor_hit_object>::iterator hold_obj_ref) :
     hold_obj_ref(hold_obj_ref)
+{ }
+
+editor_event::editor_event(type event_type, const std::vector<hit_obj_metadata>& objs, std::optional<float> move_beat_offset) :
+    event_type(event_type),
+    objs(objs),
+    move_beat_offset(move_beat_offset)
 { }
 
 editor_key::editor_key(const kee::ui::base::required& reqs, kee::scene::editor& editor_scene, int key_id) :
@@ -334,11 +345,16 @@ bool object_editor::delete_selected_hit_objs()
     if (selected_is_active)
         return false;
 
+    std::vector<hit_obj_metadata> deleted_objs;
     for (hit_obj_render& hit_obj : obj_render_info)
         if (hit_obj.hit_obj_ref->second.is_selected)
+        {
+            deleted_objs.emplace_back(hit_obj.hit_obj_ref->second.key, hit_obj.hit_obj_ref->first, hit_obj.hit_obj_ref->second.duration);
             keys.at(hit_obj.hit_obj_ref->second.key).ref.hit_objects.erase(hit_obj.hit_obj_ref);
+        }
 
     reset_render_hit_objs();
+    editor_scene.add_event(editor_event(editor_event::type::remove, deleted_objs, std::nullopt));
     return true;
 }
 
@@ -357,6 +373,10 @@ void object_editor::attempt_add_hit_obj()
     {
         hit_objects.emplace(new_beat, editor_hit_object(new_hit_object.value().key, new_duration));
         reset_render_hit_objs();
+
+        std::vector<hit_obj_metadata> new_obj_added;
+        new_obj_added.emplace_back(new_hit_object.value().key, new_beat, new_duration);
+        editor_scene.add_event(editor_event(editor_event::type::add, new_obj_added, std::nullopt));
     }
 
     new_hit_object.reset();
@@ -588,6 +608,9 @@ bool object_editor::on_element_mouse_up([[maybe_unused]] const raylib::Vector2& 
     {
         const float beat_drag_diff = get_beat_drag_diff();
 
+        std::vector<hit_obj_metadata> hit_objs_moved;
+        std::optional<float> move_beat_offset;
+
         std::vector<hit_obj_node> hit_obj_nodes;
         for (hit_obj_render& obj_selected : obj_render_info)
         {
@@ -597,7 +620,11 @@ bool object_editor::on_element_mouse_up([[maybe_unused]] const raylib::Vector2& 
                 const int key = obj_selected.hit_obj_ref->second.key;
                 const float old_beat = obj_selected.hit_obj_ref->first;
                 const float old_duration = obj_selected.hit_obj_ref->second.duration;
-                const hit_obj_update_return new_obj = hit_obj_update_info(obj_selected, beat_drag_diff);
+                const hit_obj_position new_obj = hit_obj_update_info(obj_selected, beat_drag_diff);
+
+                hit_objs_moved.emplace_back(key, old_beat, old_duration);
+                if (!move_beat_offset.has_value())
+                    move_beat_offset = new_obj.beat - old_beat;
 
                 auto map_node = keys.at(object.key).ref.hit_objects.extract(obj_selected.hit_obj_ref);
                 hit_obj_nodes.emplace_back(key, old_beat, old_duration, new_obj, obj_selected.hit_obj_ref, std::move(map_node));
@@ -619,10 +646,13 @@ bool object_editor::on_element_mouse_up([[maybe_unused]] const raylib::Vector2& 
                 break;
         }
 
+        if (is_move_valid)
+            editor_scene.add_event(editor_event(editor_event::type::move, hit_objs_moved, move_beat_offset));
+
         selected_reference_beat = std::numeric_limits<float>::max();
         for (hit_obj_node& node : hit_obj_nodes)
         {
-            const hit_obj_update_return obj_insert = is_move_valid ? node.obj_new : hit_obj_update_return(node.old_beat, node.old_duration);
+            const hit_obj_position obj_insert = is_move_valid ? node.obj_new : hit_obj_position(node.old_beat, node.old_duration);
             if (selected_reference_beat > obj_insert.beat)
                 selected_reference_beat = obj_insert.beat;
 
@@ -646,7 +676,7 @@ void object_editor::update_element([[maybe_unused]] float dt)
     const float beat_drag_diff = get_beat_drag_diff();
     for (hit_obj_render& hit_obj : obj_render_info)
     {
-        hit_obj_update_return update = hit_obj_update_info(hit_obj, beat_drag_diff);
+        hit_obj_position update = hit_obj_update_info(hit_obj, beat_drag_diff);
         hit_obj.render_ui.update(update.beat, update.duration, editor_scene.get_beat(), beat_width);
     }
 
@@ -743,7 +773,7 @@ float object_editor::get_beat_drag_diff() const
         return 0.0f;
 }
 
-hit_obj_update_return object_editor::hit_obj_update_info(const hit_obj_render& hit_obj, float beat_drag_diff) const
+hit_obj_position object_editor::hit_obj_update_info(const hit_obj_render& hit_obj, float beat_drag_diff) const
 {
     auto& [beat, object] = *hit_obj.hit_obj_ref;
 
@@ -773,7 +803,7 @@ hit_obj_update_return object_editor::hit_obj_update_info(const hit_obj_render& h
         }
     }
 
-    return hit_obj_update_return(update_beat, update_duration);
+    return hit_obj_position(update_beat, update_duration);
 }
 
 const std::vector<int> editor::prio_to_key = []
@@ -995,7 +1025,8 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     mouse_wheel_move(0.0f),
     is_beat_snap(true),
     music("assets/daft-punk-something-about-us/daft-punk-something-about-us.mp3"),
-    music_time(0.0f)
+    music_time(0.0f),
+    event_history_idx(0)
 {
     for (std::size_t i = 0; i < tick_freq_count; i++)
     {
@@ -1270,6 +1301,42 @@ void editor::select(int id)
     obj_editor.ref.reset_render_hit_objs();
 }
 
+void editor::add_event(const editor_event& e)
+{
+    event_history.erase(event_history.begin(), event_history.begin() + event_history_idx);
+    event_history.push_front(e);
+    event_history_idx = 0;
+}
+
+void editor::process_event(const editor_event& e)
+{
+    switch (e.event_type)
+    {
+    case editor_event::type::add:
+        for (const hit_obj_metadata& hit_obj : e.objs)
+            keys.at(hit_obj.key).ref.hit_objects.emplace(hit_obj.position.beat, editor_hit_object(hit_obj.key, hit_obj.position.duration));
+        break;
+    case editor_event::type::remove:
+        for (const hit_obj_metadata& hit_obj : e.objs)
+            keys.at(hit_obj.key).ref.hit_objects.erase(hit_obj.position.beat);
+        break;
+    case editor_event::type::move: {
+        for (const hit_obj_metadata& hit_obj : e.objs)
+        {
+            std::map<float, editor_hit_object>& hit_objects = keys.at(hit_obj.key).ref.hit_objects;
+            auto it = hit_objects.find(hit_obj.position.beat);
+
+            auto node = hit_objects.extract(it);
+            node.key() += e.move_beat_offset.value();
+            hit_objects.insert(std::move(node));
+        }
+
+        break;
+    }}
+
+    obj_editor.ref.reset_render_hit_objs();
+}
+
 bool editor::on_element_key_down(int keycode, bool ctrl_modifier)
 {
     switch (keycode)
@@ -1337,18 +1404,49 @@ bool editor::on_element_key_down(int keycode, bool ctrl_modifier)
 
         if (is_paste_valid)
         {
+            std::vector<hit_obj_metadata> pasted_objs;
             for (auto obj : clipboard)
             {
                 std::map<float, editor_hit_object>& hit_objects = keys.at(obj->second.key).ref.hit_objects;
                 const float new_beat = paste_beat + obj->first - clipboard_reference_beat;
+
                 hit_objects.emplace(new_beat, editor_hit_object(obj->second.key, obj->second.duration));
+                pasted_objs.emplace_back(obj->second.key, new_beat, obj->second.duration);
             }
 
             obj_editor.ref.reset_render_hit_objs();
+            add_event(editor_event(editor_event::type::add, pasted_objs, std::nullopt));
         }
 
         return true;
     }
+    case KeyboardKey::KEY_Z:
+        if (!ctrl_modifier)
+            return false;
+
+        if (event_history_idx >= event_history.size())
+            return true;
+
+        switch (event_history[event_history_idx].event_type)
+        {
+        case editor_event::type::add:
+            event_history[event_history_idx].event_type = editor_event::type::remove;
+            break;
+        case editor_event::type::remove:
+            event_history[event_history_idx].event_type = editor_event::type::add;
+            break;
+        case editor_event::type::move: {
+            const float move_offset = event_history[event_history_idx].move_beat_offset.value();
+            for (hit_obj_metadata& obj : event_history[event_history_idx].objs)
+                obj.position.beat += move_offset;
+
+            event_history[event_history_idx].move_beat_offset = -move_offset;
+            break;
+        }}
+
+        process_event(event_history[event_history_idx]);
+        event_history_idx++;
+        return true;
     case KeyboardKey::KEY_BACKSPACE:
         return obj_editor.ref.delete_selected_hit_objs();
     default:
