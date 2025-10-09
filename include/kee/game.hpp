@@ -4,12 +4,11 @@
 #include "kee/global_assets.hpp"
 
 /**
- * TODO: (1) undo/redo controls
- * TODO: (2) hit obj inspector
- * TODO: (3) move everything down, make space for top menu
- * TODO: (4) write out top menu: METADATA EDITOR DECORATION TIMING X (exit)
- * TODO: (5) transition from editor to for example metadata screen, prob keep all existing element under one base widget
- * TODO: (6) write out metadata screen
+ * TODO: (1) edit selection
+ * TODO: (2) move everything down (prob in own ui element), make space for top menu
+ * TODO: (3) write out top menu: METADATA EDITOR DECORATION TIMING X (exit)
+ * TODO: (4) transition from editor to for example metadata screen, prob keep all existing element under one base widget
+ * TODO: (5) write out metadata screen
  */
 
 namespace kee {
