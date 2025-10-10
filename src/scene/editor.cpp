@@ -221,6 +221,11 @@ void editor_key::render_element() const
         hit_obj_rect.render();
 }
 
+selection_info::selection_info(kee::ui::rect&& rect, float rel_y_start) :
+    rect(std::move(rect)),
+    rel_y_start(rel_y_start)
+{ }
+
 object_editor::object_editor(
     const kee::ui::base::required& reqs,
     const std::vector<int>& selected_key_ids,
@@ -387,7 +392,8 @@ void object_editor::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[ma
     if (editor_scene.is_music_playing())
         return;
 
-    const float mouse_in_rect_percent = (mouse_pos.x - get_raw_rect().x) / get_raw_rect().width;
+    const raylib::Rectangle obj_editor_raw_rect = get_raw_rect();
+    const float mouse_in_rect_percent = (mouse_pos.x - obj_editor_raw_rect.x) / obj_editor_raw_rect.width;
     const float mouse_beat_diff = (mouse_in_rect_percent - 0.5f) * beat_width * 2;
     mouse_beat = editor_scene.get_beat() + mouse_beat_diff;
 
@@ -398,13 +404,25 @@ void object_editor::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[ma
     else
         beat_drag_multiplier = 0;
 
-    if (selection_rect.has_value())
+    if (selection.has_value())
     {
         const float selection_start_beat = std::min(mouse_beat, beat_drag_start.value());
         const float selection_end_beat = std::max(mouse_beat, beat_drag_start.value());
+        const float selection_mouse_rel_y = (mouse_pos.y - obj_editor_raw_rect.y) / obj_editor_raw_rect.height;
 
-        selection_rect.value().x.val = (selection_start_beat - (editor_scene.get_beat() - beat_width)) / (2 * beat_width);
-        std::get<kee::dims>(selection_rect.value().dimensions).w.val = (selection_end_beat - selection_start_beat) / (2 * beat_width);
+        float selection_start_rel_y = std::min(selection_mouse_rel_y, selection.value().rel_y_start);
+        float selection_end_rel_y = std::max(selection_mouse_rel_y, selection.value().rel_y_start);
+        if (selection_start_rel_y < 0)
+            selection_start_rel_y = 0;
+        if (selection_end_rel_y > 1)
+            selection_end_rel_y = 1;
+
+        selection.value().rect.x.val = (selection_start_beat - (editor_scene.get_beat() - beat_width)) / (2 * beat_width);
+        selection.value().rect.y.val = selection_start_rel_y;
+
+        auto& [w, h] = std::get<kee::dims>(selection.value().rect.dimensions);
+        w.val = (selection_end_beat - selection_start_beat) / (2 * beat_width);
+        h.val = selection_end_rel_y - selection_start_rel_y;
     }
     else if (new_hit_object.has_value())
     { 
@@ -498,16 +516,19 @@ bool object_editor::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool
                 obj.render_ui.unselect();
             }
 
-        selection_rect.emplace(make_temp_child<kee::ui::rect>(
-            raylib::Color(255, 255, 255, 50),
-            pos(pos::type::rel, 0),
-            pos(pos::type::rel, 0),
-            dims(
-                dim(dim::type::rel, 0),
-                dim(dim::type::rel, 1)
+        selection.emplace(
+            make_temp_child<kee::ui::rect>(
+                raylib::Color(255, 255, 255, 50),
+                pos(pos::type::rel, 0),
+                pos(pos::type::rel, 0),
+                dims(
+                    dim(dim::type::rel, 0),
+                    dim(dim::type::rel, 0)
+                ),
+                false, std::nullopt, std::nullopt
             ),
-            false, std::nullopt, std::nullopt
-        ));
+            (mouse_pos.y - obj_renderer_rect.y) / obj_renderer_rect.height
+        );
 
         return true;
     }
@@ -661,8 +682,8 @@ void object_editor::render_element() const
         if (object_rect.get_raw_rect().CheckCollision(obj_renderer.ref.get_raw_rect()) && obj_ref->second.is_selected)
             object_rect.render();
 
-    if (selection_rect.has_value())
-        selection_rect.value().render();
+    if (selection.has_value())
+        selection.value().rect.render();
     else if (new_hit_object.has_value())
         new_hit_obj_render.value().render();
 }
@@ -725,8 +746,8 @@ void object_editor::handle_mouse_up(bool is_mouse_l)
     
     if (!selected_is_active)
     {
-        const raylib::Rectangle selection_raw_rect = selection_rect.value().get_raw_rect();
-        selection_rect.reset();
+        const raylib::Rectangle selection_raw_rect = selection.value().rect.get_raw_rect();
+        selection.reset();
         if (!selected_has_moved)
             return;
 

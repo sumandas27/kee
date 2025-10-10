@@ -151,6 +151,15 @@ private:
     const int key_id;
 };
 
+class selection_info
+{
+public:
+    selection_info(kee::ui::rect&& rect, float rel_y_start);
+
+    kee::ui::rect rect;
+    float rel_y_start;
+};
+
 class object_editor final : public kee::ui::rect
 {
 public:
@@ -207,7 +216,7 @@ private:
 
     std::vector<kee::ui::handle<kee::ui::text>> key_labels;
     std::optional<float> beat_drag_start;
-    std::optional<kee::ui::rect> selection_rect;
+    std::optional<selection_info> selection;
     std::optional<drag_selection> hit_obj_drag_selection;
 
     float mouse_beat;
