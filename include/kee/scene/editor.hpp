@@ -16,6 +16,9 @@ namespace scene {
 
 class editor;
 
+/* TODO: fix rendering order of hit objects, store `hit_obj_render` in `std::map` */
+/* TODO: prob separate out into own classes */
+
 /**
  * These objects will belong in an `std::set`, whose keys store the `beat` of the object.
  */
@@ -33,18 +36,26 @@ public:
 class hit_obj_ui final : public kee::ui::rect
 {
 public:
-    hit_obj_ui(const kee::ui::base::required& reqs, float beat, float duration, float curr_beat, float beat_width, float rel_y);
+    hit_obj_ui(const kee::ui::base::required& reqs, float beat, float duration, float curr_beat, float beat_width, std::size_t key_idx, std::size_t rendered_key_count);
 
     void select();
     void unselect();
 
-    void update(float beat, float duration, float curr_beat, float beat_width);
+    std::size_t get_key_idx() const;
+    void set_key_idx(std::size_t new_key_idx);
+
+    void update_pos_x(float beat, float duration, float curr_beat, float beat_width);
 
     kee::ui::handle<kee::ui::rect> circle_l;
     kee::ui::handle<kee::ui::rect> circle_r;
 
+    std::size_t start_key_idx;
+
 private:
     static constexpr float rel_h = 0.1f;
+
+    std::size_t rendered_key_count;
+    std::size_t key_idx;
 };
 
 class hit_obj_render
@@ -77,24 +88,22 @@ public:
 class hit_obj_node
 {
 public:
-    hit_obj_node(int key, float old_beat, float old_duration, hit_obj_position obj_new, std::map<float, editor_hit_object>::iterator& hit_obj_ref, std::map<float, editor_hit_object>::node_type node);
+    hit_obj_node(hit_obj_metadata old_obj, hit_obj_metadata new_obj, hit_obj_render& selected_render, std::map<float, editor_hit_object>::node_type node);
 
-    int key;
-    float old_beat;
-    float old_duration;
-    hit_obj_position obj_new;
+    hit_obj_metadata old_obj;
+    hit_obj_metadata new_obj;
 
-    std::map<float, editor_hit_object>::iterator& invalid_to_populate;
+    hit_obj_render& selected_render;
     std::map<float, editor_hit_object>::node_type node;
 };
 
 class new_hit_obj_data
 {
 public:
-    new_hit_obj_data(int key, float rel_y, float click_beat, float current_beat);
+    new_hit_obj_data(int key, std::size_t key_idx, float click_beat, float current_beat);
 
     int key;
-    float rel_y;
+    std::size_t key_idx;
 
     float click_beat;
     float current_beat;
@@ -160,6 +169,17 @@ public:
     float rel_y_start;
 };
 
+class selection_key_drag_info
+{
+public:
+    selection_key_drag_info(std::size_t key_idx_lo, std::size_t key_idx_hi, std::size_t key_idx_start);
+
+    const std::size_t key_idx_lo;
+    const std::size_t key_idx_hi;
+
+    std::size_t key_idx_start;
+};
+
 class object_editor final : public kee::ui::rect
 {
 public:
@@ -199,6 +219,8 @@ private:
     void handle_mouse_up(bool is_mouse_l);
     void attempt_move_op();
 
+    std::size_t get_mouse_key_idx(float mouse_pos_y) const;
+
     const std::vector<int>& selected_key_ids;
 
     std::unordered_map<int, kee::ui::handle<editor_key>>& keys;
@@ -218,6 +240,7 @@ private:
     std::optional<float> beat_drag_start;
     std::optional<selection_info> selection;
     std::optional<drag_selection> hit_obj_drag_selection;
+    std::optional<selection_key_drag_info> key_idx_info;
 
     float mouse_beat;
     float beat_drag_multiplier;
@@ -245,6 +268,7 @@ public:
     int get_ticks_per_beat() const;
     bool is_music_playing() const;
     bool is_beat_snap_enabled() const;
+    bool is_key_lock_enabled() const;
 
     float get_beat() const;
     void set_beat(float new_beat);
@@ -284,6 +308,8 @@ private:
     kee::transition<float>& pause_play_scale;
     kee::transition<kee::color>& beat_snap_button_color;
     kee::transition<float>& beat_snap_button_outline;
+    kee::transition<kee::color>& key_lock_button_color;
+    kee::transition<float>& key_lock_button_outline;
     kee::transition<kee::color>& tick_l_button_color;
     kee::transition<kee::color>& tick_r_button_color;
     kee::transition<float>& tick_l_button_scale;
@@ -295,6 +321,10 @@ private:
     kee::ui::handle<kee::ui::button> beat_snap_button;
     kee::ui::handle<kee::ui::rect> beat_snap_button_rect;
     kee::ui::handle<kee::ui::text> beat_snap_text;
+
+    kee::ui::handle<kee::ui::button> key_lock_button;
+    kee::ui::handle<kee::ui::rect> key_lock_button_rect;
+    kee::ui::handle<kee::ui::text> key_lock_text;
 
     kee::ui::handle<kee::ui::text> tick_text;
     kee::ui::handle<kee::ui::button> tick_l_button;
@@ -324,6 +354,7 @@ private:
 
     float mouse_wheel_move;
     bool is_beat_snap;
+    bool is_key_locked;
 
     raylib::Music music;
     float music_time;
