@@ -72,6 +72,8 @@ class hit_obj_position
 public:
     hit_obj_position(float beat, float duration);
 
+    bool operator==(const hit_obj_position&) const = default;
+
     float beat;
     float duration;
 };
@@ -118,6 +120,7 @@ public:
     bool is_left;
 };
 
+/* TODO: change ts */
 class editor_event
 {
 public:
@@ -160,10 +163,10 @@ private:
     const int key_id;
 };
 
-class selection_info
+class selection_box_info
 {
 public:
-    selection_info(kee::ui::rect&& rect, float rel_y_start);
+    selection_box_info(kee::ui::rect&& rect, float rel_y_start);
 
     kee::ui::rect rect;
     float rel_y_start;
@@ -178,6 +181,37 @@ public:
     const std::size_t key_idx_hi;
 
     std::size_t key_idx_start;
+};
+
+class selection_obj_info
+{
+public:
+    selection_obj_info(const std::optional<drag_selection>& hit_obj_drag_selection, const std::optional<selection_key_drag_info>& key_idx_info);
+
+    std::optional<drag_selection> hit_obj_drag_selection;
+    std::optional<selection_key_drag_info> key_idx_info;
+
+    bool selected_has_moved;
+};
+
+class selection_info
+{
+public:
+    selection_info(
+        float beat_drag_start, 
+        raylib::Vector2 mouse_pos_start,
+        const std::optional<selection_box_info>& box_selection,
+        const std::optional<selection_obj_info>& obj_selection
+    );
+
+    float beat_drag_start;
+    raylib::Vector2 mouse_pos_start;
+
+    /* TODO: make variant */
+    std::optional<selection_box_info> box_selection;
+    std::optional<selection_obj_info> obj_selection;
+
+    bool selected_has_moved;
 };
 
 class object_editor final : public kee::ui::rect
@@ -203,6 +237,7 @@ public:
     kee::ui::handle<kee::ui::base> obj_renderer;
     std::vector<hit_obj_render> obj_render_info;
 
+    /* TODO: make variant with `selection_info` */
     std::optional<new_hit_obj_data> new_hit_object;
 
 private:
@@ -237,20 +272,13 @@ private:
     kee::ui::handle<kee::ui::triangle> beat_indicator;
 
     std::vector<kee::ui::handle<kee::ui::text>> key_labels;
-    std::optional<float> beat_drag_start;
+
     std::optional<selection_info> selection;
-    std::optional<drag_selection> hit_obj_drag_selection;
-    std::optional<selection_key_drag_info> key_idx_info;
+    float selected_beat;
+    float selected_reference_beat;
 
     float mouse_beat;
     float beat_drag_multiplier;
-
-    raylib::Vector2 mouse_pos_start;
-    bool selected_has_moved;
-    bool selected_is_active;
-
-    float selected_beat;
-    float selected_reference_beat;
 
     bool new_hit_obj_from_editor;
 };

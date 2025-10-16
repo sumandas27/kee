@@ -232,7 +232,7 @@ void editor_key::render_element() const
         hit_obj_rect.render();
 }
 
-selection_info::selection_info(kee::ui::rect&& rect, float rel_y_start) :
+selection_box_info::selection_box_info(kee::ui::rect&& rect, float rel_y_start) :
     rect(std::move(rect)),
     rel_y_start(rel_y_start)
 { }
@@ -241,6 +241,24 @@ selection_key_drag_info::selection_key_drag_info(std::size_t key_idx_lo, std::si
     key_idx_lo(key_idx_lo),
     key_idx_hi(key_idx_hi),
     key_idx_start(key_idx_start)
+{ }
+
+selection_obj_info::selection_obj_info(const std::optional<drag_selection>& hit_obj_drag_selection, const std::optional<selection_key_drag_info>& key_idx_info) :
+    hit_obj_drag_selection(hit_obj_drag_selection),
+    key_idx_info(key_idx_info)
+{ }
+
+selection_info::selection_info(
+    float beat_drag_start, 
+    raylib::Vector2 mouse_pos_start,
+    const std::optional<selection_box_info>& box_selection,
+    const std::optional<selection_obj_info>& obj_selection
+) :
+    beat_drag_start(beat_drag_start),
+    mouse_pos_start(mouse_pos_start),
+    box_selection(box_selection),
+    obj_selection(obj_selection),
+    selected_has_moved(false)
 { }
 
 object_editor::object_editor(
@@ -322,7 +340,6 @@ object_editor::object_editor(
         raylib::Vector2(1, 0),
         raylib::Vector2(0.5, 1)
     )),
-    selected_is_active(false),
     selected_has_moved(false),
     new_hit_obj_from_editor(false)
 { }
@@ -363,7 +380,7 @@ void object_editor::reset_render_hit_objs()
 
 bool object_editor::delete_selected_hit_objs()
 {
-    if (selected_is_active)
+    if (obj_selection.has_value())
         return false;
 
     std::vector<hit_obj_metadata> deleted_objs;
@@ -420,23 +437,23 @@ void object_editor::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[ma
     else
         beat_drag_multiplier = 0;
 
-    if (selection.has_value())
+    if (box_selection.has_value())
     {
         const float selection_start_beat = std::min(mouse_beat, beat_drag_start.value());
         const float selection_end_beat = std::max(mouse_beat, beat_drag_start.value());
         const float selection_mouse_rel_y = (mouse_pos.y - obj_editor_raw_rect.y) / obj_editor_raw_rect.height;
 
-        float selection_start_rel_y = std::min(selection_mouse_rel_y, selection.value().rel_y_start);
-        float selection_end_rel_y = std::max(selection_mouse_rel_y, selection.value().rel_y_start);
+        float selection_start_rel_y = std::min(selection_mouse_rel_y, box_selection.value().rel_y_start);
+        float selection_end_rel_y = std::max(selection_mouse_rel_y, box_selection.value().rel_y_start);
         if (selection_start_rel_y < 0)
             selection_start_rel_y = 0;
         if (selection_end_rel_y > 1)
             selection_end_rel_y = 1;
 
-        selection.value().rect.x.val = (selection_start_beat - (editor_scene.get_beat() - beat_width)) / (2 * beat_width);
-        selection.value().rect.y.val = selection_start_rel_y;
+        box_selection.value().rect.x.val = (selection_start_beat - (editor_scene.get_beat() - beat_width)) / (2 * beat_width);
+        box_selection.value().rect.y.val = selection_start_rel_y;
 
-        auto& [w, h] = std::get<kee::dims>(selection.value().rect.dimensions);
+        auto& [w, h] = std::get<kee::dims>(box_selection.value().rect.dimensions);
         w.val = (selection_end_beat - selection_start_beat) / (2 * beat_width);
         h.val = selection_end_rel_y - selection_start_rel_y;
     }
@@ -459,19 +476,19 @@ void object_editor::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[ma
     {
         if (!selected_has_moved)
         {
-            if (selected_is_active && std::abs(std::fmod(selected_reference_beat, 1.0f / editor_scene.get_ticks_per_beat())) > editor_scene.beat_lock_threshold && editor_scene.is_beat_snap_enabled())
+            if (obj_selection.has_value() && std::abs(std::fmod(selected_reference_beat, 1.0f / editor_scene.get_ticks_per_beat())) > editor_scene.beat_lock_threshold && editor_scene.is_beat_snap_enabled())
                 selected_reference_beat = std::round(selected_reference_beat * editor_scene.get_ticks_per_beat()) / editor_scene.get_ticks_per_beat();
 
             selected_has_moved = true;
         }
 
-        if (selected_is_active && key_idx_info.has_value())
+        if (obj_selection.has_value() && obj_selection.value().key_idx_info.has_value())
         {
             const std::vector<int>& keys_to_render = selected_key_ids.empty() ? editor::prio_to_key : selected_key_ids;
             const std::ptrdiff_t key_idx_delta = std::clamp(
-                static_cast<std::ptrdiff_t>(get_mouse_key_idx(mouse_pos.y)) - static_cast<std::ptrdiff_t>(key_idx_info.value().key_idx_start), 
-                static_cast<std::ptrdiff_t>(key_idx_info.value().key_idx_lo) * -1,
-                static_cast<std::ptrdiff_t>(keys_to_render.size() - 1) - static_cast<std::ptrdiff_t>(key_idx_info.value().key_idx_hi)
+                static_cast<std::ptrdiff_t>(get_mouse_key_idx(mouse_pos.y)) - static_cast<std::ptrdiff_t>(obj_selection.value().key_idx_info.value().key_idx_start), 
+                static_cast<std::ptrdiff_t>(obj_selection.value().key_idx_info.value().key_idx_lo) * -1,
+                static_cast<std::ptrdiff_t>(keys_to_render.size() - 1) - static_cast<std::ptrdiff_t>(obj_selection.value().key_idx_info.value().key_idx_hi)
             );
             
             for (hit_obj_render& hit_obj : obj_render_info)
@@ -538,7 +555,7 @@ bool object_editor::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool
                 obj.render_ui.unselect();
             }
 
-        selection.emplace(
+        box_selection.emplace(
             make_temp_child<kee::ui::rect>(
                 raylib::Color(255, 255, 255, 50),
                 pos(pos::type::rel, 0),
@@ -581,6 +598,9 @@ bool object_editor::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool
             }
         );
     }
+
+    std::optional<drag_selection> hit_obj_drag_selection;
+    std::optional<selection_key_drag_info> key_idx_info;
 
     if (is_drag_possible && obj_selected_it->hit_obj_ref->second.duration > editor::beat_lock_threshold)
     {
@@ -625,7 +645,7 @@ bool object_editor::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool
         ? obj_selected_it->hit_obj_ref->first + obj_selected_it->hit_obj_ref->second.duration
         : selected_beat;
 
-    selected_is_active = true;
+    obj_selection.emplace(hit_obj_drag_selection, key_idx_info);
     return true;
 }
 
@@ -723,15 +743,15 @@ void object_editor::render_element() const
         if (object_rect.get_raw_rect().CheckCollision(obj_renderer.ref.get_raw_rect()) && obj_ref->second.is_selected)
             object_rect.render();
 
-    if (selection.has_value())
-        selection.value().rect.render();
+    if (box_selection.has_value())
+        box_selection.value().rect.render();
     else if (new_hit_object.has_value())
         new_hit_obj_render.value().render();
 }
 
 float object_editor::get_beat_drag_diff() const
 {
-    if (beat_drag_start.has_value() && selected_is_active)
+    if (beat_drag_start.has_value() && obj_selection.has_value())
     {
         float beat_drag_diff = mouse_beat - beat_drag_start.value();
         if (editor_scene.is_beat_snap_enabled())
@@ -749,11 +769,11 @@ hit_obj_position object_editor::hit_obj_update_info(const hit_obj_render& hit_ob
 
     float update_beat = beat;
     float update_duration = object.duration;
-    if (object.is_selected)
+    if (object.is_selected && obj_selection.has_value())
     {
-        if (!hit_obj_drag_selection.has_value())
+        if (!obj_selection.value().hit_obj_drag_selection.has_value())
             update_beat = selected_reference_beat + beat_drag_diff + beat - selected_beat;
-        else if (hit_obj_drag_selection.value().is_left)
+        else if (obj_selection.value().hit_obj_drag_selection.value().is_left)
         {
             float max_hit_obj_beat = std::floor((beat + object.duration) * editor_scene.get_ticks_per_beat()) / editor_scene.get_ticks_per_beat();
             if (std::abs(beat + object.duration - max_hit_obj_beat) <= editor::beat_lock_threshold)
@@ -785,10 +805,10 @@ void object_editor::handle_mouse_up(bool is_mouse_l)
         return;
     }
     
-    if (!selected_is_active)
+    if (!obj_selection.has_value())
     {
-        const raylib::Rectangle selection_raw_rect = selection.value().rect.get_raw_rect();
-        selection.reset();
+        const raylib::Rectangle selection_raw_rect = box_selection.value().rect.get_raw_rect();
+        box_selection.reset();
         if (!selected_has_moved)
             return;
 
@@ -806,10 +826,8 @@ void object_editor::handle_mouse_up(bool is_mouse_l)
     }
 
     attempt_move_op();
-    selected_is_active = false;
     selected_beat = selected_reference_beat;
-    hit_obj_drag_selection.reset();
-    key_idx_info.reset();
+    obj_selection.reset();
 }
 
 void object_editor::attempt_move_op()
@@ -833,7 +851,7 @@ void object_editor::attempt_move_op()
             if (!move_beat_offset.has_value())
             {
                 move_beat_offset = new_obj.position.beat - old_obj.position.beat;
-                if (new_obj.key == old_obj.key && move_beat_offset.value() == 0)
+                if (new_obj.key == old_obj.key && new_obj.position == old_obj.position)
                     return;
             }
 
@@ -883,6 +901,7 @@ std::size_t object_editor::get_mouse_key_idx(float mouse_pos_y) const
     const raylib::Rectangle obj_renderer_rect = obj_renderer.ref.get_raw_rect();
     const float mouse_rel_y = (mouse_pos_y - obj_renderer_rect.y) / obj_renderer_rect.height;
 
+    /* TODO: make into a function */
     const std::vector<int>& keys_to_render = selected_key_ids.empty() ? editor::prio_to_key : selected_key_ids;
     const float key_rel_y_range = object_editor::hit_objs_rel_h / (keys_to_render.size() + 1);
     const float keys_rel_y_beg = object_editor::hit_objs_rel_y + object_editor::hit_objs_rel_h * 1 / (keys_to_render.size() + 1) - key_rel_y_range / 2;
