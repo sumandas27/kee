@@ -102,13 +102,15 @@ public:
 class new_hit_obj_data
 {
 public:
-    new_hit_obj_data(int key, std::size_t key_idx, float click_beat, float current_beat);
+    new_hit_obj_data(int key, std::size_t key_idx, float click_beat, float current_beat, bool from_editor);
 
     int key;
     std::size_t key_idx;
 
     float click_beat;
     float current_beat;
+
+    bool from_editor;
 };
 
 class drag_selection
@@ -200,18 +202,15 @@ public:
     selection_info(
         float beat_drag_start, 
         raylib::Vector2 mouse_pos_start,
-        const std::optional<selection_box_info>& box_selection,
-        const std::optional<selection_obj_info>& obj_selection
+        std::variant<selection_box_info, selection_obj_info>&& variant
     );
 
     float beat_drag_start;
     raylib::Vector2 mouse_pos_start;
 
-    /* TODO: make variant */
-    std::optional<selection_box_info> box_selection;
-    std::optional<selection_obj_info> obj_selection;
+    std::variant<selection_box_info, selection_obj_info> variant;
 
-    bool selected_has_moved;
+    bool has_moved;
 };
 
 class object_editor final : public kee::ui::rect
@@ -237,7 +236,6 @@ public:
     kee::ui::handle<kee::ui::base> obj_renderer;
     std::vector<hit_obj_render> obj_render_info;
 
-    /* TODO: make variant with `selection_info` */
     std::optional<new_hit_obj_data> new_hit_object;
 
 private:
@@ -279,8 +277,6 @@ private:
 
     float mouse_beat;
     float beat_drag_multiplier;
-
-    bool new_hit_obj_from_editor;
 };
 
 class editor final : public kee::scene::base
