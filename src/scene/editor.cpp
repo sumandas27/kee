@@ -113,10 +113,9 @@ new_hit_obj_data::new_hit_obj_data(int key, std::size_t key_idx, float click_bea
     from_editor(from_editor)
 { }
 
-editor_event::editor_event(type event_type, const std::vector<hit_obj_metadata>& objs, std::optional<float> move_beat_offset) :
-    event_type(event_type),
-    objs(objs),
-    move_beat_offset(move_beat_offset)
+editor_event::editor_event(const std::vector<hit_obj_metadata>& added, const std::vector<hit_obj_metadata>& removed) :
+    added(added),
+    removed(removed)
 { }
 
 editor_key::editor_key(const kee::ui::base::required& reqs, kee::scene::editor& editor_scene, int key_id) :
@@ -181,7 +180,6 @@ editor_key::editor_key(const kee::ui::base::required& reqs, kee::scene::editor& 
     on_click_r = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
         this->editor_scene.obj_editor.ref.attempt_add_hit_obj();
-        this->editor_scene.unselect();
     };
 
     set_opt_color(raylib::Color::White());
@@ -437,7 +435,7 @@ bool object_editor::delete_selected_hit_objs()
         else
             it++;
 
-    editor_scene.add_event(editor_event(editor_event::type::remove, deleted_objs, std::nullopt));
+    editor_scene.add_event(editor_event(std::vector<hit_obj_metadata>(), deleted_objs));
     return true;
 }
 
@@ -454,12 +452,22 @@ void object_editor::attempt_add_hit_obj()
 
     if (!is_new_invalid)
     {
-        hit_objects.emplace(new_beat, editor_hit_object(new_hit_object.value().key, new_duration));
-        reset_render_hit_objs();
+        if (!new_hit_object.value().from_editor)
+            editor_scene.unselect();
 
+        const auto new_it = hit_objects.emplace(new_beat, editor_hit_object(new_hit_object.value().key, new_duration)).first;
         std::vector<hit_obj_metadata> new_obj_added;
         new_obj_added.emplace_back(new_hit_object.value().key, new_beat, new_duration);
-        editor_scene.add_event(editor_event(editor_event::type::add, new_obj_added, std::nullopt));
+        editor_scene.add_event(editor_event(new_obj_added, std::vector<hit_obj_metadata>()));
+
+        const std::vector<int>& keys_to_render = selected_key_ids.empty() ? editor::prio_to_key : selected_key_ids;
+        const auto new_key_it = std::ranges::find(keys_to_render, new_hit_object.value().key);
+        const std::size_t new_key_idx = std::ranges::distance(keys_to_render.begin(), new_key_it);
+
+        hit_obj_ui render_ui = make_temp_child<hit_obj_ui>(new_beat, new_duration, editor_scene.get_beat(), object_editor::beat_width, new_key_idx, keys_to_render.size());
+        render_ui.select();
+        
+        obj_render_info.emplace(hit_obj_ui_key(hit_objects, new_it), std::move(render_ui));
     }
 
     new_hit_object.reset();
@@ -875,9 +883,10 @@ void object_editor::attempt_move_op()
 {
     const std::vector<int>& keys_to_render = selected_key_ids.empty() ? editor::prio_to_key : selected_key_ids;
 
-    std::vector<hit_obj_metadata> hit_objs_moved;
-    std::optional<float> move_beat_offset;
+    std::vector<hit_obj_metadata> hit_objs_added;
+    std::vector<hit_obj_metadata> hit_objs_removed;
 
+    bool same_check = false;
     std::vector<hit_obj_node> hit_obj_nodes;
     for (auto it = obj_render_info.begin(); it != obj_render_info.end();)
         if (it->second.is_selected())
@@ -886,12 +895,13 @@ void object_editor::attempt_move_op()
             const hit_obj_metadata new_obj = hit_obj_metadata(keys_to_render[it->second.get_key_idx()], new_obj_position.beat, new_obj_position.duration);
             const hit_obj_metadata old_obj = it->first.get_metadata();
 
-            hit_objs_moved.push_back(it->first.get_metadata());
-            if (!move_beat_offset.has_value())
+            hit_objs_removed.push_back(old_obj);
+            if (!same_check)
             {
-                move_beat_offset = new_obj.position.beat - old_obj.position.beat;
                 if (new_obj.key == old_obj.key && new_obj.position == old_obj.position)
                     return;
+
+                same_check = true;
             }
 
             auto next = std::next(it);
@@ -916,9 +926,6 @@ void object_editor::attempt_move_op()
             break;
     }
 
-    if (is_move_valid)
-        editor_scene.add_event(editor_event(editor_event::type::move, hit_objs_moved, move_beat_offset));
-
     selected_reference_beat = std::numeric_limits<float>::max();
     for (hit_obj_node& node : hit_obj_nodes)
     {
@@ -933,12 +940,18 @@ void object_editor::attempt_move_op()
         
         node.node_render.key() = hit_obj_ui_key(keys.at(obj_insert.key).ref.hit_objects, it);
         if (is_move_valid)
+        {
+            hit_objs_added.push_back(node.new_obj);
             node.node_render.mapped().start_key_idx = node.node_render.mapped().get_key_idx();
+        }
         else
             node.node_render.mapped().set_key_idx(node.node_render.mapped().start_key_idx);
 
         obj_render_info.insert(std::move(node.node_render));
     }
+
+    if (is_move_valid)
+        editor_scene.add_event(editor_event(hit_objs_added, hit_objs_removed));
 }
 
 std::size_t object_editor::get_mouse_key_idx(float mouse_pos_y) const
@@ -1529,29 +1542,11 @@ void editor::add_event(const editor_event& e)
 
 void editor::process_event(const editor_event& e)
 {
-    switch (e.event_type)
-    {
-    case editor_event::type::add:
-        for (const hit_obj_metadata& hit_obj : e.objs)
-            keys.at(hit_obj.key).ref.hit_objects.emplace(hit_obj.position.beat, editor_hit_object(hit_obj.key, hit_obj.position.duration));
-        break;
-    case editor_event::type::remove:
-        for (const hit_obj_metadata& hit_obj : e.objs)
-            keys.at(hit_obj.key).ref.hit_objects.erase(hit_obj.position.beat);
-        break;
-    case editor_event::type::move: {
-        for (const hit_obj_metadata& hit_obj : e.objs)
-        {
-            std::map<float, editor_hit_object>& hit_objects = keys.at(hit_obj.key).ref.hit_objects;
-            auto it = hit_objects.find(hit_obj.position.beat);
+    for (const hit_obj_metadata& hit_obj : e.added)
+        keys.at(hit_obj.key).ref.hit_objects.emplace(hit_obj.position.beat, editor_hit_object(hit_obj.key, hit_obj.position.duration));
 
-            auto node = hit_objects.extract(it);
-            node.key() += e.move_beat_offset.value();
-            hit_objects.insert(std::move(node));
-        }
-
-        break;
-    }}
+    for (const hit_obj_metadata& hit_obj : e.removed)
+        keys.at(hit_obj.key).ref.hit_objects.erase(hit_obj.position.beat);
 
     obj_editor.ref.reset_render_hit_objs();
 }
@@ -1620,25 +1615,35 @@ bool editor::on_element_key_down(int keycode, magic_enum::containers::bitset<kee
 
         if (is_paste_valid)
         {
-            std::println("PASTING");
+            for (auto& [key, val] : obj_editor.ref.obj_render_info)
+                if (val.is_selected())
+                    val.unselect();
+
             std::vector<hit_obj_metadata> pasted_objs;
             for (const hit_obj_metadata& metadata : clipboard)
             {
                 std::map<float, editor_hit_object>& hit_objects = keys.at(metadata.key).ref.hit_objects;
                 const float new_beat = paste_beat + metadata.position.beat - clipboard_reference_beat;
 
-                hit_objects.emplace(new_beat, editor_hit_object(metadata.key, metadata.position.duration));
+                const auto it = hit_objects.emplace(new_beat, editor_hit_object(metadata.key, metadata.position.duration)).first;
+                const std::vector<int>& keys_to_render = selected_key_ids.empty() ? editor::prio_to_key : selected_key_ids;
+                const auto new_key_it = std::ranges::find(keys_to_render, metadata.key);
+                const std::size_t new_key_idx = std::ranges::distance(keys_to_render.begin(), new_key_it);
+
+                hit_obj_ui render_ui = obj_editor.ref.make_temp_child<hit_obj_ui>(new_beat, metadata.position.duration, get_beat(), object_editor::beat_width, new_key_idx, keys_to_render.size());                
+                render_ui.select();
+                
+                obj_editor.ref.obj_render_info.emplace(hit_obj_ui_key(hit_objects, it), std::move(render_ui));
                 pasted_objs.emplace_back(metadata.key, new_beat, metadata.position.duration);
             }
 
-            obj_editor.ref.reset_render_hit_objs();
-            add_event(editor_event(editor_event::type::add, pasted_objs, std::nullopt));
+            add_event(editor_event(pasted_objs, std::vector<hit_obj_metadata>()));
         }
 
         return true;
     }
     case KeyboardKey::KEY_Z:
-        /*if (!mods.test(kee::mods::ctrl))
+        if (!mods.test(kee::mods::ctrl))
             return false;
 
         if (mods.test(kee::mods::shift))
@@ -1646,6 +1651,7 @@ bool editor::on_element_key_down(int keycode, magic_enum::containers::bitset<kee
             if (event_history_idx <= 0)
                 return true;
 
+            std::swap(event_history[event_history_idx - 1].added, event_history[event_history_idx - 1].removed);
             process_event(event_history[event_history_idx - 1]);
             event_history_idx--;
         }
@@ -1654,27 +1660,10 @@ bool editor::on_element_key_down(int keycode, magic_enum::containers::bitset<kee
             if (event_history_idx >= event_history.size())
                 return true;
 
-            editor_event inverted = event_history[event_history_idx];
-            switch (inverted.event_type)
-            {
-            case editor_event::type::add:
-                inverted.event_type = editor_event::type::remove;
-                break;
-            case editor_event::type::remove:
-                inverted.event_type = editor_event::type::add;
-                break;
-            case editor_event::type::move: {
-                const float move_offset = inverted.move_beat_offset.value();
-                for (hit_obj_metadata& obj : inverted.objs)
-                    obj.position.beat += move_offset;
-
-                inverted.move_beat_offset = -move_offset;
-                break;
-            }}
-
-            process_event(inverted);
+            std::swap(event_history[event_history_idx].added, event_history[event_history_idx].removed);
+            process_event(event_history[event_history_idx]);
             event_history_idx++;
-        }*/
+        }
         
         return true;
     case KeyboardKey::KEY_BACKSPACE:

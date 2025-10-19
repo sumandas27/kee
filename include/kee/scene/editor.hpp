@@ -93,25 +93,13 @@ public:
     bool from_editor;
 };
 
-/* TODO: change ts */
 class editor_event
 {
 public:
-    enum class type;
+    editor_event(const std::vector<hit_obj_metadata>& added, const std::vector<hit_obj_metadata>& removed);
 
-    editor_event(type event_type, const std::vector<hit_obj_metadata>& objs, std::optional<float> move_beat_offset);
-
-    type event_type;
-
-    std::vector<hit_obj_metadata> objs;
-    std::optional<float> move_beat_offset;
-};
-
-enum class editor_event::type
-{
-    add,
-    remove,
-    move
+    std::vector<hit_obj_metadata> added;
+    std::vector<hit_obj_metadata> removed;
 };
 
 class editor_key : public kee::ui::button
