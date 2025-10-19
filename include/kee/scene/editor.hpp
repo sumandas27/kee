@@ -28,9 +28,7 @@ public:
     editor_hit_object(int key, float duration);
 
     int key;
-
     float duration;
-    bool is_selected;
 };
 
 class hit_obj_ui final : public kee::ui::rect
@@ -40,6 +38,7 @@ public:
 
     void select();
     void unselect();
+    bool is_selected() const;
 
     std::size_t get_key_idx() const;
     void set_key_idx(std::size_t new_key_idx);
@@ -54,17 +53,10 @@ public:
 private:
     static constexpr float rel_h = 0.1f;
 
+    bool selected;
+
     std::size_t rendered_key_count;
     std::size_t key_idx;
-};
-
-class hit_obj_render
-{
-public:
-    hit_obj_render(hit_obj_ui&& render_ui, std::map<float, editor_hit_object>::iterator hit_obj_ref);
-
-    hit_obj_ui render_ui;
-    std::map<float, editor_hit_object>::iterator hit_obj_ref;
 };
 
 class hit_obj_position
@@ -87,18 +79,6 @@ public:
     hit_obj_position position;
 };
 
-class hit_obj_node
-{
-public:
-    hit_obj_node(hit_obj_metadata old_obj, hit_obj_metadata new_obj, hit_obj_render& selected_render, std::map<float, editor_hit_object>::node_type node);
-
-    hit_obj_metadata old_obj;
-    hit_obj_metadata new_obj;
-
-    hit_obj_render& selected_render;
-    std::map<float, editor_hit_object>::node_type node;
-};
-
 class new_hit_obj_data
 {
 public:
@@ -111,15 +91,6 @@ public:
     float current_beat;
 
     bool from_editor;
-};
-
-class drag_selection
-{
-public:
-    drag_selection(std::map<float, editor_hit_object>::iterator hold_obj_ref);
-
-    std::map<float, editor_hit_object>::iterator hold_obj_ref;
-    bool is_left;
 };
 
 /* TODO: change ts */
@@ -185,13 +156,20 @@ public:
     std::size_t key_idx_start;
 };
 
+enum class drag_selection
+{
+    none,
+    drag_l,
+    drag_r
+};
+
 class selection_obj_info
 {
 public:
-    selection_obj_info(const std::optional<drag_selection>& hit_obj_drag_selection, const std::optional<selection_key_drag_info>& key_idx_info);
+    selection_obj_info(const std::optional<selection_key_drag_info>& key_idx_info, drag_selection hit_obj_drag_selection);
 
-    std::optional<drag_selection> hit_obj_drag_selection;
     std::optional<selection_key_drag_info> key_idx_info;
+    drag_selection hit_obj_drag_selection;
 
     bool selected_has_moved;
 };
@@ -211,6 +189,39 @@ public:
     std::variant<selection_box_info, selection_obj_info> variant;
 
     bool has_moved;
+};
+
+class hit_obj_ui_key
+{
+public:
+    hit_obj_ui_key(std::map<float, editor_hit_object>& map, std::map<float, editor_hit_object>::iterator it);
+
+    hit_obj_metadata get_metadata() const;
+
+    std::map<float, editor_hit_object>::node_type extract();
+    void delete_from_map();
+
+    bool operator<(const hit_obj_ui_key& other) const;
+
+private:
+    boost::optional<std::map<float, editor_hit_object>&> map;
+    std::map<float, editor_hit_object>::iterator it;
+};
+
+class hit_obj_node
+{
+public:
+    hit_obj_node(
+        std::map<hit_obj_ui_key, hit_obj_ui>::node_type&& node_render_param,
+        const hit_obj_metadata& old_obj,
+        const hit_obj_metadata& new_obj
+    );
+
+    std::map<hit_obj_ui_key, hit_obj_ui>::node_type node_render;
+    std::map<float, editor_hit_object>::node_type node_obj;
+
+    hit_obj_metadata old_obj;
+    hit_obj_metadata new_obj;
 };
 
 class object_editor final : public kee::ui::rect
@@ -234,7 +245,7 @@ public:
     void attempt_add_hit_obj();
 
     kee::ui::handle<kee::ui::base> obj_renderer;
-    std::vector<hit_obj_render> obj_render_info;
+    std::map<hit_obj_ui_key, hit_obj_ui> obj_render_info;
 
     std::optional<new_hit_obj_data> new_hit_object;
 
@@ -247,7 +258,7 @@ private:
     void render_element() const override;
 
     float get_beat_drag_diff() const;
-    hit_obj_position hit_obj_update_info(const hit_obj_render& hit_obj, float beat_drag_diff) const;
+    hit_obj_position hit_obj_update_info(const std::pair<const hit_obj_ui_key, hit_obj_ui>& map_elem, float beat_drag_diff) const;
 
     void handle_mouse_up(bool is_mouse_l);
     void attempt_move_op();
@@ -383,7 +394,7 @@ private:
     raylib::Music music;
     float music_time;
 
-    std::vector<std::map<float, editor_hit_object>::iterator> clipboard;
+    std::vector<hit_obj_metadata> clipboard;
     float clipboard_reference_beat;
 
     std::size_t event_history_idx;
