@@ -14,18 +14,18 @@
 namespace kee {
 namespace scene {
 
-class editor;
+/* TODO: fix exit button and tab display dimensions */
+/* TODO: add hitsounds while composing */
 
-/* TODO: fix rendering order of hit objects, store `hit_obj_render` in `std::map` */
-/* TODO: prob separate out into own classes */
+class compose_tab;
 
 /**
  * These objects will belong in an `std::set`, whose keys store the `beat` of the object.
  */
-class editor_hit_object
+class compose_tab_hit_object
 {
 public:
-    editor_hit_object(int key, float duration);
+    compose_tab_hit_object(int key, float duration);
 
     int key;
     float duration;
@@ -82,7 +82,7 @@ public:
 class new_hit_obj_data
 {
 public:
-    new_hit_obj_data(int key, std::size_t key_idx, float click_beat, float current_beat, bool from_editor);
+    new_hit_obj_data(int key, std::size_t key_idx, float click_beat, float current_beat, bool from_compose_tab);
 
     int key;
     std::size_t key_idx;
@@ -90,24 +90,24 @@ public:
     float click_beat;
     float current_beat;
 
-    bool from_editor;
+    bool from_compose_tab;
 };
 
-class editor_event
+class compose_tab_event
 {
 public:
-    editor_event(const std::vector<hit_obj_metadata>& added, const std::vector<hit_obj_metadata>& removed);
+    compose_tab_event(const std::vector<hit_obj_metadata>& added, const std::vector<hit_obj_metadata>& removed);
 
     std::vector<hit_obj_metadata> added;
     std::vector<hit_obj_metadata> removed;
 };
 
-class editor_key : public kee::ui::button
+class compose_tab_key : public kee::ui::button
 {
 public:
-    editor_key(const kee::ui::base::required& reqs, kee::scene::editor& editor_scene, int key_id);
+    compose_tab_key(const kee::ui::base::required& reqs, kee::scene::compose_tab& compose_tab_scene, int key_id);
 
-    std::map<float, editor_hit_object> hit_objects;
+    std::map<float, compose_tab_hit_object> hit_objects;
 
     std::vector<kee::ui::rect> hit_obj_rects;
     kee::ui::handle<kee::ui::rect> frame;
@@ -119,7 +119,7 @@ private:
     void update_element(float dt) override;
     void render_element() const override;
 
-    kee::scene::editor& editor_scene;
+    kee::scene::compose_tab& compose_tab_scene;
 
     const int key_id;
 };
@@ -182,18 +182,18 @@ public:
 class hit_obj_ui_key
 {
 public:
-    hit_obj_ui_key(std::map<float, editor_hit_object>& map, std::map<float, editor_hit_object>::iterator it);
+    hit_obj_ui_key(std::map<float, compose_tab_hit_object>& map, std::map<float, compose_tab_hit_object>::iterator it);
 
     hit_obj_metadata get_metadata() const;
 
-    std::map<float, editor_hit_object>::node_type extract();
+    std::map<float, compose_tab_hit_object>::node_type extract();
     void delete_from_map();
 
     bool operator<(const hit_obj_ui_key& other) const;
 
 private:
-    boost::optional<std::map<float, editor_hit_object>&> map;
-    std::map<float, editor_hit_object>::iterator it;
+    boost::optional<std::map<float, compose_tab_hit_object>&> map;
+    std::map<float, compose_tab_hit_object>::iterator it;
 };
 
 class hit_obj_node
@@ -206,7 +206,7 @@ public:
     );
 
     std::map<hit_obj_ui_key, hit_obj_ui>::node_type node_render;
-    std::map<float, editor_hit_object>::node_type node_obj;
+    std::map<float, compose_tab_hit_object>::node_type node_obj;
 
     hit_obj_metadata old_obj;
     hit_obj_metadata new_obj;
@@ -224,13 +224,15 @@ public:
     object_editor(
         const kee::ui::base::required& reqs,
         const std::vector<int>& selected_key_ids,
-        std::unordered_map<int, kee::ui::handle<editor_key>>& keys,
-        kee::scene::editor& editor_scene
+        std::unordered_map<int, kee::ui::handle<compose_tab_key>>& keys,
+        kee::scene::compose_tab& compose_tab_scene
     );
 
     void reset_render_hit_objs();
     bool delete_selected_hit_objs();
     void attempt_add_hit_obj();
+
+    const std::vector<int>& get_keys_to_render() const;
 
     kee::ui::handle<kee::ui::base> obj_renderer;
     std::map<hit_obj_ui_key, hit_obj_ui> obj_render_info;
@@ -255,8 +257,8 @@ private:
 
     const std::vector<int>& selected_key_ids;
 
-    std::unordered_map<int, kee::ui::handle<editor_key>>& keys;
-    kee::scene::editor& editor_scene;
+    std::unordered_map<int, kee::ui::handle<compose_tab_key>>& keys;
+    kee::scene::compose_tab& compose_tab_scene;
 
     std::vector<kee::ui::rect> beat_render_rects;
     std::vector<kee::ui::text> whole_beat_texts;
@@ -278,7 +280,7 @@ private:
     float beat_drag_multiplier;
 };
 
-class editor final : public kee::scene::base
+class compose_tab final : public kee::ui::base
 {
 public:
     static constexpr float beat_lock_threshold = 0.001f;
@@ -286,7 +288,9 @@ public:
     static const std::vector<int> prio_to_key;
     static const std::unordered_map<int, int> key_to_prio;
 
-    editor(const kee::scene::window& window, kee::global_assets& assets);
+    compose_tab(const kee::ui::base::required& reqs);
+
+    bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
 
     int get_ticks_per_beat() const;
     bool is_music_playing() const;
@@ -299,8 +303,8 @@ public:
     void unselect();
     void select(int id);
 
-    void add_event(const editor_event& e);
-    void process_event(const editor_event& e);
+    void add_event(const compose_tab_event& e);
+    void process_event(const compose_tab_event& e);
 
     const float approach_beats;
 
@@ -312,7 +316,6 @@ private:
 
     static constexpr std::array<float, 6> playback_speeds = { 0.25f, 0.5f, 0.75f, 1.0f, 1.5f, 2.0f };
 
-    bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
     bool on_element_mouse_scroll(float mouse_scroll) override;
 
     void update_element(float dt) override;
@@ -373,7 +376,7 @@ private:
     kee::ui::handle<kee::ui::base> key_frame;
 
     std::vector<kee::ui::handle<kee::ui::base>> key_holders;
-    std::unordered_map<int, kee::ui::handle<editor_key>> keys;
+    std::unordered_map<int, kee::ui::handle<compose_tab_key>> keys;
 
     float mouse_wheel_move;
     bool is_beat_snap;
@@ -386,9 +389,38 @@ private:
     float clipboard_reference_beat;
 
     std::size_t event_history_idx;
-    std::deque<editor_event> event_history;
+    std::deque<compose_tab_event> event_history;
 
     std::vector<int> selected_key_ids;
+};
+
+class editor final : public kee::scene::base
+{
+public:
+    editor(const kee::scene::window& window, kee::global_assets& assets);
+
+private:
+    static const std::array<std::string, 4> tab_names;
+
+    bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
+
+    void update_element(float dt) override;
+
+    std::vector<std::reference_wrapper<kee::transition<kee::color>>> tab_button_text_colors;
+    kee::transition<float>& tab_active_rect_rel_x;
+    kee::transition<float>& exit_button_rect_alpha;
+
+    kee::ui::handle<kee::ui::rect> tab_rect;
+    kee::ui::handle<kee::ui::base> tab_display_frame;
+    kee::ui::handle<kee::ui::rect> tab_active_rect;
+    std::vector<kee::ui::handle<kee::ui::button>> tab_buttons;
+    std::vector<kee::ui::handle<kee::ui::text>> tab_button_text;
+
+    kee::ui::handle<kee::ui::button> exit_button;
+    kee::ui::handle<kee::ui::rect> exit_button_rect;
+    /* TODO: port in icon png */
+
+    kee::ui::handle<compose_tab> compose_tab_elem;
 };
 
 } // namespace scene
