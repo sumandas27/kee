@@ -14,7 +14,6 @@
 namespace kee {
 namespace scene {
 
-/* TODO: fix exit button and tab display dimensions */
 /* TODO: add hitsounds while composing */
 
 class compose_tab;

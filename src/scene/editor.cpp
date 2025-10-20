@@ -1793,7 +1793,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         dims(
-            dim(dim::type::rel, 0.97f),
+            dim(dim::type::abs, 0),
             dim(dim::type::rel, 1)
         ),
         false
@@ -1809,10 +1809,10 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         false, std::nullopt, std::nullopt
     )),
     exit_button(tab_rect.ref.add_child<kee::ui::button>(std::nullopt,
-        pos(pos::type::rel, 0.97f),
+        pos(pos::type::end, 0),
         pos(pos::type::rel, 0),
         dims(
-            dim(dim::type::rel, 0.03f),
+            dim(dim::type::aspect, 1),
             dim(dim::type::rel, 1)
         ),
         false
@@ -1826,6 +1826,9 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     )),
     compose_tab_elem(add_child<compose_tab>(std::nullopt))
 {
+    const raylib::Rectangle tab_raw_rect = tab_rect.ref.get_raw_rect();
+    std::get<kee::dims>(tab_display_frame.ref.dimensions).w.val = tab_raw_rect.width - tab_raw_rect.height;
+
     exit_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
         switch (button_event)
