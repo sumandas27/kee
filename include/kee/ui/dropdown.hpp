@@ -13,7 +13,7 @@ class dropdown final : public kee::ui::base
 {
 public:
     dropdown(
-        const kee::ui::base::required& reqs,
+        const kee::ui::required& reqs,
         kee::pos x,
         kee::pos y,
         const std::variant<kee::dims, kee::border>& dimensions,

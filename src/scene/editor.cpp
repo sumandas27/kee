@@ -1,3 +1,4 @@
+#include "kee/game.hpp"
 #include "kee/scene/editor.hpp"
 
 #include <ranges>
@@ -10,7 +11,7 @@ compose_tab_hit_object::compose_tab_hit_object(int key, float duration) :
     duration(duration)
 { }
 
-hit_obj_ui::hit_obj_ui(const kee::ui::base::required& reqs, float beat, float duration, float curr_beat, float beat_width, std::size_t key_idx, std::size_t rendered_key_count) :
+hit_obj_ui::hit_obj_ui(const kee::ui::required& reqs, float beat, float duration, float curr_beat, float beat_width, std::size_t key_idx, std::size_t rendered_key_count) :
     kee::ui::rect(reqs,
         raylib::Color::DarkBlue(),
         pos(pos::type::rel, (beat - curr_beat + beat_width) / (2 * beat_width)),
@@ -118,7 +119,7 @@ compose_tab_event::compose_tab_event(const std::vector<hit_obj_metadata>& added,
     removed(removed)
 { }
 
-compose_tab_key::compose_tab_key(const kee::ui::base::required& reqs, kee::scene::compose_tab& compose_tab_scene, int key_id) :
+compose_tab_key::compose_tab_key(const kee::ui::required& reqs, kee::scene::compose_tab& compose_tab_scene, int key_id) :
     kee::ui::button(reqs,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
@@ -142,7 +143,7 @@ compose_tab_key::compose_tab_key(const kee::ui::base::required& reqs, kee::scene
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
-        true, assets.font_light, std::string(), false
+        true, reqs.assets.font_light, std::string(), false
     )),
     is_selected(false),
     compose_tab_scene(compose_tab_scene),
@@ -302,7 +303,7 @@ hit_obj_node::hit_obj_node(
 { }
 
 object_editor::object_editor(
-    const kee::ui::base::required& reqs,
+    const kee::ui::required& reqs,
     const std::vector<int>& selected_key_ids,
     std::unordered_map<int, kee::ui::handle<compose_tab_key>>& keys,
     kee::scene::compose_tab& compose_tab_scene
@@ -410,7 +411,7 @@ void object_editor::reset_render_hit_objs()
                 pos(pos::type::rel, 0.5f),
                 pos(pos::type::rel, rel_y),
                 ui::text_size(ui::text_size::type::rel_h, 0.1f),
-                true, assets.font_semi_bold, key_str, false
+                true, reqs.assets.font_semi_bold, key_str, false
             ));
         }
 }
@@ -756,7 +757,7 @@ void object_editor::update_element([[maybe_unused]] float dt)
                 pos(pos::type::rel, render_rel_x),
                 pos(pos::type::rel, 0.9f),
                 ui::text_size(ui::text_size::type::rel_h, 0.15f),
-                true, assets.font_semi_bold, std::to_string(whole_beat), true
+                true, reqs.assets.font_semi_bold, std::to_string(whole_beat), true
             ));
         }
     }
@@ -994,7 +995,7 @@ const std::unordered_map<int, int> compose_tab::key_to_prio = []
 
 /* TODO: create smaller rect in inspector to store ui elements so everything is aligned */
 
-compose_tab::compose_tab(const kee::ui::base::required& reqs) :
+compose_tab::compose_tab(const kee::ui::required& reqs) :
     kee::ui::base(reqs,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.04f),
@@ -1058,7 +1059,7 @@ compose_tab::compose_tab(const kee::ui::base::required& reqs) :
         pos(pos::type::rel, 0.325f),
         pos(pos::type::rel, 0.23f),
         ui::text_size(ui::text_size::type::rel_h, 0.025f),
-        true, assets.font_semi_bold, "BEAT SNAP", false
+        true, reqs.assets.font_semi_bold, "BEAT SNAP", false
     )),
     key_lock_button(inspector_rect.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0.1f),
@@ -1086,14 +1087,14 @@ compose_tab::compose_tab(const kee::ui::base::required& reqs) :
         pos(pos::type::rel, 0.31f),
         pos(pos::type::rel, 0.28f),
         ui::text_size(ui::text_size::type::rel_h, 0.025f),
-        true, assets.font_semi_bold, "KEY LOCK", false
+        true, reqs.assets.font_semi_bold, "KEY LOCK", false
     )),
     tick_text(inspector_rect.ref.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.05f),
         ui::text_size(ui::text_size::type::rel_h, 0.06f),
-        true, assets.font_semi_bold, "1 / " + std::to_string(get_ticks_per_beat()), false
+        true, reqs.assets.font_semi_bold, "1 / " + std::to_string(get_ticks_per_beat()), false
     )),
     tick_l_button(inspector_rect.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0.2f),
@@ -1158,7 +1159,7 @@ compose_tab::compose_tab(const kee::ui::base::required& reqs) :
         pos(pos::type::rel, 0.295f),
         pos(pos::type::rel, 0.17f),
         ui::text_size(ui::text_size::type::rel_h, 0.025f),
-        true, assets.font_semi_bold, "PLAYBACK SPEED:", false
+        true, reqs.assets.font_semi_bold, "PLAYBACK SPEED:", false
     )),
     playback_dropdown(inspector_rect.ref.add_child<kee::ui::dropdown>(std::nullopt,
         pos(pos::type::rel, 0.75f),
@@ -1195,7 +1196,7 @@ compose_tab::compose_tab(const kee::ui::base::required& reqs) :
         false
     )),
     pause_play_img(pause_play.ref.add_child<kee::ui::image>(std::nullopt,
-        assets.play_png,
+        reqs.assets.play_png,
         raylib::Color::White(),
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
@@ -1210,7 +1211,7 @@ compose_tab::compose_tab(const kee::ui::base::required& reqs) :
         pos(pos::type::end, 0),
         pos(pos::type::beg, 30),
         ui::text_size(ui::text_size::type::abs, 80),
-        false, assets.font_regular, std::string(), false
+        false, reqs.assets.font_regular, std::string(), false
     )),
     key_border(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.4f),
@@ -1244,7 +1245,7 @@ compose_tab::compose_tab(const kee::ui::base::required& reqs) :
             pos(pos::type::rel, static_cast<float>(i * 2 + 1) / (tick_freq_count * 2)),
             pos(pos::type::rel, 0.5f),
             ui::text_size(ui::text_size::type::rel_h, 0.7f),
-            true, assets.font_regular, std::to_string(tick_freqs[i]), false
+            true, reqs.assets.font_regular, std::to_string(tick_freqs[i]), false
         ));
 
         tick_frame_buttons.push_back(tick_frame.ref.add_child<kee::ui::button>(std::nullopt,
@@ -1438,7 +1439,7 @@ compose_tab::compose_tab(const kee::ui::base::required& reqs) :
         if (this->music.IsPlaying())
         {
             this->music.Pause();
-            this->pause_play_img.ref.set_image(this->assets.play_png);
+            this->pause_play_img.ref.set_image(this->reqs.assets.play_png);
         }
         else
         {
@@ -1481,6 +1482,88 @@ compose_tab::compose_tab(const kee::ui::base::required& reqs) :
     music.Pause();
 
     unselect();
+}
+
+int compose_tab::get_ticks_per_beat() const
+{
+    return tick_freqs[tick_freq_idx];
+}
+
+bool compose_tab::is_music_playing() const
+{
+    return music.IsPlaying();
+}
+
+bool compose_tab::is_beat_snap_enabled() const
+{
+    return is_beat_snap;
+}
+
+bool compose_tab::is_key_lock_enabled() const
+{
+    return is_key_locked;
+}
+
+float compose_tab::get_beat() const
+{
+    return (music_time - music_start_offset) * music_bpm / 60.0f;
+}
+
+void compose_tab::set_beat(float new_beat)
+{
+    const float music_time_raw = music_start_offset + new_beat * 60.0f / music_bpm;
+    music_time = std::clamp(music_time_raw, 0.0f, music.GetTimeLength());
+}
+
+void compose_tab::unselect()
+{
+    for (int prev_id : selected_key_ids)
+    {
+        keys.at(prev_id).ref.set_opt_color(raylib::Color::White());
+        keys.at(prev_id).ref.is_selected = false;
+        keys.at(prev_id).ref.frame.change_z_order(-1);
+        keys.at(prev_id).ref.key_text.change_z_order(-1);
+    }
+
+    selected_key_ids.clear();
+    obj_editor.ref.reset_render_hit_objs();
+}
+
+void compose_tab::select(int id)
+{
+    if (keys.at(id).ref.is_selected)
+        return;
+
+    keys.at(id).ref.set_opt_color(raylib::Color::Green());
+    keys.at(id).ref.is_selected = true;
+    keys.at(id).ref.frame.change_z_order(0);
+    keys.at(id).ref.key_text.change_z_order(0);
+
+    selected_key_ids.insert(
+        std::lower_bound(selected_key_ids.begin(), selected_key_ids.end(), id,
+            [](int l, int r) { return compose_tab::key_to_prio.at(l) <= compose_tab::key_to_prio.at(r); }
+        ),
+    id);
+
+    obj_editor.ref.reset_render_hit_objs();
+}
+
+void compose_tab::add_event(const compose_tab_event& e)
+{
+    event_history.erase(event_history.begin(), event_history.begin() + event_history_idx);
+    event_history.push_front(e);
+    event_history_idx = 0;
+}
+
+void compose_tab::process_event(const compose_tab_event& e)
+{
+    for (const hit_obj_metadata& hit_obj : e.added)
+        keys.at(hit_obj.key).ref.hit_objects.emplace(hit_obj.position.beat, compose_tab_hit_object(hit_obj.key, hit_obj.position.duration));
+
+    for (const hit_obj_metadata& hit_obj : e.removed)
+        keys.at(hit_obj.key).ref.hit_objects.erase(hit_obj.position.beat);
+
+    obj_editor.ref.reset_render_hit_objs();
 }
 
 bool compose_tab::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods)
@@ -1605,88 +1688,6 @@ bool compose_tab::on_element_key_down(int keycode, magic_enum::containers::bitse
     }
 }
 
-int compose_tab::get_ticks_per_beat() const
-{
-    return tick_freqs[tick_freq_idx];
-}
-
-bool compose_tab::is_music_playing() const
-{
-    return music.IsPlaying();
-}
-
-bool compose_tab::is_beat_snap_enabled() const
-{
-    return is_beat_snap;
-}
-
-bool compose_tab::is_key_lock_enabled() const
-{
-    return is_key_locked;
-}
-
-float compose_tab::get_beat() const
-{
-    return (music_time - music_start_offset) * music_bpm / 60.0f;
-}
-
-void compose_tab::set_beat(float new_beat)
-{
-    const float music_time_raw = music_start_offset + new_beat * 60.0f / music_bpm;
-    music_time = std::clamp(music_time_raw, 0.0f, music.GetTimeLength());
-}
-
-void compose_tab::unselect()
-{
-    for (int prev_id : selected_key_ids)
-    {
-        keys.at(prev_id).ref.set_opt_color(raylib::Color::White());
-        keys.at(prev_id).ref.is_selected = false;
-        keys.at(prev_id).ref.frame.change_z_order(-1);
-        keys.at(prev_id).ref.key_text.change_z_order(-1);
-    }
-
-    selected_key_ids.clear();
-    obj_editor.ref.reset_render_hit_objs();
-}
-
-void compose_tab::select(int id)
-{
-    if (keys.at(id).ref.is_selected)
-        return;
-
-    keys.at(id).ref.set_opt_color(raylib::Color::Green());
-    keys.at(id).ref.is_selected = true;
-    keys.at(id).ref.frame.change_z_order(0);
-    keys.at(id).ref.key_text.change_z_order(0);
-
-    selected_key_ids.insert(
-        std::lower_bound(selected_key_ids.begin(), selected_key_ids.end(), id,
-            [](int l, int r) { return compose_tab::key_to_prio.at(l) <= compose_tab::key_to_prio.at(r); }
-        ),
-    id);
-
-    obj_editor.ref.reset_render_hit_objs();
-}
-
-void compose_tab::add_event(const compose_tab_event& e)
-{
-    event_history.erase(event_history.begin(), event_history.begin() + event_history_idx);
-    event_history.push_front(e);
-    event_history_idx = 0;
-}
-
-void compose_tab::process_event(const compose_tab_event& e)
-{
-    for (const hit_obj_metadata& hit_obj : e.added)
-        keys.at(hit_obj.key).ref.hit_objects.emplace(hit_obj.position.beat, compose_tab_hit_object(hit_obj.key, hit_obj.position.duration));
-
-    for (const hit_obj_metadata& hit_obj : e.removed)
-        keys.at(hit_obj.key).ref.hit_objects.erase(hit_obj.position.beat);
-
-    obj_editor.ref.reset_render_hit_objs();
-}
-
 bool compose_tab::on_element_mouse_scroll(float mouse_scroll)
 {
     if (is_music_playing())
@@ -1778,8 +1779,8 @@ void compose_tab::set_tick_freq_idx(std::size_t new_tick_freq_idx)
     tick_curr_rect_x.set(std::nullopt, new_y, 0.2f, kee::transition_type::exp);
 }
 
-editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
-    kee::scene::base(window, assets),
+editor::editor(const kee::scene::window& window, kee::game& game, kee::global_assets& assets) :
+    kee::scene::base(window, game, assets),
     exit_png("assets/img/exit.png"),
     tab_active_rect_rel_x(add_transition<float>(1.0f / magic_enum::enum_count<editor::tabs>())),
     exit_button_rect_alpha(add_transition<float>(0.0f)),
@@ -1836,8 +1837,10 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         border(border::type::rel_w, 0.3f),
         true, false, false, 0.0f
     )),
-    active_elem(make_temp_child<compose_tab>())
+    active_tab(add_child<compose_tab>(std::nullopt))
 {
+    reqs.game.element_keyboard_capture = active_tab.value().ref;
+
     const raylib::Rectangle tab_raw_rect = tab_rect.ref.get_raw_rect();
     std::get<kee::dims>(tab_display_frame.ref.dimensions).w.val = tab_raw_rect.width - tab_raw_rect.height;
 
@@ -1905,44 +1908,9 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             pos(pos::type::rel, 0.5f),
             pos(pos::type::rel, 0.5f),
             ui::text_size(ui::text_size::type::rel_h, 0.6f),
-            true, assets.font_semi_bold, enum_name, false
+            true, reqs.assets.font_semi_bold, enum_name, false
         ));
     }
-}
-
-bool editor::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods)
-{
-    return active_elem.on_element_key_down(keycode, mods);
-}
-
-bool editor::on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods)
-{
-    return active_elem.on_element_key_up(keycode, mods);
-}
-
-bool editor::on_element_char_press(char c)
-{
-    return active_elem.on_element_char_press(c);
-}
-
-bool editor::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods)
-{
-    return active_elem.on_mouse_down(mouse_pos, is_mouse_l, mods);
-}
-
-bool editor::on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods)
-{
-    return active_elem.on_mouse_up(mouse_pos, is_mouse_l, mods);
-}
-
-void editor::on_element_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods)
-{
-    return active_elem.on_mouse_move(mouse_pos, mods);
-}
-
-bool editor::on_element_mouse_scroll(float scroll_amount)
-{
-    return active_elem.on_mouse_scroll(scroll_amount);
 }
 
 void editor::update_element([[maybe_unused]] float dt)
@@ -1952,13 +1920,6 @@ void editor::update_element([[maybe_unused]] float dt)
 
     tab_active_rect.ref.x.val = tab_active_rect_rel_x.get();
     exit_button_rect.ref.set_opt_color(raylib::Color(255, 0, 0, static_cast<unsigned char>(exit_button_rect_alpha.get())));
-    
-    active_elem.update(dt);
-}
-
-void editor::render_element() const
-{
-    active_elem.render();
 }
 
 } // namespace scene

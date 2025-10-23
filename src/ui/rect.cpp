@@ -16,7 +16,7 @@ rect_roundness::rect_roundness(rect_roundness::type rect_roundness_type, float v
 { }
 
 rect::rect(
-    const kee::ui::base::required& reqs, 
+    const kee::ui::required& reqs, 
     const std::optional<raylib::Color>& color, 
     kee::pos x, 
     kee::pos y, 
@@ -101,15 +101,15 @@ void rect::render_element() const
         };
     }
 
-    assets.shader_sdf_rect.SetValue(assets.sdf_rect_loc_color, uniform_color.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC4);
-    assets.shader_sdf_rect.SetValue(assets.sdf_rect_loc_size, uniform_size.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC2);
-    assets.shader_sdf_rect.SetValue(assets.sdf_rect_loc_roundness_size, &uniform_roundness_size, ShaderUniformDataType::SHADER_UNIFORM_FLOAT);
-    assets.shader_sdf_rect.SetValue(assets.sdf_rect_loc_outline_color, uniform_outline_color.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC4);
-    assets.shader_sdf_rect.SetValue(assets.sdf_rect_loc_outline_thickness, &uniform_outline_thickness, ShaderUniformDataType::SHADER_UNIFORM_FLOAT);
+    reqs.assets.shader_sdf_rect.SetValue(reqs.assets.sdf_rect_loc_color, uniform_color.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC4);
+    reqs.assets.shader_sdf_rect.SetValue(reqs.assets.sdf_rect_loc_size, uniform_size.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC2);
+    reqs.assets.shader_sdf_rect.SetValue(reqs.assets.sdf_rect_loc_roundness_size, &uniform_roundness_size, ShaderUniformDataType::SHADER_UNIFORM_FLOAT);
+    reqs.assets.shader_sdf_rect.SetValue(reqs.assets.sdf_rect_loc_outline_color, uniform_outline_color.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC4);
+    reqs.assets.shader_sdf_rect.SetValue(reqs.assets.sdf_rect_loc_outline_thickness, &uniform_outline_thickness, ShaderUniformDataType::SHADER_UNIFORM_FLOAT);
 
-    assets.shader_sdf_rect.BeginMode();
-    assets.texture_empty.Draw(src_rect, dst_rect);
-    assets.shader_sdf_rect.EndMode();
+    reqs.assets.shader_sdf_rect.BeginMode();
+    reqs.assets.texture_empty.Draw(src_rect, dst_rect);
+    reqs.assets.shader_sdf_rect.EndMode();
 }
 
 float rect::get_roundness() const

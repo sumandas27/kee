@@ -5,7 +5,7 @@
 namespace kee {
 
 game::game() :
-    curr_scene(std::make_unique<kee::scene::editor>(window, assets))
+    curr_scene(std::make_unique<kee::scene::editor>(window, *this, assets))
 { }
 
 void game::main_loop()

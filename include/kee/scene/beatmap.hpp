@@ -31,7 +31,7 @@ public:
 class beatmap_key final : public kee::ui::base
 {
 public:
-    beatmap_key(const kee::ui::base::required& reqs, kee::scene::beatmap& beatmap_scene, int key_id, const raylib::Vector2& relative_pos);
+    beatmap_key(const kee::ui::required& reqs, kee::scene::beatmap& beatmap_scene, int key_id, const raylib::Vector2& relative_pos);
 
     const std::deque<beatmap_hit_object>& get_hit_objects() const;
 
@@ -61,7 +61,7 @@ private:
 class beatmap final : public kee::scene::base
 {
 public:
-    beatmap(const kee::scene::window& window, kee::global_assets& assets);
+    beatmap(const kee::scene::window& window, kee::game& game, kee::global_assets& assets);
 
     float get_beat() const;
 

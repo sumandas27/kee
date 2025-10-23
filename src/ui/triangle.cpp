@@ -4,7 +4,7 @@ namespace kee {
 namespace ui {
 
 triangle::triangle(
-    const kee::ui::base::required& reqs, 
+    const kee::ui::required& reqs, 
     const std::optional<raylib::Color>& color, 
     kee::pos x,
     kee::pos y,
@@ -41,15 +41,15 @@ void triangle::render_element() const
     const std::array<float, 2> uniform_p1 = { p1.x, p1.y };
     const std::array<float, 2> uniform_p2 = { p2.x, p2.y };
 
-    assets.shader_sdf_triangle.SetValue(assets.sdf_triangle_loc_color, uniform_color.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC4);
-    assets.shader_sdf_triangle.SetValue(assets.sdf_triangle_loc_size, uniform_size.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC2);
-    assets.shader_sdf_triangle.SetValue(assets.sdf_triangle_loc_p0, uniform_p0.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC2);
-    assets.shader_sdf_triangle.SetValue(assets.sdf_triangle_loc_p1, uniform_p1.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC2);
-    assets.shader_sdf_triangle.SetValue(assets.sdf_triangle_loc_p2, uniform_p2.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC2);
+    reqs.assets.shader_sdf_triangle.SetValue(reqs.assets.sdf_triangle_loc_color, uniform_color.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC4);
+    reqs.assets.shader_sdf_triangle.SetValue(reqs.assets.sdf_triangle_loc_size, uniform_size.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC2);
+    reqs.assets.shader_sdf_triangle.SetValue(reqs.assets.sdf_triangle_loc_p0, uniform_p0.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC2);
+    reqs.assets.shader_sdf_triangle.SetValue(reqs.assets.sdf_triangle_loc_p1, uniform_p1.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC2);
+    reqs.assets.shader_sdf_triangle.SetValue(reqs.assets.sdf_triangle_loc_p2, uniform_p2.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC2);
 
-    assets.shader_sdf_triangle.BeginMode();
-    assets.texture_empty.Draw(src_rect, raw_rect);
-    assets.shader_sdf_triangle.EndMode();
+    reqs.assets.shader_sdf_triangle.BeginMode();
+    reqs.assets.texture_empty.Draw(src_rect, raw_rect);
+    reqs.assets.shader_sdf_triangle.EndMode();
 }
 
 } // namespace ui

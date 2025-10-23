@@ -46,8 +46,8 @@ void base::render() const
         render_priority.value().render();
 }
 
-base::base(const kee::scene::window& window, kee::global_assets& assets) :
-    kee::ui::base(kee::ui::base::required(boost::none, assets)),
+base::base(const kee::scene::window& window, kee::game& game, kee::global_assets& assets) :
+    kee::ui::base(kee::ui::required(boost::none, game, assets)),
     window(window)
 {
     x = pos(pos::type::beg, 0);

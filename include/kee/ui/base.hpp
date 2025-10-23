@@ -40,17 +40,28 @@ private:
     bool has_moved;
 };
 
+class required
+{
+public:
+    required(boost::optional<kee::ui::base&> parent, kee::game& game, kee::global_assets& assets);
+    required(const required&) = default;
+
+    required& operator=(const required&) = delete;
+
+    boost::optional<kee::ui::base&> parent;
+    kee::game& game;
+    kee::global_assets& assets;
+};
+
 /**
  * Contractually the first parameter of any non-scene subclass's constructor must be of 
- * type `const kee::base::required&` containing all required references for a UI element.
+ * type `const kee::required&` containing all required references for a UI element.
  */
 class base
 {
 public:
-    class required;
-
     base(
-        const kee::ui::base::required& reqs,
+        const kee::ui::required& reqs,
         kee::pos x,
         kee::pos y,
         const std::variant<kee::dims, kee::border>& dimensions,
@@ -67,15 +78,6 @@ public:
     void on_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods);
     void on_char_press(char c);
 
-    /**
-     * `public` unlike other event handlers for precise control of temp children. Mouse event
-     * handlers don't need these exposed even for temp children.
-     */
-    /* TODO: i don't like this, think of how to work w/ this */
-    virtual bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods);
-    virtual bool on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods);
-    virtual bool on_element_char_press(char c);
-
     virtual bool on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods);
     virtual bool on_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods);
     void on_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods);
@@ -86,7 +88,7 @@ public:
 
     /**
      * When adding a UI element as a child, pass in the element type's constructor params
-     * to `typename... Args` *EXCLUDING* its first constructor parameter of type `kee::ui::base::required&`!
+     * to `typename... Args` *EXCLUDING* its first constructor parameter of type `kee::ui::required&`!
      * These functions will populate the first parameter for you.
      */
     template <std::derived_from<kee::ui::base> T, typename... Args>
@@ -95,6 +97,7 @@ public:
     /**
      * You the developer are responsible for manually handling events, updating, and rendering temporary
      * children. Unlike regular children, child references to temporary elements are invalidated when moved.
+     * Do not use temporary children event handlers directly!
      */
     template <std::derived_from<kee::ui::base> T, typename... Args>
     T make_temp_child(Args&&... args);
@@ -130,7 +133,11 @@ protected:
     /**
      * Scene subclasses do *NOT* specify a `parent`, non-scene subclasses do.
      */
-    base(const kee::ui::base::required& reqs);
+    base(const kee::ui::required& reqs);
+
+    virtual bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods);
+    virtual bool on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods);
+    virtual bool on_element_char_press(char c);
 
     virtual bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods);
     virtual bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods);
@@ -140,12 +147,11 @@ protected:
     virtual void update_element(float dt);
     virtual void render_element() const;
 
-    kee::global_assets& assets;
+    kee::ui::required reqs;
 
 private:
     raylib::Vector2 get_dims(const raylib::Rectangle& parent_raw_rect) const;
 
-    boost::optional<kee::ui::base&> parent;
     /**
      * Outer `unique_ptr` so handle references aren't invalidated on moves.
      * Inner `unique_ptr` so multimap can store subclasses of `kee::ui::base`.
@@ -156,15 +162,6 @@ private:
     std::optional<raylib::Color> color;
 
     bool has_render_priority;
-};
-
-class base::required
-{
-public:
-    required(boost::optional<kee::ui::base&> parent, kee::global_assets& assets);
-
-    boost::optional<kee::ui::base&> parent;
-    kee::global_assets& assets;
 };
 
 } // namespace ui
