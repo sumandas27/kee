@@ -1483,6 +1483,85 @@ compose_tab::compose_tab(const kee::ui::base::required& reqs) :
     unselect();
 }
 
+int compose_tab::get_ticks_per_beat() const
+{
+    return tick_freqs[tick_freq_idx];
+}
+
+bool compose_tab::is_music_playing() const
+{
+    return music.IsPlaying();
+}
+
+bool compose_tab::is_beat_snap_enabled() const
+{
+    return is_beat_snap;
+}
+
+bool compose_tab::is_key_lock_enabled() const
+{
+    return is_key_locked;
+}
+
+float compose_tab::get_beat() const
+{
+    return (music_time - music_start_offset) * music_bpm / 60.0f;
+}
+
+void compose_tab::set_beat(float new_beat)
+{
+    const float music_time_raw = music_start_offset + new_beat * 60.0f / music_bpm;
+    music_time = std::clamp(music_time_raw, 0.0f, music.GetTimeLength());
+}
+
+void compose_tab::unselect()
+{
+    for (int prev_id : selected_key_ids)
+    {
+        keys.at(prev_id).ref.set_opt_color(raylib::Color::White());
+        keys.at(prev_id).ref.is_selected = false;
+        keys.at(prev_id).ref.frame.change_z_order(-1);
+        keys.at(prev_id).ref.key_text.change_z_order(-1);
+    }
+
+    selected_key_ids.clear();
+    obj_editor.ref.reset_render_hit_objs();
+}
+
+void compose_tab::select(int id)
+{
+    keys.at(id).ref.set_opt_color(raylib::Color::Green());
+    keys.at(id).ref.is_selected = true;
+    keys.at(id).ref.frame.change_z_order(0);
+    keys.at(id).ref.key_text.change_z_order(0);
+
+    selected_key_ids.insert(
+        std::lower_bound(selected_key_ids.begin(), selected_key_ids.end(), id,
+            [](int l, int r) { return compose_tab::key_to_prio.at(l) <= compose_tab::key_to_prio.at(r); }
+        ),
+    id);
+
+    obj_editor.ref.reset_render_hit_objs();
+}
+
+void compose_tab::add_event(const compose_tab_event& e)
+{
+    event_history.erase(event_history.begin(), event_history.begin() + event_history_idx);
+    event_history.push_front(e);
+    event_history_idx = 0;
+}
+
+void compose_tab::process_event(const compose_tab_event& e)
+{
+    for (const hit_obj_metadata& hit_obj : e.added)
+        keys.at(hit_obj.key).ref.hit_objects.emplace(hit_obj.position.beat, compose_tab_hit_object(hit_obj.key, hit_obj.position.duration));
+
+    for (const hit_obj_metadata& hit_obj : e.removed)
+        keys.at(hit_obj.key).ref.hit_objects.erase(hit_obj.position.beat);
+
+    obj_editor.ref.reset_render_hit_objs();
+}
+
 bool compose_tab::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods)
 {
     switch (keycode)
@@ -1605,85 +1684,6 @@ bool compose_tab::on_element_key_down(int keycode, magic_enum::containers::bitse
     }
 }
 
-int compose_tab::get_ticks_per_beat() const
-{
-    return tick_freqs[tick_freq_idx];
-}
-
-bool compose_tab::is_music_playing() const
-{
-    return music.IsPlaying();
-}
-
-bool compose_tab::is_beat_snap_enabled() const
-{
-    return is_beat_snap;
-}
-
-bool compose_tab::is_key_lock_enabled() const
-{
-    return is_key_locked;
-}
-
-float compose_tab::get_beat() const
-{
-    return (music_time - music_start_offset) * music_bpm / 60.0f;
-}
-
-void compose_tab::set_beat(float new_beat)
-{
-    const float music_time_raw = music_start_offset + new_beat * 60.0f / music_bpm;
-    music_time = std::clamp(music_time_raw, 0.0f, music.GetTimeLength());
-}
-
-void compose_tab::unselect()
-{
-    for (int prev_id : selected_key_ids)
-    {
-        keys.at(prev_id).ref.set_opt_color(raylib::Color::White());
-        keys.at(prev_id).ref.is_selected = false;
-        keys.at(prev_id).ref.frame.change_z_order(-1);
-        keys.at(prev_id).ref.key_text.change_z_order(-1);
-    }
-
-    selected_key_ids.clear();
-    obj_editor.ref.reset_render_hit_objs();
-}
-
-void compose_tab::select(int id)
-{
-    keys.at(id).ref.set_opt_color(raylib::Color::Green());
-    keys.at(id).ref.is_selected = true;
-    keys.at(id).ref.frame.change_z_order(0);
-    keys.at(id).ref.key_text.change_z_order(0);
-
-    selected_key_ids.insert(
-        std::lower_bound(selected_key_ids.begin(), selected_key_ids.end(), id,
-            [](int l, int r) { return compose_tab::key_to_prio.at(l) <= compose_tab::key_to_prio.at(r); }
-        ),
-    id);
-
-    obj_editor.ref.reset_render_hit_objs();
-}
-
-void compose_tab::add_event(const compose_tab_event& e)
-{
-    event_history.erase(event_history.begin(), event_history.begin() + event_history_idx);
-    event_history.push_front(e);
-    event_history_idx = 0;
-}
-
-void compose_tab::process_event(const compose_tab_event& e)
-{
-    for (const hit_obj_metadata& hit_obj : e.added)
-        keys.at(hit_obj.key).ref.hit_objects.emplace(hit_obj.position.beat, compose_tab_hit_object(hit_obj.key, hit_obj.position.duration));
-
-    for (const hit_obj_metadata& hit_obj : e.removed)
-        keys.at(hit_obj.key).ref.hit_objects.erase(hit_obj.position.beat);
-
-    obj_editor.ref.reset_render_hit_objs();
-}
-
 bool compose_tab::on_element_mouse_scroll(float mouse_scroll)
 {
     if (is_music_playing())
@@ -1777,7 +1777,7 @@ void compose_tab::set_tick_freq_idx(std::size_t new_tick_freq_idx)
 
 editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     kee::scene::base(window, assets),
-    tab_active_rect_rel_x(add_transition<float>(1.0f / editor::tab_names.size())),
+    tab_active_rect_rel_x(add_transition<float>(1.0f / magic_enum::enum_count<editor::tabs>())),
     exit_button_rect_alpha(add_transition<float>(0.0f)),
     tab_rect(add_child<kee::ui::rect>(1,
         raylib::Color(10, 10, 10, 255),
@@ -1803,7 +1803,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         pos(pos::type::rel, tab_active_rect_rel_x.get()),
         pos(pos::type::rel, 0),
         dims(
-            dim(dim::type::rel, 1.0f / editor::tab_names.size()),
+            dim(dim::type::rel, 1.0f / magic_enum::enum_count<editor::tabs>()),
             dim(dim::type::rel, 1)
         ),
         false, std::nullopt, std::nullopt
@@ -1824,7 +1824,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         border(border::type::abs, 0),
         true, std::nullopt, std::nullopt
     )),
-    compose_tab_elem(add_child<compose_tab>(std::nullopt))
+    active_elem(make_temp_child<compose_tab>())
 {
     const raylib::Rectangle tab_raw_rect = tab_rect.ref.get_raw_rect();
     std::get<kee::dims>(tab_display_frame.ref.dimensions).w.val = tab_raw_rect.width - tab_raw_rect.height;
@@ -1844,18 +1844,18 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         }
     };
 
-    tab_buttons.reserve(editor::tab_names.size());
-    tab_button_text.reserve(editor::tab_names.size());
+    tab_buttons.reserve(magic_enum::enum_count<editor::tabs>());
+    tab_button_text.reserve(magic_enum::enum_count<editor::tabs>());
 
-    for (std::size_t i = 0; i < editor::tab_names.size(); i++)
+    for (std::size_t i = 0; i < magic_enum::enum_count<editor::tabs>(); i++)
     {
         tab_button_text_colors.push_back(add_transition<kee::color>(kee::color::white()));
 
         tab_buttons.push_back(tab_display_frame.ref.add_child<kee::ui::button>(std::nullopt,
-            pos(pos::type::rel, static_cast<float>(i) / editor::tab_names.size()),
+            pos(pos::type::rel, static_cast<float>(i) / magic_enum::enum_count<editor::tabs>()),
             pos(pos::type::rel, 0),
             dims(
-                dim(dim::type::rel, 1.0f / editor::tab_names.size()),
+                dim(dim::type::rel, 1.0f / magic_enum::enum_count<editor::tabs>()),
                 dim(dim::type::rel, 1)
             ),
             false
@@ -1878,32 +1878,62 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
 
         tab_buttons.back().ref.on_click_l = [&, idx = i]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
         {
-            const float new_rel_x = static_cast<float>(idx) / editor::tab_names.size();
+            const float new_rel_x = static_cast<float>(idx) / magic_enum::enum_count<editor::tabs>();
             this->tab_active_rect_rel_x.set(std::nullopt, new_rel_x, 0.3f, kee::transition_type::exp);
 
             /* TODO: switch tab element here */
         };
+
+        const editor::tabs tab_enum = static_cast<editor::tabs>(i);
+        std::string enum_name = std::string(magic_enum::enum_name(tab_enum));
+        std::transform(enum_name.begin(), enum_name.end(), enum_name.begin(), [](unsigned char c) { return std::toupper(c); });
 
         tab_button_text.push_back(tab_buttons.back().ref.add_child<kee::ui::text>(std::nullopt,
             raylib::Color::White(),
             pos(pos::type::rel, 0.5f),
             pos(pos::type::rel, 0.5f),
             ui::text_size(ui::text_size::type::rel_h, 0.6f),
-            true, assets.font_semi_bold, editor::tab_names[i], false
+            true, assets.font_semi_bold, enum_name, false
         ));
     }
 }
 
-const std::array<std::string, 4> editor::tab_names = {
-    "METADATA",
-    "COMPOSE",
-    "DECORATION",
-    "TIMING"
-};
-
 bool editor::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods)
 {
-    return compose_tab_elem.ref.on_element_key_down(keycode, mods);
+    active_elem.on_key_down(keycode, mods);
+    return true;
+}
+
+bool editor::on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods)
+{
+    active_elem.on_key_up(keycode, mods);
+    return true;
+}
+
+bool editor::on_element_char_press(char c)
+{
+    active_elem.on_char_press(c);
+    return true;
+}
+
+bool editor::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods)
+{
+    return active_elem.on_mouse_down(mouse_pos, is_mouse_l, mods);
+}
+
+bool editor::on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods)
+{
+    return active_elem.on_mouse_up(mouse_pos, is_mouse_l, mods);
+}
+
+void editor::on_element_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods)
+{
+    return active_elem.on_mouse_move(mouse_pos, mods);
+}
+
+bool editor::on_element_mouse_scroll(float scroll_amount)
+{
+    return active_elem.on_mouse_scroll(scroll_amount);
 }
 
 void editor::update_element([[maybe_unused]] float dt)
@@ -1913,6 +1943,13 @@ void editor::update_element([[maybe_unused]] float dt)
 
     tab_active_rect.ref.x.val = tab_active_rect_rel_x.get();
     exit_button_rect.ref.set_opt_color(raylib::Color(255, 0, 0, static_cast<unsigned char>(exit_button_rect_alpha.get())));
+    
+    active_elem.update(dt);
+}
+
+void editor::render_element() const
+{
+    active_elem.render();
 }
 
 } // namespace scene

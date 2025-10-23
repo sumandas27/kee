@@ -289,8 +289,6 @@ public:
 
     compose_tab(const kee::ui::base::required& reqs);
 
-    bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
-
     int get_ticks_per_beat() const;
     bool is_music_playing() const;
     bool is_beat_snap_enabled() const;
@@ -315,6 +313,7 @@ private:
 
     static constexpr std::array<float, 6> playback_speeds = { 0.25f, 0.5f, 0.75f, 1.0f, 1.5f, 2.0f };
 
+    bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
     bool on_element_mouse_scroll(float mouse_scroll) override;
 
     void update_element(float dt) override;
@@ -399,11 +398,19 @@ public:
     editor(const kee::scene::window& window, kee::global_assets& assets);
 
 private:
-    static const std::array<std::string, 4> tab_names;
+    enum class tabs;
 
     bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
+    bool on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
+    bool on_element_char_press(char c) override;
+
+    bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods) override;
+    bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods) override;
+    void on_element_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods) override;
+    bool on_element_mouse_scroll(float scroll_amount) override;
 
     void update_element(float dt) override;
+    void render_element() const override;
 
     std::vector<std::reference_wrapper<kee::transition<kee::color>>> tab_button_text_colors;
     kee::transition<float>& tab_active_rect_rel_x;
@@ -419,7 +426,15 @@ private:
     kee::ui::handle<kee::ui::rect> exit_button_rect;
     /* TODO: port in icon png */
 
-    kee::ui::handle<compose_tab> compose_tab_elem;
+    compose_tab active_elem;
+};
+
+enum class editor::tabs
+{
+    metadata,
+    compose,
+    decoration,
+    timing
 };
 
 } // namespace scene

@@ -122,7 +122,7 @@ protected:
      * Scene subclasses do *NOT* specify a `parent`, non-scene subclasses do.
      */
     base(const kee::ui::base::required& reqs);
-    
+
     virtual bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods);
     virtual bool on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods);
     virtual bool on_element_char_press(char c);

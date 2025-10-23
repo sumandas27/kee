@@ -1,7 +1,5 @@
 #include "kee/game.hpp"
 
-#include <stacktrace>
-
 int main()
 {
     if constexpr (!magic_enum::is_magic_enum_supported)
@@ -33,7 +31,5 @@ int main()
         std::println(stderr, "General Exception Caught");
     }
 
-    std::println("Printing stacktrace...");
-    std::println(stderr, "{}", std::stacktrace::current());
     return EXIT_FAILURE;
 }
