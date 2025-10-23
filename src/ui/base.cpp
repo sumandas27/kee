@@ -62,6 +62,22 @@ void base::on_char_press(char c)
         parent.value().on_char_press(c);
 }
 
+bool base::on_element_key_down(
+    [[maybe_unused]] int keycode, 
+    [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods
+) { 
+    return false; 
+}
+
+bool base::on_element_key_up(
+    [[maybe_unused]] int keycode, 
+    [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods
+) { 
+    return false; 
+}
+
+bool base::on_element_char_press([[maybe_unused]] char c) { return false; }
+
 bool base::on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods)
 {
     for (auto it = children->rbegin(); it != children->rend(); it++)
@@ -243,22 +259,6 @@ base::base(const kee::ui::base::required& reqs) :
     children(std::make_unique<std::multimap<int, std::unique_ptr<kee::ui::base>>>()),
     has_render_priority(false)
 { }
-
-bool base::on_element_key_down(
-    [[maybe_unused]] int keycode, 
-    [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods
-) { 
-    return false; 
-}
-
-bool base::on_element_key_up(
-    [[maybe_unused]] int keycode, 
-    [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods
-) { 
-    return false; 
-}
-
-bool base::on_element_char_press([[maybe_unused]] char c) { return false; }
 
 bool base::on_element_mouse_down(
     [[maybe_unused]] const raylib::Vector2& mouse_pos, 

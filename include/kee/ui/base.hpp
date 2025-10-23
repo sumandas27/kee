@@ -67,6 +67,15 @@ public:
     void on_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods);
     void on_char_press(char c);
 
+    /**
+     * `public` unlike other event handlers for precise control of temp children. Mouse event
+     * handlers don't need these exposed even for temp children.
+     */
+    /* TODO: i don't like this, think of how to work w/ this */
+    virtual bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods);
+    virtual bool on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods);
+    virtual bool on_element_char_press(char c);
+
     virtual bool on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods);
     virtual bool on_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods);
     void on_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods);
@@ -122,10 +131,6 @@ protected:
      * Scene subclasses do *NOT* specify a `parent`, non-scene subclasses do.
      */
     base(const kee::ui::base::required& reqs);
-
-    virtual bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods);
-    virtual bool on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods);
-    virtual bool on_element_char_press(char c);
 
     virtual bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods);
     virtual bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods);

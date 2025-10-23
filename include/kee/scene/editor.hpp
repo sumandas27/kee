@@ -289,6 +289,8 @@ public:
 
     compose_tab(const kee::ui::base::required& reqs);
 
+    bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
+
     int get_ticks_per_beat() const;
     bool is_music_playing() const;
     bool is_beat_snap_enabled() const;
@@ -313,9 +315,7 @@ private:
 
     static constexpr std::array<float, 6> playback_speeds = { 0.25f, 0.5f, 0.75f, 1.0f, 1.5f, 2.0f };
 
-    bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
     bool on_element_mouse_scroll(float mouse_scroll) override;
-
     void update_element(float dt) override;
 
     void set_tick_freq_idx(std::size_t new_tick_freq_idx);
@@ -412,6 +412,8 @@ private:
     void update_element(float dt) override;
     void render_element() const override;
 
+    kee::image_texture exit_png;
+
     std::vector<std::reference_wrapper<kee::transition<kee::color>>> tab_button_text_colors;
     kee::transition<float>& tab_active_rect_rel_x;
     kee::transition<float>& exit_button_rect_alpha;
@@ -424,7 +426,7 @@ private:
 
     kee::ui::handle<kee::ui::button> exit_button;
     kee::ui::handle<kee::ui::rect> exit_button_rect;
-    /* TODO: port in icon png */
+    kee::ui::handle<kee::ui::image> exit_button_image;
 
     compose_tab active_elem;
 };
