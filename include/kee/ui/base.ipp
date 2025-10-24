@@ -40,12 +40,12 @@ template <std::derived_from<kee::ui::base> T, typename... Args>
 kee::ui::handle<T> base::add_child(std::optional<int> z_order, Args&&... args)
 {
     std::unique_ptr<T> child = std::make_unique<T>(
-        kee::ui::base::required(*this, assets), 
+        kee::ui::required(*this, game_ref, assets), 
         std::forward<Args>(args)...
     );
 
     T& ref = *child;
-    auto it = children->emplace(z_order.value_or(06), std::move(child));
+    auto it = children->emplace(z_order.value_or(0), std::move(child));
     return kee::ui::handle<T>(ref, *children, it);
 }
 
@@ -53,7 +53,7 @@ template <std::derived_from<kee::ui::base> T, typename... Args>
 T base::make_temp_child(Args&&... args)
 {
     return T(
-        kee::ui::base::required(*this, assets), 
+        kee::ui::required(*this, game_ref, assets), 
         std::forward<Args>(args)...
     );
 }

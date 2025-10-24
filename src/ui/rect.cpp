@@ -16,7 +16,7 @@ rect_roundness::rect_roundness(rect_roundness::type rect_roundness_type, float v
 { }
 
 rect::rect(
-    const kee::ui::base::required& reqs, 
+    const kee::ui::required& reqs, 
     const std::optional<raylib::Color>& color, 
     kee::pos x, 
     kee::pos y, 

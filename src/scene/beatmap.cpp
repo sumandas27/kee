@@ -21,7 +21,7 @@ beatmap_hit_object::beatmap_hit_object(float beat, float duration) :
         hold_next_combo = std::floor(beat + 1.0f);
 }
 
-beatmap_key::beatmap_key(const kee::ui::base::required& reqs, kee::scene::beatmap& beatmap_scene, int key_id, const raylib::Vector2& relative_pos) :
+beatmap_key::beatmap_key(const kee::ui::required& reqs, kee::scene::beatmap& beatmap_scene, int key_id, const raylib::Vector2& relative_pos) :
     kee::ui::base(reqs,
         pos(pos::type::rel, relative_pos.x),
         pos(pos::type::rel, relative_pos.y),
@@ -158,8 +158,8 @@ void beatmap_key::render_element() const
         hit_obj_rect.render();
 }
 
-beatmap::beatmap(const kee::scene::window& window, kee::global_assets& assets) :
-    kee::scene::base(window, assets),
+beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_assets& assets) :
+    kee::scene::base(window, game, assets),
     combo_gain(add_transition<float>(0.0f)),
     load_rect(add_child<kee::ui::rect>(0,
         raylib::Color(255, 255, 255, 20),

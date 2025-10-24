@@ -28,7 +28,7 @@ class text final : public kee::ui::base
 {
 public:
     text(
-        const kee::ui::base::required& reqs, 
+        const kee::ui::required& reqs, 
         const std::optional<raylib::Color>& color, 
         kee::pos p_x, 
         kee::pos p_y, 

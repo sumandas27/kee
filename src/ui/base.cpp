@@ -2,12 +2,13 @@
 
 #include "kee/scene/base.hpp"
 #include "kee/ui/rect.hpp"
+#include "kee/game.hpp"
 
 namespace kee {
 namespace ui {
 
 base::base(
-    const kee::ui::base::required& reqs, 
+    const kee::ui::required& reqs, 
     kee::pos x, 
     kee::pos y, 
     const std::variant<kee::dims, kee::border>& dimensions, 
@@ -19,6 +20,7 @@ base::base(
     centered(centered),
     assets(reqs.assets),
     parent(reqs.parent),
+    game_ref(reqs.game_ref),
     children(std::make_unique<std::multimap<int, std::unique_ptr<kee::ui::base>>>()),
     has_render_priority(false)
 { 
@@ -32,6 +34,7 @@ base::base(base&& other) noexcept :
     centered(other.centered),
     assets(other.assets),
     parent(other.parent),
+    game_ref(other.game_ref),
     children(std::move(other.children)),
     transitions(std::move(other.transitions)),
     color(std::move(other.color)),
@@ -61,22 +64,6 @@ void base::on_char_press(char c)
     if (!consumed && parent.has_value())
         parent.value().on_char_press(c);
 }
-
-bool base::on_element_key_down(
-    [[maybe_unused]] int keycode, 
-    [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods
-) { 
-    return false; 
-}
-
-bool base::on_element_key_up(
-    [[maybe_unused]] int keycode, 
-    [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods
-) { 
-    return false; 
-}
-
-bool base::on_element_char_press([[maybe_unused]] char c) { return false; }
 
 bool base::on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods)
 {
@@ -253,12 +240,48 @@ void base::release_render_priority()
         throw std::logic_error("Root element is not a scene!");
 }
 
-base::base(const kee::ui::base::required& reqs) :
+void base::take_keyboard_capture()
+{
+    if (game_ref.element_keyboard_capture.has_value())
+        throw std::runtime_error("take_keyboard_capture: keyboard capture already owned");
+
+    game_ref.element_keyboard_capture = *this;
+}
+
+void base::release_keyboard_capture()
+{
+    if (!game_ref.element_keyboard_capture.has_value())
+        throw std::runtime_error("release_keyboard_capture: keyboard capture not owned");
+
+    if (&game_ref.element_keyboard_capture.value() != this)
+        throw std::runtime_error("release_keyboard_capture: this does not own keyboard capture");
+
+    game_ref.element_keyboard_capture.reset();
+}
+
+base::base(const kee::ui::required& reqs) :
     assets(reqs.assets),
     parent(reqs.parent),
+    game_ref(reqs.game_ref),
     children(std::make_unique<std::multimap<int, std::unique_ptr<kee::ui::base>>>()),
     has_render_priority(false)
 { }
+
+bool base::on_element_key_down(
+    [[maybe_unused]] int keycode, 
+    [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods
+) { 
+    return false; 
+}
+
+bool base::on_element_key_up(
+    [[maybe_unused]] int keycode, 
+    [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods
+) { 
+    return false; 
+}
+
+bool base::on_element_char_press([[maybe_unused]] char c) { return false; }
 
 bool base::on_element_mouse_down(
     [[maybe_unused]] const raylib::Vector2& mouse_pos, 
@@ -368,8 +391,9 @@ raylib::Vector2 base::get_dims(const raylib::Rectangle& parent_raw_rect) const
     return res;
 }
 
-base::required::required(boost::optional<kee::ui::base&> parent, kee::global_assets& assets) :
+required::required(boost::optional<kee::ui::base&> parent, kee::game& game_ref, kee::global_assets& assets) :
     parent(parent),
+    game_ref(game_ref),
     assets(assets)
 { }
 

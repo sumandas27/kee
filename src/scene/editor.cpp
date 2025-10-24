@@ -1,5 +1,6 @@
 #include "kee/scene/editor.hpp"
 
+#include <chrono>
 #include <ranges>
 
 namespace kee {
@@ -10,7 +11,7 @@ editor_hit_object::editor_hit_object(int key, float duration) :
     duration(duration)
 { }
 
-hit_obj_ui::hit_obj_ui(const kee::ui::base::required& reqs, float beat, float duration, float curr_beat, float beat_width, std::size_t key_idx, std::size_t rendered_key_count) :
+hit_obj_ui::hit_obj_ui(const kee::ui::required& reqs, float beat, float duration, float curr_beat, float beat_width, std::size_t key_idx, std::size_t rendered_key_count) :
     kee::ui::rect(reqs,
         raylib::Color::DarkBlue(),
         pos(pos::type::rel, (beat - curr_beat + beat_width) / (2 * beat_width)),
@@ -308,7 +309,7 @@ hit_obj_node::hit_obj_node(
 { }
 
 object_editor::object_editor(
-    const kee::ui::base::required& reqs,
+    const kee::ui::required& reqs,
     const std::vector<int>& selected_key_ids,
     std::unordered_map<int, kee::ui::handle<compose_tab_key>>& keys,
     kee::scene::compose_tab& compose_tab_scene
@@ -1487,6 +1488,88 @@ compose_tab::compose_tab(
     unselect();
 }
 
+int compose_tab::get_ticks_per_beat() const
+{
+    return tick_freqs[tick_freq_idx];
+}
+
+bool compose_tab::is_music_playing() const
+{
+    return music.IsPlaying();
+}
+
+bool compose_tab::is_beat_snap_enabled() const
+{
+    return is_beat_snap;
+}
+
+bool compose_tab::is_key_lock_enabled() const
+{
+    return is_key_locked;
+}
+
+float compose_tab::get_beat() const
+{
+    return (music_time - music_start_offset) * music_bpm / 60.0f;
+}
+
+void compose_tab::set_beat(float new_beat)
+{
+    const float music_time_raw = music_start_offset + new_beat * 60.0f / music_bpm;
+    music_time = std::clamp(music_time_raw, 0.0f, music.GetTimeLength());
+}
+
+void compose_tab::unselect()
+{
+    for (int prev_id : selected_key_ids)
+    {
+        keys.at(prev_id).ref.set_opt_color(raylib::Color::White());
+        keys.at(prev_id).ref.is_selected = false;
+        keys.at(prev_id).ref.frame.change_z_order(-1);
+        keys.at(prev_id).ref.key_text.change_z_order(-1);
+    }
+
+    selected_key_ids.clear();
+    obj_editor.ref.reset_render_hit_objs();
+}
+
+void compose_tab::select(int id)
+{
+    if (keys.at(id).ref.is_selected)
+        return;
+
+    keys.at(id).ref.set_opt_color(raylib::Color::Green());
+    keys.at(id).ref.is_selected = true;
+    keys.at(id).ref.frame.change_z_order(0);
+    keys.at(id).ref.key_text.change_z_order(0);
+
+    selected_key_ids.insert(
+        std::lower_bound(selected_key_ids.begin(), selected_key_ids.end(), id,
+            [](int l, int r) { return compose_tab::key_to_prio.at(l) <= compose_tab::key_to_prio.at(r); }
+        ),
+    id);
+
+    obj_editor.ref.reset_render_hit_objs();
+}
+
+void compose_tab::add_event(const compose_tab_event& e)
+{
+    event_history.erase(event_history.begin(), event_history.begin() + event_history_idx);
+    event_history.push_front(e);
+    event_history_idx = 0;
+}
+
+void compose_tab::process_event(const compose_tab_event& e)
+{
+    for (const hit_obj_metadata& hit_obj : e.added)
+        keys.at(hit_obj.key).ref.hit_objects.emplace(hit_obj.position.beat, compose_tab_hit_object(hit_obj.key, hit_obj.position.duration));
+
+    for (const hit_obj_metadata& hit_obj : e.removed)
+        keys.at(hit_obj.key).ref.hit_objects.erase(hit_obj.position.beat);
+
+    obj_editor.ref.reset_render_hit_objs();
+}
+
 bool compose_tab::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods)
 {
     switch (keycode)
@@ -1782,6 +1865,8 @@ void compose_tab::set_tick_freq_idx(std::size_t new_tick_freq_idx)
     tick_curr_rect_x.set(std::nullopt, new_y, 0.2f, kee::transition_type::exp);
 }
 
+editor::editor(const kee::scene::window& window, kee::game& game, kee::global_assets& assets) :
+    kee::scene::base(window, game, assets),
 editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     kee::scene::base(window, assets),
     hit_objs(editor::init_hit_objs()),
@@ -1841,8 +1926,12 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         border(border::type::rel_w, 0.3f),
         true, false, false, 0.0f
     )),
+    active_tab_elem(add_child<compose_tab>(std::nullopt)),
+    active_tab(editor::tabs::compose)
     active_elem(make_temp_child<compose_tab>(hit_objs))
 {
+    active_tab_elem.value().ref.take_keyboard_capture();
+
     const raylib::Rectangle tab_raw_rect = tab_rect.ref.get_raw_rect();
     std::get<kee::dims>(tab_display_frame.ref.dimensions).w.val = tab_raw_rect.width - tab_raw_rect.height;
 
@@ -1898,7 +1987,25 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             const float new_rel_x = static_cast<float>(idx) / magic_enum::enum_count<editor::tabs>();
             this->tab_active_rect_rel_x.set(std::nullopt, new_rel_x, 0.3f, kee::transition_type::exp);
 
-            /* TODO: switch tab element here */
+            const editor::tabs tab_enum = static_cast<editor::tabs>(idx);
+            if (this->active_tab == tab_enum)
+                return;
+
+            this->active_tab = tab_enum;
+            switch (this->active_tab)
+            {
+            case editor::tabs::compose:
+                this->active_tab_elem.emplace(add_child<compose_tab>(std::nullopt));
+                this->active_tab_elem.value().ref.take_keyboard_capture();
+                return;
+            default:
+                if (this->active_tab_elem.has_value())
+                {
+                    this->active_tab_elem.value().ref.release_keyboard_capture();
+                    this->active_tab_elem.reset();
+                }
+                return;
+            }
         };
 
         const editor::tabs tab_enum = static_cast<editor::tabs>(i);
@@ -1972,13 +2079,6 @@ void editor::update_element([[maybe_unused]] float dt)
 
     tab_active_rect.ref.x.val = tab_active_rect_rel_x.get();
     exit_button_rect.ref.set_opt_color(raylib::Color(255, 0, 0, static_cast<unsigned char>(exit_button_rect_alpha.get())));
-    
-    active_elem.update(dt);
-}
-
-void editor::render_element() const
-{
-    active_elem.render();
 }
 
 } // namespace scene

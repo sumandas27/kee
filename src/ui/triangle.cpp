@@ -4,7 +4,7 @@ namespace kee {
 namespace ui {
 
 triangle::triangle(
-    const kee::ui::base::required& reqs, 
+    const kee::ui::required& reqs, 
     const std::optional<raylib::Color>& color, 
     kee::pos x,
     kee::pos y,

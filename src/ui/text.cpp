@@ -9,7 +9,7 @@ text_size::text_size(text_size::type text_size_type, float val) :
 { }
 
 text::text(
-    const kee::ui::base::required& reqs, 
+    const kee::ui::required& reqs, 
     const std::optional<raylib::Color>& color, 
     kee::pos p_x, 
     kee::pos p_y, 
@@ -29,7 +29,7 @@ text::text(
     ),
     font(font),
     font_cap_height_only(font_cap_height_only)
-{ 
+{
     set_opt_color(color);
     update_dims(p_string, p_str_size, 1.0f);
 }
@@ -67,7 +67,7 @@ void text::update_dims(
 ) {
     if (new_str.has_value())
         str = new_str.value();
-    
+
     if (new_str_size.has_value())
         switch (new_str_size.value().text_size_type)
         {

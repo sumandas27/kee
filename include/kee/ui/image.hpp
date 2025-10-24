@@ -9,7 +9,7 @@ class image final : public kee::ui::base
 {
 public:
     image(
-        const kee::ui::base::required& reqs,
+        const kee::ui::required& reqs,
         const kee::image_texture& img_texture,
         const raylib::Color& color,
         kee::pos x, 

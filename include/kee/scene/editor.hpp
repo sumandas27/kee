@@ -14,7 +14,14 @@
 namespace kee {
 namespace scene {
 
+/* TODO: split each tab into own file */
 /* TODO: add hitsounds while composing */
+
+/* TODO: populate */
+/*class metadata_tab final : public kee::ui::base
+{
+
+};*/
 
 class compose_tab;
 
@@ -33,7 +40,7 @@ public:
 class hit_obj_ui final : public kee::ui::rect
 {
 public:
-    hit_obj_ui(const kee::ui::base::required& reqs, float beat, float duration, float curr_beat, float beat_width, std::size_t key_idx, std::size_t rendered_key_count);
+    hit_obj_ui(const kee::ui::required& reqs, float beat, float duration, float curr_beat, float beat_width, std::size_t key_idx, std::size_t rendered_key_count);
 
     void select();
     void unselect();
@@ -226,7 +233,7 @@ public:
     static constexpr float beat_drag_speed = 7.0f;
 
     object_editor(
-        const kee::ui::base::required& reqs,
+        const kee::ui::required& reqs,
         const std::vector<int>& selected_key_ids,
         std::unordered_map<int, kee::ui::handle<compose_tab_key>>& keys,
         kee::scene::compose_tab& compose_tab_scene
@@ -323,7 +330,9 @@ private:
 
     static constexpr std::array<float, 6> playback_speeds = { 0.25f, 0.5f, 0.75f, 1.0f, 1.5f, 2.0f };
 
+    bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
     bool on_element_mouse_scroll(float mouse_scroll) override;
+
     void update_element(float dt) override;
 
     void set_tick_freq_idx(std::size_t new_tick_freq_idx);
@@ -402,24 +411,28 @@ private:
     std::vector<int> selected_key_ids;
 };
 
+/* TODO: populate */
+/*
+class decoration_tab final : public kee::ui::base
+{
+
+};
+
+class timing_tab final : public kee::ui::base
+{
+
+};
+*/
+
 class editor final : public kee::scene::base
 {
 public:
-    editor(const kee::scene::window& window, kee::global_assets& assets);
+    editor(const kee::scene::window& window, kee::game& game, kee::global_assets& assets);
 
 private:
     static std::unordered_map<int, std::map<float, editor_hit_object>> init_hit_objs();
 
     enum class tabs;
-
-    bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
-    bool on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
-    bool on_element_char_press(char c) override;
-
-    bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods) override;
-    bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods) override;
-    void on_element_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods) override;
-    bool on_element_mouse_scroll(float scroll_amount) override;
 
     void update_element(float dt) override;
     void render_element() const override;
@@ -442,7 +455,11 @@ private:
     kee::ui::handle<kee::ui::rect> exit_button_rect;
     kee::ui::handle<kee::ui::image> exit_button_image;
 
-    compose_tab active_elem;
+    /* TODO: turn into variant */
+    std::optional<
+        kee::ui::handle<compose_tab>
+    > active_tab_elem;
+    editor::tabs active_tab;
 };
 
 enum class editor::tabs

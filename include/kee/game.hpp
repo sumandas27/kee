@@ -12,13 +12,14 @@ public:
 
     void main_loop();
 
+    boost::optional<kee::ui::base&> element_keyboard_capture;
+
 private:
     kee::scene::window window;
     kee::global_assets assets;
     raylib::AudioDevice audio;
 
     boost::optional<kee::ui::base&> render_priority;
-    boost::optional<kee::ui::base&> element_keyboard_capture;
     std::unique_ptr<kee::scene::base> curr_scene;
 };
 

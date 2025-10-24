@@ -57,7 +57,7 @@ class rect : public kee::ui::base
 {
 public:
     rect(
-        const kee::ui::base::required& reqs, 
+        const kee::ui::required& reqs, 
         const std::optional<raylib::Color>& color, 
         kee::pos x,
         kee::pos y,
