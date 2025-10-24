@@ -2,6 +2,7 @@
 
 #include "kee/scene/base.hpp"
 #include "kee/ui/rect.hpp"
+#include "kee/game.hpp"
 
 namespace kee {
 namespace ui {
@@ -17,7 +18,9 @@ base::base(
     y(y),
     dimensions(dimensions),
     centered(centered),
-    reqs(reqs),
+    assets(reqs.assets),
+    parent(reqs.parent),
+    game_ref(reqs.game_ref),
     children(std::make_unique<std::multimap<int, std::unique_ptr<kee::ui::base>>>()),
     has_render_priority(false)
 { 
@@ -29,35 +32,37 @@ base::base(base&& other) noexcept :
     y(std::move(other.y)),
     dimensions(std::move(other.dimensions)),
     centered(other.centered),
-    reqs(other.reqs),
+    assets(other.assets),
+    parent(other.parent),
+    game_ref(other.game_ref),
     children(std::move(other.children)),
     transitions(std::move(other.transitions)),
     color(std::move(other.color)),
     has_render_priority(other.has_render_priority)
 { 
     for (auto& [_, child] : *children)
-        child.get()->reqs.parent = *this;
+        child.get()->parent = *this;
 }
 
 void base::on_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods)
 {
     const bool consumed = on_element_key_down(keycode, mods);
-    if (!consumed && reqs.parent.has_value())
-        reqs.parent.value().on_key_down(keycode, mods);
+    if (!consumed && parent.has_value())
+        parent.value().on_key_down(keycode, mods);
 }
 
 void base::on_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods)
 {
     const bool consumed = on_element_key_up(keycode, mods);
-    if (!consumed && reqs.parent.has_value())
-        reqs.parent.value().on_key_up(keycode, mods);
+    if (!consumed && parent.has_value())
+        parent.value().on_key_up(keycode, mods);
 }
 
 void base::on_char_press(char c)
 {
     const bool consumed = on_element_char_press(c);
-    if (!consumed && reqs.parent.has_value())
-        reqs.parent.value().on_char_press(c);
+    if (!consumed && parent.has_value())
+        parent.value().on_char_press(c);
 }
 
 bool base::on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods)
@@ -134,7 +139,7 @@ void base::render() const
 
 void base::set_opt_color(const std::optional<raylib::Color>& opt_color)
 {
-    if (!opt_color.has_value() && !reqs.parent.has_value())
+    if (!opt_color.has_value() && !parent.has_value())
         throw std::invalid_argument("Cannot set color source to parent when UI element has no parent!");
 
     color = opt_color;
@@ -147,13 +152,13 @@ const std::optional<raylib::Color>& base::get_opt_color() const
 
 raylib::Color base::get_color_from_opt(const std::optional<raylib::Color>& opt_color) const
 {
-    return opt_color.has_value() ? opt_color.value() : reqs.parent.value().get_color_from_opt(reqs.parent.value().get_opt_color());
+    return opt_color.has_value() ? opt_color.value() : parent.value().get_color_from_opt(parent.value().get_opt_color());
 }
 
 raylib::Rectangle base::get_raw_rect() const
 {
-    const raylib::Rectangle parent_raw_rect = reqs.parent.has_value() 
-        ? reqs.parent.value().get_raw_rect()
+    const raylib::Rectangle parent_raw_rect = parent.has_value() 
+        ? parent.value().get_raw_rect()
         : raylib::Rectangle(0, 0, 0, 0);
 
     raylib::Rectangle res;
@@ -196,14 +201,14 @@ raylib::Rectangle base::get_raw_rect() const
 
 raylib::Rectangle base::get_raw_rect_parent() const
 {
-    return reqs.parent.value().get_raw_rect();
+    return parent.value().get_raw_rect();
 }
 
 void base::take_render_priority()
 {
     std::reference_wrapper<kee::ui::base> scene = *this;
-    while (scene.get().reqs.parent.has_value())
-        scene = scene.get().reqs.parent.value();
+    while (scene.get().parent.has_value())
+        scene = scene.get().parent.value();
 
     if (auto scene_ptr = dynamic_cast<kee::scene::base*>(&scene.get()))
     {
@@ -220,8 +225,8 @@ void base::take_render_priority()
 void base::release_render_priority()
 {
     std::reference_wrapper<kee::ui::base> scene = *this;
-    while (scene.get().reqs.parent.has_value())
-        scene = scene.get().reqs.parent.value();
+    while (scene.get().parent.has_value())
+        scene = scene.get().parent.value();
 
     if (auto scene_ptr = dynamic_cast<kee::scene::base*>(&scene.get()))
     {
@@ -235,8 +240,29 @@ void base::release_render_priority()
         throw std::logic_error("Root element is not a scene!");
 }
 
+void base::take_keyboard_capture()
+{
+    if (game_ref.element_keyboard_capture.has_value())
+        throw std::runtime_error("take_keyboard_capture: keyboard capture already owned");
+
+    game_ref.element_keyboard_capture = *this;
+}
+
+void base::release_keyboard_capture()
+{
+    if (!game_ref.element_keyboard_capture.has_value())
+        throw std::runtime_error("release_keyboard_capture: keyboard capture not owned");
+
+    if (&game_ref.element_keyboard_capture.value() != this)
+        throw std::runtime_error("release_keyboard_capture: this does not own keyboard capture");
+
+    game_ref.element_keyboard_capture.reset();
+}
+
 base::base(const kee::ui::required& reqs) :
-    reqs(reqs),
+    assets(reqs.assets),
+    parent(reqs.parent),
+    game_ref(reqs.game_ref),
     children(std::make_unique<std::multimap<int, std::unique_ptr<kee::ui::base>>>()),
     has_render_priority(false)
 { }
@@ -365,9 +391,9 @@ raylib::Vector2 base::get_dims(const raylib::Rectangle& parent_raw_rect) const
     return res;
 }
 
-required::required(boost::optional<kee::ui::base&> parent, kee::game& game, kee::global_assets& assets) :
+required::required(boost::optional<kee::ui::base&> parent, kee::game& game_ref, kee::global_assets& assets) :
     parent(parent),
-    game(game),
+    game_ref(game_ref),
     assets(assets)
 { }
 

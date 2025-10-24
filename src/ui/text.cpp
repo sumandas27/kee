@@ -55,9 +55,9 @@ void text::render_element() const
     if (font_cap_height_only)
         raw_rect.y += raw_rect.height * (1.0f - font_cap_height_multiplier_approx);
 
-    reqs.assets.shader_sdf_font.BeginMode();
+    assets.shader_sdf_font.BeginMode();
     font.DrawText(str.c_str(), raw_rect.GetPosition(), str_size * scale, 0.0f, get_color_from_opt(get_opt_color()));
-    reqs.assets.shader_sdf_font.EndMode();
+    assets.shader_sdf_font.EndMode();
 }
 
 void text::update_dims(

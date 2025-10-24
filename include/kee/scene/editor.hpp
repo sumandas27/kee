@@ -17,6 +17,12 @@ namespace scene {
 /* TODO: split each tab into own file */
 /* TODO: add hitsounds while composing */
 
+/* TODO: populate */
+/*class metadata_tab final : public kee::ui::base
+{
+
+};*/
+
 class compose_tab;
 
 /**
@@ -393,6 +399,19 @@ private:
     std::vector<int> selected_key_ids;
 };
 
+/* TODO: populate */
+/*
+class decoration_tab final : public kee::ui::base
+{
+
+};
+
+class timing_tab final : public kee::ui::base
+{
+
+};
+*/
+
 class editor final : public kee::scene::base
 {
 public:
@@ -422,7 +441,8 @@ private:
     /* TODO: turn into variant */
     std::optional<
         kee::ui::handle<compose_tab>
-    > active_tab;
+    > active_tab_elem;
+    editor::tabs active_tab;
 };
 
 enum class editor::tabs

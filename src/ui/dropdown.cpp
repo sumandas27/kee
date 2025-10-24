@@ -51,7 +51,7 @@ dropdown::dropdown(
         pos(pos::type::rel, 0.05f),
         pos(pos::type::beg, 0),
         text_size(text_size::type::rel_h, 1),
-        false, reqs.assets.font_regular, options[start_idx], false
+        false, assets.font_regular, options[start_idx], false
     )),
     dropdown_button_frame(make_temp_child<kee::ui::base>(
         pos(pos::type::end, 0),
@@ -69,7 +69,7 @@ dropdown::dropdown(
         true
     )),
     dropdown_img(dropdown_img_frame.make_temp_child<kee::ui::image>(
-        reqs.assets.play_png,
+        assets.play_png,
         raylib::Color::White(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
@@ -157,7 +157,7 @@ dropdown::dropdown(
             pos(pos::type::rel, 0.05f),
             pos(pos::type::beg, 0),
             text_size(text_size::type::rel_h, 1),
-            false, reqs.assets.font_regular, options[i], false
+            false, assets.font_regular, options[i], false
         ));
     }
 

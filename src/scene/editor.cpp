@@ -1,6 +1,6 @@
-#include "kee/game.hpp"
 #include "kee/scene/editor.hpp"
 
+#include <chrono>
 #include <ranges>
 
 namespace kee {
@@ -143,7 +143,7 @@ compose_tab_key::compose_tab_key(const kee::ui::required& reqs, kee::scene::comp
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
-        true, reqs.assets.font_light, std::string(), false
+        true, assets.font_light, std::string(), false
     )),
     is_selected(false),
     compose_tab_scene(compose_tab_scene),
@@ -411,7 +411,7 @@ void object_editor::reset_render_hit_objs()
                 pos(pos::type::rel, 0.5f),
                 pos(pos::type::rel, rel_y),
                 ui::text_size(ui::text_size::type::rel_h, 0.1f),
-                true, reqs.assets.font_semi_bold, key_str, false
+                true, assets.font_semi_bold, key_str, false
             ));
         }
 }
@@ -757,7 +757,7 @@ void object_editor::update_element([[maybe_unused]] float dt)
                 pos(pos::type::rel, render_rel_x),
                 pos(pos::type::rel, 0.9f),
                 ui::text_size(ui::text_size::type::rel_h, 0.15f),
-                true, reqs.assets.font_semi_bold, std::to_string(whole_beat), true
+                true, assets.font_semi_bold, std::to_string(whole_beat), true
             ));
         }
     }
@@ -1059,7 +1059,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs) :
         pos(pos::type::rel, 0.325f),
         pos(pos::type::rel, 0.23f),
         ui::text_size(ui::text_size::type::rel_h, 0.025f),
-        true, reqs.assets.font_semi_bold, "BEAT SNAP", false
+        true, assets.font_semi_bold, "BEAT SNAP", false
     )),
     key_lock_button(inspector_rect.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0.1f),
@@ -1087,14 +1087,14 @@ compose_tab::compose_tab(const kee::ui::required& reqs) :
         pos(pos::type::rel, 0.31f),
         pos(pos::type::rel, 0.28f),
         ui::text_size(ui::text_size::type::rel_h, 0.025f),
-        true, reqs.assets.font_semi_bold, "KEY LOCK", false
+        true, assets.font_semi_bold, "KEY LOCK", false
     )),
     tick_text(inspector_rect.ref.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.05f),
         ui::text_size(ui::text_size::type::rel_h, 0.06f),
-        true, reqs.assets.font_semi_bold, "1 / " + std::to_string(get_ticks_per_beat()), false
+        true, assets.font_semi_bold, "1 / " + std::to_string(get_ticks_per_beat()), false
     )),
     tick_l_button(inspector_rect.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0.2f),
@@ -1159,7 +1159,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs) :
         pos(pos::type::rel, 0.295f),
         pos(pos::type::rel, 0.17f),
         ui::text_size(ui::text_size::type::rel_h, 0.025f),
-        true, reqs.assets.font_semi_bold, "PLAYBACK SPEED:", false
+        true, assets.font_semi_bold, "PLAYBACK SPEED:", false
     )),
     playback_dropdown(inspector_rect.ref.add_child<kee::ui::dropdown>(std::nullopt,
         pos(pos::type::rel, 0.75f),
@@ -1196,7 +1196,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs) :
         false
     )),
     pause_play_img(pause_play.ref.add_child<kee::ui::image>(std::nullopt,
-        reqs.assets.play_png,
+        assets.play_png,
         raylib::Color::White(),
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
@@ -1211,7 +1211,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs) :
         pos(pos::type::end, 0),
         pos(pos::type::beg, 30),
         ui::text_size(ui::text_size::type::abs, 80),
-        false, reqs.assets.font_regular, std::string(), false
+        false, assets.font_regular, std::string(), false
     )),
     key_border(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.4f),
@@ -1245,7 +1245,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs) :
             pos(pos::type::rel, static_cast<float>(i * 2 + 1) / (tick_freq_count * 2)),
             pos(pos::type::rel, 0.5f),
             ui::text_size(ui::text_size::type::rel_h, 0.7f),
-            true, reqs.assets.font_regular, std::to_string(tick_freqs[i]), false
+            true, assets.font_regular, std::to_string(tick_freqs[i]), false
         ));
 
         tick_frame_buttons.push_back(tick_frame.ref.add_child<kee::ui::button>(std::nullopt,
@@ -1439,7 +1439,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs) :
         if (this->music.IsPlaying())
         {
             this->music.Pause();
-            this->pause_play_img.ref.set_image(this->reqs.assets.play_png);
+            this->pause_play_img.ref.set_image(this->assets.play_png);
         }
         else
         {
@@ -1837,9 +1837,10 @@ editor::editor(const kee::scene::window& window, kee::game& game, kee::global_as
         border(border::type::rel_w, 0.3f),
         true, false, false, 0.0f
     )),
-    active_tab(add_child<compose_tab>(std::nullopt))
+    active_tab_elem(add_child<compose_tab>(std::nullopt)),
+    active_tab(editor::tabs::compose)
 {
-    reqs.game.element_keyboard_capture = active_tab.value().ref;
+    active_tab_elem.value().ref.take_keyboard_capture();
 
     const raylib::Rectangle tab_raw_rect = tab_rect.ref.get_raw_rect();
     std::get<kee::dims>(tab_display_frame.ref.dimensions).w.val = tab_raw_rect.width - tab_raw_rect.height;
@@ -1896,7 +1897,25 @@ editor::editor(const kee::scene::window& window, kee::game& game, kee::global_as
             const float new_rel_x = static_cast<float>(idx) / magic_enum::enum_count<editor::tabs>();
             this->tab_active_rect_rel_x.set(std::nullopt, new_rel_x, 0.3f, kee::transition_type::exp);
 
-            /* TODO: switch tab element here */
+            const editor::tabs tab_enum = static_cast<editor::tabs>(idx);
+            if (this->active_tab == tab_enum)
+                return;
+
+            this->active_tab = tab_enum;
+            switch (this->active_tab)
+            {
+            case editor::tabs::compose:
+                this->active_tab_elem.emplace(add_child<compose_tab>(std::nullopt));
+                this->active_tab_elem.value().ref.take_keyboard_capture();
+                return;
+            default:
+                if (this->active_tab_elem.has_value())
+                {
+                    this->active_tab_elem.value().ref.release_keyboard_capture();
+                    this->active_tab_elem.reset();
+                }
+                return;
+            }
         };
 
         const editor::tabs tab_enum = static_cast<editor::tabs>(i);
@@ -1908,7 +1927,7 @@ editor::editor(const kee::scene::window& window, kee::game& game, kee::global_as
             pos(pos::type::rel, 0.5f),
             pos(pos::type::rel, 0.5f),
             ui::text_size(ui::text_size::type::rel_h, 0.6f),
-            true, reqs.assets.font_semi_bold, enum_name, false
+            true, assets.font_semi_bold, enum_name, false
         ));
     }
 }

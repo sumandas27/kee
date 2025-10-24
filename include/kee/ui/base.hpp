@@ -43,13 +43,13 @@ private:
 class required
 {
 public:
-    required(boost::optional<kee::ui::base&> parent, kee::game& game, kee::global_assets& assets);
+    required(boost::optional<kee::ui::base&> parent, kee::game& game_ref, kee::global_assets& assets);
     required(const required&) = default;
 
     required& operator=(const required&) = delete;
 
     boost::optional<kee::ui::base&> parent;
-    kee::game& game;
+    kee::game& game_ref;
     kee::global_assets& assets;
 };
 
@@ -119,6 +119,9 @@ public:
     void take_render_priority();
     void release_render_priority();
 
+    void take_keyboard_capture();
+    void release_keyboard_capture();
+
     kee::pos x;
     kee::pos y;
     /**
@@ -147,10 +150,13 @@ protected:
     virtual void update_element(float dt);
     virtual void render_element() const;
 
-    kee::ui::required reqs;
+    kee::global_assets& assets;
 
 private:
     raylib::Vector2 get_dims(const raylib::Rectangle& parent_raw_rect) const;
+
+    boost::optional<kee::ui::base&> parent;
+    kee::game& game_ref;
 
     /**
      * Outer `unique_ptr` so handle references aren't invalidated on moves.

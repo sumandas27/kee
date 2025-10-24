@@ -54,7 +54,7 @@ beatmap_key::beatmap_key(const kee::ui::required& reqs, kee::scene::beatmap& bea
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         ui::text_size(ui::text_size::type::rel_h, 0.5 * (1.0f - 2 * kee::key_border_parent_h)),
-        true, reqs.assets.font_light, std::string(), false
+        true, assets.font_light, std::string(), false
     )),
     combo_lost_time(0.0f)
 {
@@ -186,14 +186,14 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
         pos(pos::type::beg, 40),
         pos(pos::type::end, 40),
         ui::text_size(ui::text_size::type::rel_h, 0.1f),
-        false, reqs.assets.font_light, "0x", true
+        false, assets.font_light, "0x", true
     )),
     combo_text_bg(add_child<kee::ui::text>(1,
         raylib::Color(255, 255, 255, 0),
         pos(pos::type::beg, 40),
         pos(pos::type::end, 40),
         ui::text_size(ui::text_size::type::rel_h, 0.1f),
-        false, reqs.assets.font_light, "0x", true
+        false, assets.font_light, "0x", true
     )),
     window_border(add_child<kee::ui::base>(1,
         pos(pos::type::rel, 0.5),
