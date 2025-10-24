@@ -112,7 +112,7 @@ class compose_tab_key : public kee::ui::button
 {
 public:
     compose_tab_key(
-        const kee::ui::base::required& reqs, 
+        const kee::ui::required& reqs, 
         kee::scene::compose_tab& compose_tab_scene,
         std::map<float, editor_hit_object>& hit_objects,
         int key_id
@@ -291,6 +291,34 @@ private:
     float beat_drag_multiplier;
 };
 
+class compose_tab_info
+{
+public:
+    static constexpr std::size_t tick_freq_count = 8;
+    static constexpr std::array<int, tick_freq_count> tick_freqs = { 1, 2, 3, 4, 6, 8, 12, 16 };
+
+    static constexpr std::array<float, 6> playback_speeds = { 0.25f, 0.5f, 0.75f, 1.0f, 1.5f, 2.0f };
+
+    compose_tab_info();
+
+    std::unordered_map<int, std::map<float, editor_hit_object>> hit_objs;
+
+    raylib::Music music;
+    float music_time;
+
+    bool is_beat_snap;
+    bool is_key_locked;
+
+    std::deque<compose_tab_event> event_history;
+    std::size_t event_history_idx;
+
+    std::size_t tick_freq_idx;
+    std::size_t playback_speed_idx;
+
+private:
+    static std::unordered_map<int, std::map<float, editor_hit_object>> init_hit_objs();
+};
+
 class compose_tab final : public kee::ui::base
 {
 public:
@@ -299,12 +327,8 @@ public:
     static const std::vector<int> prio_to_key;
     static const std::unordered_map<int, int> key_to_prio;
 
-    compose_tab(
-        const kee::ui::base::required& reqs, 
-        std::unordered_map<int, std::map<float, editor_hit_object>>& hit_objs
-    );
-
-    bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
+    compose_tab(const kee::ui::required& reqs, compose_tab_info& compose_info);
+    ~compose_tab();
 
     int get_ticks_per_beat() const;
     bool is_music_playing() const;
@@ -325,11 +349,6 @@ public:
     kee::ui::handle<object_editor> obj_editor;
 
 private:
-    static constexpr std::size_t tick_freq_count = 8;
-    static constexpr std::array<int, tick_freq_count> tick_freqs = { 1, 2, 3, 4, 6, 8, 12, 16 };
-
-    static constexpr std::array<float, 6> playback_speeds = { 0.25f, 0.5f, 0.75f, 1.0f, 1.5f, 2.0f };
-
     bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
     bool on_element_mouse_scroll(float mouse_scroll) override;
 
@@ -337,13 +356,13 @@ private:
 
     void set_tick_freq_idx(std::size_t new_tick_freq_idx);
 
+    compose_tab_info& compose_info;
+
     const float music_start_offset;
     const float music_bpm;
 
     kee::image_texture pause_png;
     kee::image_texture arrow_png;
-
-    std::size_t tick_freq_idx;
 
     kee::transition<kee::color>& pause_play_color;
     kee::transition<float>& pause_play_scale;
@@ -393,20 +412,10 @@ private:
     std::vector<kee::ui::handle<kee::ui::base>> key_holders;
     std::unordered_map<int, kee::ui::handle<compose_tab_key>> keys;
 
-    std::unordered_map<int, std::map<float, editor_hit_object>>& hit_objs;
-
     float mouse_wheel_move;
-    bool is_beat_snap;
-    bool is_key_locked;
-
-    raylib::Music music;
-    float music_time;
 
     std::vector<hit_obj_metadata> clipboard;
     float clipboard_reference_beat;
-
-    std::size_t event_history_idx;
-    std::deque<compose_tab_event> event_history;
 
     std::vector<int> selected_key_ids;
 };
@@ -430,14 +439,11 @@ public:
     editor(const kee::scene::window& window, kee::game& game, kee::global_assets& assets);
 
 private:
-    static std::unordered_map<int, std::map<float, editor_hit_object>> init_hit_objs();
-
     enum class tabs;
 
     void update_element(float dt) override;
-    void render_element() const override;
 
-    std::unordered_map<int, std::map<float, editor_hit_object>> hit_objs;
+    compose_tab_info compose_info;
 
     kee::image_texture exit_png;
 

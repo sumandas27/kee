@@ -120,7 +120,7 @@ compose_tab_event::compose_tab_event(const std::vector<hit_obj_metadata>& added,
 { }
 
 compose_tab_key::compose_tab_key(
-    const kee::ui::base::required& reqs, 
+    const kee::ui::required& reqs, 
     kee::scene::compose_tab& compose_tab_scene,
     std::map<float, editor_hit_object>& hit_objects,
     int key_id
@@ -386,7 +386,8 @@ object_editor::object_editor(
         raylib::Vector2(0, 0),
         raylib::Vector2(1, 0),
         raylib::Vector2(0.5, 1)
-    ))
+    )),
+    beat_drag_multiplier(0)
 { }
 
 void object_editor::reset_render_hit_objs()
@@ -999,12 +1000,37 @@ const std::unordered_map<int, int> compose_tab::key_to_prio = []
     return res;
 }();
 
-/* TODO: create smaller rect in inspector to store ui elements so everything is aligned */
+compose_tab_info::compose_tab_info() :
+    hit_objs(compose_tab_info::init_hit_objs()),
+    music("assets/daft-punk-something-about-us/daft-punk-something-about-us.mp3"),
+    music_time(0.0f),
+    is_beat_snap(true),
+    is_key_locked(true),  
+    event_history_idx(0),
+    tick_freq_idx(3),
+    playback_speed_idx(3)
+{ 
+    music.SetLooping(true);
+    music.SetVolume(0.1f);
+    music.Play();
+    music.Pause();
+}
 
-compose_tab::compose_tab(
-    const kee::ui::base::required& reqs,
-    std::unordered_map<int, std::map<float, editor_hit_object>>& hit_objs
-) :
+std::unordered_map<int, std::map<float, editor_hit_object>> compose_tab_info::init_hit_objs()
+{
+    std::unordered_map<int, std::map<float, editor_hit_object>> res;
+    for (const auto& [id, rel_pos] : kee::key_ui_data)
+        res[id];
+
+    res.at(KeyboardKey::KEY_Q).emplace(0.0f, editor_hit_object(KeyboardKey::KEY_Q, 2.0f));
+    res.at(KeyboardKey::KEY_W).emplace(0.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
+    res.at(KeyboardKey::KEY_W).emplace(4.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
+    res.at(KeyboardKey::KEY_W).emplace(8.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
+    res.at(KeyboardKey::KEY_W).emplace(12.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
+    return res;
+}
+
+compose_tab::compose_tab(const kee::ui::required& reqs, compose_tab_info& compose_info) :
     kee::ui::base(reqs,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.04f),
@@ -1015,23 +1041,23 @@ compose_tab::compose_tab(
         false
     ),
     approach_beats(2.0f),
+    compose_info(compose_info),
     music_start_offset(0.5f),
     obj_editor(add_child<object_editor>(std::nullopt, selected_key_ids, keys, *this)),
     music_bpm(100.0f),
     pause_png("assets/img/pause.png"),
     arrow_png("assets/img/arrow.png"),
-    tick_freq_idx(3),
     pause_play_color(add_transition<kee::color>(kee::color::white())),
     pause_play_scale(add_transition<float>(1.0f)),
     beat_snap_button_color(add_transition<kee::color>(kee::color::white())),
-    beat_snap_button_outline(add_transition<float>(0.6f)),
+    beat_snap_button_outline(add_transition<float>(compose_info.is_beat_snap ? 0.6f : 0.2f)),
     key_lock_button_color(add_transition<kee::color>(kee::color::white())),
-    key_lock_button_outline(add_transition<float>(0.6f)),
+    key_lock_button_outline(add_transition<float>(compose_info.is_key_locked ? 0.6f : 0.2f)),
     tick_l_button_color(add_transition<kee::color>(kee::color::white())),
     tick_r_button_color(add_transition<kee::color>(kee::color::white())),
     tick_l_button_scale(add_transition<float>(1.0f)),
     tick_r_button_scale(add_transition<float>(1.0f)),
-    tick_curr_rect_x(add_transition<float>(static_cast<float>(tick_freq_idx * 2 + 1) / (tick_freq_count * 2))),
+    tick_curr_rect_x(add_transition<float>(static_cast<float>(compose_info.tick_freq_idx * 2 + 1) / (compose_tab_info::tick_freq_count * 2))),
     inspector_rect(add_child<kee::ui::rect>(std::nullopt,
         raylib::Color(20, 20, 20),
         pos(pos::type::rel, 0.8f),
@@ -1158,7 +1184,7 @@ compose_tab::compose_tab(
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.5f),
         dims(
-            dim(dim::type::rel, 1.0f / tick_freq_count),
+            dim(dim::type::rel, 1.0f / compose_tab_info::tick_freq_count),
             dim(dim::type::rel, 1)
         ),
         true, std::nullopt, std::nullopt
@@ -1180,11 +1206,11 @@ compose_tab::compose_tab(
         true, 
         std::vector<std::string>(
             std::from_range,
-            playback_speeds | std::views::transform([](float playback_speed){
+            compose_tab_info::playback_speeds | std::views::transform([](float playback_speed){
                 return std::format("{:.2f}x", playback_speed);
             })
         ),
-        std::ranges::distance(playback_speeds.begin(), std::ranges::find(playback_speeds, 1.0f))
+        compose_info.playback_speed_idx    
     )),
     music_slider(add_child<kee::ui::slider>(std::nullopt,
         pos(pos::type::rel, 0.01f),
@@ -1240,29 +1266,23 @@ compose_tab::compose_tab(
         ),
         true
     )),
-    hit_objs(hit_objs),
-    mouse_wheel_move(0.0f),
-    is_beat_snap(true),
-    is_key_locked(true),
-    music("assets/daft-punk-something-about-us/daft-punk-something-about-us.mp3"),
-    music_time(0.0f),
-    event_history_idx(0)
+    mouse_wheel_move(0.0f)
 {
-    for (std::size_t i = 0; i < tick_freq_count; i++)
+    for (std::size_t i = 0; i < compose_tab_info::tick_freq_count; i++)
     {
         tick_frame_texts.push_back(tick_frame.ref.add_child<kee::ui::text>(std::nullopt,
             raylib::Color::White(),
-            pos(pos::type::rel, static_cast<float>(i * 2 + 1) / (tick_freq_count * 2)),
+            pos(pos::type::rel, static_cast<float>(i * 2 + 1) / (compose_tab_info::tick_freq_count * 2)),
             pos(pos::type::rel, 0.5f),
             ui::text_size(ui::text_size::type::rel_h, 0.7f),
-            true, assets.font_regular, std::to_string(tick_freqs[i]), false
+            true, assets.font_regular, std::to_string(compose_tab_info::tick_freqs[i]), false
         ));
 
         tick_frame_buttons.push_back(tick_frame.ref.add_child<kee::ui::button>(std::nullopt,
-            pos(pos::type::rel, static_cast<float>(i * 2 + 1) / (tick_freq_count * 2)),
+            pos(pos::type::rel, static_cast<float>(i * 2 + 1) / (compose_tab_info::tick_freq_count * 2)),
             pos(pos::type::rel, 0.5f),
             dims(
-                dim(dim::type::rel, 1.0f / tick_freq_count),
+                dim(dim::type::rel, 1.0f / compose_tab_info::tick_freq_count),
                 dim(dim::type::rel, 1)
             ),
             true
@@ -1313,8 +1333,8 @@ compose_tab::compose_tab(
 
     tick_l_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        if (this->tick_freq_idx != 0)
-            this->set_tick_freq_idx(this->tick_freq_idx - 1);
+        if (this->compose_info.tick_freq_idx != 0)
+            this->set_tick_freq_idx(this->compose_info.tick_freq_idx - 1);
     };
 
     tick_r_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -1339,21 +1359,21 @@ compose_tab::compose_tab(
 
     tick_r_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        if (this->tick_freq_idx != compose_tab::tick_freq_count - 1)
-            this->set_tick_freq_idx(this->tick_freq_idx + 1);
+        if (this->compose_info.tick_freq_idx != compose_tab_info::tick_freq_count - 1)
+            this->set_tick_freq_idx(this->compose_info.tick_freq_idx + 1);
     };
 
     beat_snap_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        if (this->is_beat_snap)
+        if (this->compose_info.is_beat_snap)
         {
             this->beat_snap_button_outline.set(std::nullopt, 0.2f, 0.25f, kee::transition_type::exp);
-            this->is_beat_snap = false;
+            this->compose_info.is_beat_snap = false;
         }
         else
         {
             this->beat_snap_button_outline.set(std::nullopt, 0.6f, 0.25f, kee::transition_type::exp);
-            this->is_beat_snap = true;
+            this->compose_info.is_beat_snap = true;
         }
     };
 
@@ -1374,15 +1394,15 @@ compose_tab::compose_tab(
 
     key_lock_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        if (this->is_key_locked)
+        if (this->compose_info.is_key_locked)
         {
             this->key_lock_button_outline.set(std::nullopt, 0.2f, 0.25f, kee::transition_type::exp);
-            this->is_key_locked = false;
+            this->compose_info.is_key_locked = false;
         }
         else
         {
             this->key_lock_button_outline.set(std::nullopt, 0.6f, 0.25f, kee::transition_type::exp);
-            this->is_key_locked = true;
+            this->compose_info.is_key_locked = true;
         }
     };
 
@@ -1403,21 +1423,22 @@ compose_tab::compose_tab(
 
     playback_dropdown.ref.on_select = [&](std::size_t idx)
     {
-        this->music.SetPitch(this->playback_speeds[idx]);
+        this->compose_info.playback_speed_idx = idx;
+        this->compose_info.music.SetPitch(compose_tab_info::playback_speeds[idx]);
     };
 
-    music_slider.ref.on_event = [&, music_is_playing = music.IsPlaying()](ui::slider::event slider_event) mutable
+    music_slider.ref.on_event = [&, music_is_playing = compose_info.music.IsPlaying()](ui::slider::event slider_event) mutable
     {
         switch (slider_event)
         {
         case ui::slider::event::on_down:
-            music_is_playing = music.IsPlaying();
-            this->music.Pause();
+            music_is_playing = compose_info.music.IsPlaying();
+            this->compose_info.music.Pause();
             break;
         case ui::slider::event::on_release:
-            this->music.Seek(music_slider.ref.progress * this->music.GetTimeLength());
+            this->compose_info.music.Seek(music_slider.ref.progress * this->compose_info.music.GetTimeLength());
             if (music_is_playing)
-                this->music.Resume();
+                this->compose_info.music.Resume();
             break;
         default:
             break;
@@ -1446,20 +1467,20 @@ compose_tab::compose_tab(
 
     pause_play.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     { 
-        if (this->music.IsPlaying())
+        if (this->compose_info.music.IsPlaying())
         {
-            this->music.Pause();
+            this->compose_info.music.Pause();
             this->pause_play_img.ref.set_image(this->assets.play_png);
         }
         else
         {
-            this->music.Seek(music_slider.ref.progress * this->music.GetTimeLength());
-            this->music.Resume();
+            this->compose_info.music.Seek(music_slider.ref.progress * this->compose_info.music.GetTimeLength());
+            this->compose_info.music.Resume();
             this->pause_play_img.ref.set_image(pause_png);            
         }
     };
 
-    const unsigned int music_length = static_cast<unsigned int>(music.GetTimeLength());
+    const unsigned int music_length = static_cast<unsigned int>(compose_info.music.GetTimeLength());
     const std::string music_length_str = std::format("0:00 / {}:{:02}", music_length / 60, music_length % 60);
     music_time_text.ref.set_string(music_length_str);
 
@@ -1475,48 +1496,46 @@ compose_tab::compose_tab(
             true
         ));
 
-        keys.emplace(id, key_holders.back().ref.add_child<compose_tab_key>(std::nullopt, *this, hit_objs[id], id));
+        keys.emplace(id, key_holders.back().ref.add_child<compose_tab_key>(std::nullopt, *this, compose_info.hit_objs[id], id));
     }
-
-    /* TODO: for testing only */
-
-    music.SetLooping(true);
-    music.SetVolume(0.1f);
-    music.Play();
-    music.Pause();
 
     unselect();
 }
 
+compose_tab::~compose_tab()
+{
+    compose_info.music.Pause();
+}
+
 int compose_tab::get_ticks_per_beat() const
 {
-    return tick_freqs[tick_freq_idx];
+    return compose_tab_info::tick_freqs[compose_info.tick_freq_idx];
 }
 
 bool compose_tab::is_music_playing() const
 {
-    return music.IsPlaying();
+    return compose_info.music.IsPlaying();
 }
 
 bool compose_tab::is_beat_snap_enabled() const
 {
-    return is_beat_snap;
+    return compose_info.is_beat_snap;
 }
 
 bool compose_tab::is_key_lock_enabled() const
 {
-    return is_key_locked;
+    return compose_info.is_key_locked;
 }
 
 float compose_tab::get_beat() const
 {
-    return (music_time - music_start_offset) * music_bpm / 60.0f;
+    return (compose_info.music_time - music_start_offset) * music_bpm / 60.0f;
 }
 
 void compose_tab::set_beat(float new_beat)
 {
     const float music_time_raw = music_start_offset + new_beat * 60.0f / music_bpm;
-    music_time = std::clamp(music_time_raw, 0.0f, music.GetTimeLength());
+    compose_info.music_time = std::clamp(music_time_raw, 0.0f, compose_info.music.GetTimeLength());
 }
 
 void compose_tab::unselect()
@@ -1554,15 +1573,15 @@ void compose_tab::select(int id)
 
 void compose_tab::add_event(const compose_tab_event& e)
 {
-    event_history.erase(event_history.begin(), event_history.begin() + event_history_idx);
-    event_history.push_front(e);
-    event_history_idx = 0;
+    compose_info.event_history.erase(compose_info.event_history.begin(), compose_info.event_history.begin() + compose_info.event_history_idx);
+    compose_info.event_history.push_front(e);
+    compose_info.event_history_idx = 0;
 }
 
 void compose_tab::process_event(const compose_tab_event& e)
 {
     for (const hit_obj_metadata& hit_obj : e.added)
-        keys.at(hit_obj.key).ref.hit_objects.emplace(hit_obj.position.beat, compose_tab_hit_object(hit_obj.key, hit_obj.position.duration));
+        keys.at(hit_obj.key).ref.hit_objects.emplace(hit_obj.position.beat, editor_hit_object(hit_obj.key, hit_obj.position.duration));
 
     for (const hit_obj_metadata& hit_obj : e.removed)
         keys.at(hit_obj.key).ref.hit_objects.erase(hit_obj.position.beat);
@@ -1667,21 +1686,21 @@ bool compose_tab::on_element_key_down(int keycode, magic_enum::containers::bitse
 
         if (mods.test(kee::mods::shift))
         {
-            if (event_history_idx <= 0)
+            if (compose_info.event_history_idx <= 0)
                 return true;
 
-            std::swap(event_history[event_history_idx - 1].added, event_history[event_history_idx - 1].removed);
-            process_event(event_history[event_history_idx - 1]);
-            event_history_idx--;
+            std::swap(compose_info.event_history[compose_info.event_history_idx - 1].added, compose_info.event_history[compose_info.event_history_idx - 1].removed);
+            process_event(compose_info.event_history[compose_info.event_history_idx - 1]);
+            compose_info.event_history_idx--;
         }
         else
         {
-            if (event_history_idx >= event_history.size())
+            if (compose_info.event_history_idx >= compose_info.event_history.size())
                 return true;
 
-            std::swap(event_history[event_history_idx].added, event_history[event_history_idx].removed);
-            process_event(event_history[event_history_idx]);
-            event_history_idx++;
+            std::swap(compose_info.event_history[compose_info.event_history_idx].added, compose_info.event_history[compose_info.event_history_idx].removed);
+            process_event(compose_info.event_history[compose_info.event_history_idx]);
+            compose_info.event_history_idx++;
         }
         
         return true;
@@ -1690,88 +1709,6 @@ bool compose_tab::on_element_key_down(int keycode, magic_enum::containers::bitse
     default:
         return false;
     }
-}
-
-int compose_tab::get_ticks_per_beat() const
-{
-    return tick_freqs[tick_freq_idx];
-}
-
-bool compose_tab::is_music_playing() const
-{
-    return music.IsPlaying();
-}
-
-bool compose_tab::is_beat_snap_enabled() const
-{
-    return is_beat_snap;
-}
-
-bool compose_tab::is_key_lock_enabled() const
-{
-    return is_key_locked;
-}
-
-float compose_tab::get_beat() const
-{
-    return (music_time - music_start_offset) * music_bpm / 60.0f;
-}
-
-void compose_tab::set_beat(float new_beat)
-{
-    const float music_time_raw = music_start_offset + new_beat * 60.0f / music_bpm;
-    music_time = std::clamp(music_time_raw, 0.0f, music.GetTimeLength());
-}
-
-void compose_tab::unselect()
-{
-    for (int prev_id : selected_key_ids)
-    {
-        keys.at(prev_id).ref.set_opt_color(raylib::Color::White());
-        keys.at(prev_id).ref.is_selected = false;
-        keys.at(prev_id).ref.frame.change_z_order(-1);
-        keys.at(prev_id).ref.key_text.change_z_order(-1);
-    }
-
-    selected_key_ids.clear();
-    obj_editor.ref.reset_render_hit_objs();
-}
-
-void compose_tab::select(int id)
-{
-    if (keys.at(id).ref.is_selected)
-        return;
-
-    keys.at(id).ref.set_opt_color(raylib::Color::Green());
-    keys.at(id).ref.is_selected = true;
-    keys.at(id).ref.frame.change_z_order(0);
-    keys.at(id).ref.key_text.change_z_order(0);
-
-    selected_key_ids.insert(
-        std::lower_bound(selected_key_ids.begin(), selected_key_ids.end(), id,
-            [](int l, int r) { return compose_tab::key_to_prio.at(l) <= compose_tab::key_to_prio.at(r); }
-        ),
-    id);
-
-    obj_editor.ref.reset_render_hit_objs();
-}
-
-void compose_tab::add_event(const compose_tab_event& e)
-{
-    event_history.erase(event_history.begin(), event_history.begin() + event_history_idx);
-    event_history.push_front(e);
-    event_history_idx = 0;
-}
-
-void compose_tab::process_event(const compose_tab_event& e)
-{
-    for (const hit_obj_metadata& hit_obj : e.added)
-        keys.at(hit_obj.key).ref.hit_objects.emplace(hit_obj.position.beat, editor_hit_object(hit_obj.key, hit_obj.position.duration));
-
-    for (const hit_obj_metadata& hit_obj : e.removed)
-        keys.at(hit_obj.key).ref.hit_objects.erase(hit_obj.position.beat);
-
-    obj_editor.ref.reset_render_hit_objs();
 }
 
 bool compose_tab::on_element_mouse_scroll(float mouse_scroll)
@@ -1813,17 +1750,17 @@ bool compose_tab::on_element_mouse_scroll(float mouse_scroll)
 
 void compose_tab::update_element([[maybe_unused]] float dt)
 {
-    music.Update();
+    compose_info.music.Update();
 
     if (!music_slider.ref.is_down())
     {
-        if (music.IsPlaying())
-            music_time = music.GetTimePlayed();
+        if (compose_info.music.IsPlaying())
+            compose_info.music_time = compose_info.music.GetTimePlayed();
 
-        music_slider.ref.progress = music_time / music.GetTimeLength();
+        music_slider.ref.progress = compose_info.music_time / compose_info.music.GetTimeLength();
     }
     else
-        music_time = music_slider.ref.progress * music.GetTimeLength();
+        compose_info.music_time = music_slider.ref.progress * compose_info.music.GetTimeLength();
 
     std::get<kee::dims>(pause_play_img.ref.dimensions).w.val = pause_play_scale.get();
     std::get<kee::dims>(pause_play_img.ref.dimensions).h.val = pause_play_scale.get();
@@ -1840,36 +1777,33 @@ void compose_tab::update_element([[maybe_unused]] float dt)
     std::get<kee::dims>(tick_r_img.ref.dimensions).w.val = tick_r_button_scale.get();
     std::get<kee::dims>(tick_r_img.ref.dimensions).h.val = tick_r_button_scale.get();
 
-    for (std::size_t i = 0; i < compose_tab::tick_freq_count; i++)
+    for (std::size_t i = 0; i < compose_tab_info::tick_freq_count; i++)
         tick_frame_texts[i].ref.set_opt_color(tick_frame_text_colors[i].get().get().to_color());
 
-    const raylib::Color tick_l_img_color = (tick_freq_idx != 0) ? tick_l_button_color.get().to_color() : raylib::Color::Blank();
-    const raylib::Color tick_r_img_color = (tick_freq_idx != tick_freq_count - 1) ? tick_r_button_color.get().to_color() : raylib::Color::Blank();
+    const raylib::Color tick_l_img_color = (compose_info.tick_freq_idx != 0) ? tick_l_button_color.get().to_color() : raylib::Color::Blank();
+    const raylib::Color tick_r_img_color = (compose_info.tick_freq_idx != compose_tab_info::tick_freq_count - 1) ? tick_r_button_color.get().to_color() : raylib::Color::Blank();
     tick_l_img.ref.set_opt_color(tick_l_img_color);
     tick_r_img.ref.set_opt_color(tick_r_img_color);
 
     tick_curr_rect.ref.x.val = tick_curr_rect_x.get();
 
-    const unsigned int music_length = static_cast<unsigned int>(music.GetTimeLength());
-    const unsigned int music_time_int = static_cast<unsigned int>(music_time);
+    const unsigned int music_length = static_cast<unsigned int>(compose_info.music.GetTimeLength());
+    const unsigned int music_time_int = static_cast<unsigned int>(compose_info.music_time);
     const std::string music_time_str = std::format("{}:{:02} / {}:{:02}", music_time_int / 60, music_time_int % 60, music_length / 60, music_length % 60);
     music_time_text.ref.set_string(music_time_str);
 }
 
 void compose_tab::set_tick_freq_idx(std::size_t new_tick_freq_idx)
 {
-    tick_freq_idx = new_tick_freq_idx;
-    tick_text.ref.set_string("1 / " + std::to_string(tick_freqs[tick_freq_idx]));
+    compose_info.tick_freq_idx = new_tick_freq_idx;
+    tick_text.ref.set_string("1 / " + std::to_string(compose_tab_info::tick_freqs[compose_info.tick_freq_idx]));
 
-    const float new_y = static_cast<float>(tick_freq_idx * 2 + 1) / (tick_freq_count * 2);
+    const float new_y = static_cast<float>(compose_info.tick_freq_idx * 2 + 1) / (compose_tab_info::tick_freq_count * 2);
     tick_curr_rect_x.set(std::nullopt, new_y, 0.2f, kee::transition_type::exp);
 }
 
 editor::editor(const kee::scene::window& window, kee::game& game, kee::global_assets& assets) :
     kee::scene::base(window, game, assets),
-editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
-    kee::scene::base(window, assets),
-    hit_objs(editor::init_hit_objs()),
     exit_png("assets/img/exit.png"),
     tab_active_rect_rel_x(add_transition<float>(1.0f / magic_enum::enum_count<editor::tabs>())),
     exit_button_rect_alpha(add_transition<float>(0.0f)),
@@ -1926,9 +1860,8 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         border(border::type::rel_w, 0.3f),
         true, false, false, 0.0f
     )),
-    active_tab_elem(add_child<compose_tab>(std::nullopt)),
+    active_tab_elem(add_child<compose_tab>(std::nullopt, compose_info)),
     active_tab(editor::tabs::compose)
-    active_elem(make_temp_child<compose_tab>(hit_objs))
 {
     active_tab_elem.value().ref.take_keyboard_capture();
 
@@ -1995,7 +1928,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             switch (this->active_tab)
             {
             case editor::tabs::compose:
-                this->active_tab_elem.emplace(add_child<compose_tab>(std::nullopt));
+                this->active_tab_elem.emplace(add_child<compose_tab>(std::nullopt, compose_info));
                 this->active_tab_elem.value().ref.take_keyboard_capture();
                 return;
             default:
@@ -2020,56 +1953,6 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             true, assets.font_semi_bold, enum_name, false
         ));
     }
-    
-    hit_objs.at(KeyboardKey::KEY_Q).emplace(0.0f, editor_hit_object(KeyboardKey::KEY_Q, 2.0f));
-    hit_objs.at(KeyboardKey::KEY_W).emplace(0.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
-    hit_objs.at(KeyboardKey::KEY_W).emplace(4.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
-    hit_objs.at(KeyboardKey::KEY_W).emplace(8.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
-    hit_objs.at(KeyboardKey::KEY_W).emplace(12.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
-}
-
-std::unordered_map<int, std::map<float, editor_hit_object>> editor::init_hit_objs()
-{
-    std::unordered_map<int, std::map<float, editor_hit_object>> res;
-    for (const auto& [id, rel_pos] : kee::key_ui_data)
-        res[id];
-
-    return res;
-}
-
-bool editor::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods)
-{
-    return active_elem.on_element_key_down(keycode, mods);
-}
-
-bool editor::on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods)
-{
-    return active_elem.on_element_key_up(keycode, mods);
-}
-
-bool editor::on_element_char_press(char c)
-{
-    return active_elem.on_element_char_press(c);
-}
-
-bool editor::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods)
-{
-    return active_elem.on_mouse_down(mouse_pos, is_mouse_l, mods);
-}
-
-bool editor::on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods)
-{
-    return active_elem.on_mouse_up(mouse_pos, is_mouse_l, mods);
-}
-
-void editor::on_element_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods)
-{
-    return active_elem.on_mouse_move(mouse_pos, mods);
-}
-
-bool editor::on_element_mouse_scroll(float scroll_amount)
-{
-    return active_elem.on_mouse_scroll(scroll_amount);
 }
 
 void editor::update_element([[maybe_unused]] float dt)
