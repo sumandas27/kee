@@ -21,10 +21,10 @@ class compose_tab;
 /**
  * These objects will belong in an `std::set`, whose keys store the `beat` of the object.
  */
-class compose_tab_hit_object
+class editor_hit_object
 {
 public:
-    compose_tab_hit_object(int key, float duration);
+    editor_hit_object(int key, float duration);
 
     int key;
     float duration;
@@ -104,9 +104,14 @@ public:
 class compose_tab_key : public kee::ui::button
 {
 public:
-    compose_tab_key(const kee::ui::base::required& reqs, kee::scene::compose_tab& compose_tab_scene, int key_id);
+    compose_tab_key(
+        const kee::ui::base::required& reqs, 
+        kee::scene::compose_tab& compose_tab_scene,
+        std::map<float, editor_hit_object>& hit_objects,
+        int key_id
+    );
 
-    std::map<float, compose_tab_hit_object> hit_objects;
+    std::map<float, editor_hit_object>& hit_objects;
 
     std::vector<kee::ui::rect> hit_obj_rects;
     kee::ui::handle<kee::ui::rect> frame;
@@ -181,18 +186,18 @@ public:
 class hit_obj_ui_key
 {
 public:
-    hit_obj_ui_key(std::map<float, compose_tab_hit_object>& map, std::map<float, compose_tab_hit_object>::iterator it);
+    hit_obj_ui_key(std::map<float, editor_hit_object>& map, std::map<float, editor_hit_object>::iterator it);
 
     hit_obj_metadata get_metadata() const;
 
-    std::map<float, compose_tab_hit_object>::node_type extract();
+    std::map<float, editor_hit_object>::node_type extract();
     void delete_from_map();
 
     bool operator<(const hit_obj_ui_key& other) const;
 
 private:
-    boost::optional<std::map<float, compose_tab_hit_object>&> map;
-    std::map<float, compose_tab_hit_object>::iterator it;
+    boost::optional<std::map<float, editor_hit_object>&> map;
+    std::map<float, editor_hit_object>::iterator it;
 };
 
 class hit_obj_node
@@ -205,7 +210,7 @@ public:
     );
 
     std::map<hit_obj_ui_key, hit_obj_ui>::node_type node_render;
-    std::map<float, compose_tab_hit_object>::node_type node_obj;
+    std::map<float, editor_hit_object>::node_type node_obj;
 
     hit_obj_metadata old_obj;
     hit_obj_metadata new_obj;
@@ -287,7 +292,10 @@ public:
     static const std::vector<int> prio_to_key;
     static const std::unordered_map<int, int> key_to_prio;
 
-    compose_tab(const kee::ui::base::required& reqs);
+    compose_tab(
+        const kee::ui::base::required& reqs, 
+        std::unordered_map<int, std::map<float, editor_hit_object>>& hit_objs
+    );
 
     bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
 
@@ -376,6 +384,8 @@ private:
     std::vector<kee::ui::handle<kee::ui::base>> key_holders;
     std::unordered_map<int, kee::ui::handle<compose_tab_key>> keys;
 
+    std::unordered_map<int, std::map<float, editor_hit_object>>& hit_objs;
+
     float mouse_wheel_move;
     bool is_beat_snap;
     bool is_key_locked;
@@ -398,6 +408,8 @@ public:
     editor(const kee::scene::window& window, kee::global_assets& assets);
 
 private:
+    static std::unordered_map<int, std::map<float, editor_hit_object>> init_hit_objs();
+
     enum class tabs;
 
     bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
@@ -411,6 +423,8 @@ private:
 
     void update_element(float dt) override;
     void render_element() const override;
+
+    std::unordered_map<int, std::map<float, editor_hit_object>> hit_objs;
 
     kee::image_texture exit_png;
 

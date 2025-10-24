@@ -5,7 +5,7 @@
 namespace kee {
 namespace scene {
 
-compose_tab_hit_object::compose_tab_hit_object(int key, float duration) :
+editor_hit_object::editor_hit_object(int key, float duration) :
     key(key),
     duration(duration)
 { }
@@ -118,13 +118,19 @@ compose_tab_event::compose_tab_event(const std::vector<hit_obj_metadata>& added,
     removed(removed)
 { }
 
-compose_tab_key::compose_tab_key(const kee::ui::base::required& reqs, kee::scene::compose_tab& compose_tab_scene, int key_id) :
+compose_tab_key::compose_tab_key(
+    const kee::ui::base::required& reqs, 
+    kee::scene::compose_tab& compose_tab_scene,
+    std::map<float, editor_hit_object>& hit_objects,
+    int key_id
+) :
     kee::ui::button(reqs,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_h, kee::key_border_parent_h),
         true
     ),
+    hit_objects(hit_objects),
     frame(add_child<kee::ui::rect>(-1,
         raylib::Color::Blank(),
         pos(pos::type::rel, 0.5),
@@ -250,7 +256,7 @@ selection_info::selection_info(
     has_moved(false)
 { }
 
-hit_obj_ui_key::hit_obj_ui_key(std::map<float, compose_tab_hit_object>& map, std::map<float, compose_tab_hit_object>::iterator it) :
+hit_obj_ui_key::hit_obj_ui_key(std::map<float, editor_hit_object>& map, std::map<float, editor_hit_object>::iterator it) :
     map(map),
     it(it)
 { }
@@ -263,7 +269,7 @@ hit_obj_metadata hit_obj_ui_key::get_metadata() const
     return hit_obj_metadata(it->second.key, it->first, it->second.duration);
 }
 
-std::map<float, compose_tab_hit_object>::node_type hit_obj_ui_key::extract()
+std::map<float, editor_hit_object>::node_type hit_obj_ui_key::extract()
 {
     if (!map.has_value())
         throw std::runtime_error("extract: is already extracted");
@@ -444,7 +450,7 @@ void object_editor::attempt_add_hit_obj()
     const float new_beat = std::min(new_hit_object.value().click_beat, new_hit_object.value().current_beat);
     const float new_duration = std::max(new_hit_object.value().click_beat, new_hit_object.value().current_beat) - new_beat;
 
-    std::map<float, compose_tab_hit_object>& hit_objects = keys.at(new_hit_object.value().key).ref.hit_objects;
+    std::map<float, editor_hit_object>& hit_objects = keys.at(new_hit_object.value().key).ref.hit_objects;
     const auto next_it = hit_objects.lower_bound(new_beat);
     const bool is_new_invalid =
         (next_it != hit_objects.end() && new_beat + new_duration + compose_tab::beat_lock_threshold >= next_it->first) ||
@@ -455,7 +461,7 @@ void object_editor::attempt_add_hit_obj()
         if (!new_hit_object.value().from_compose_tab)
             compose_tab_scene.unselect();
 
-        const auto new_it = hit_objects.emplace(new_beat, compose_tab_hit_object(new_hit_object.value().key, new_duration)).first;
+        const auto new_it = hit_objects.emplace(new_beat, editor_hit_object(new_hit_object.value().key, new_duration)).first;
         std::vector<hit_obj_metadata> new_obj_added;
         new_obj_added.emplace_back(new_hit_object.value().key, new_beat, new_duration);
         compose_tab_scene.add_event(compose_tab_event(new_obj_added, std::vector<hit_obj_metadata>()));
@@ -918,7 +924,7 @@ void object_editor::attempt_move_op()
     bool is_move_valid = true;
     for (hit_obj_node& node : hit_obj_nodes)
     {
-        std::map<float, compose_tab_hit_object>& hit_objects = keys.at(node.new_obj.key).ref.hit_objects;
+        std::map<float, editor_hit_object>& hit_objects = keys.at(node.new_obj.key).ref.hit_objects;
         auto next_it = hit_objects.lower_bound(node.new_obj.position.beat);
         
         if (next_it != hit_objects.end() && node.new_obj.position.beat + node.new_obj.position.duration + compose_tab::beat_lock_threshold >= next_it->first)
@@ -994,7 +1000,10 @@ const std::unordered_map<int, int> compose_tab::key_to_prio = []
 
 /* TODO: create smaller rect in inspector to store ui elements so everything is aligned */
 
-compose_tab::compose_tab(const kee::ui::base::required& reqs) :
+compose_tab::compose_tab(
+    const kee::ui::base::required& reqs,
+    std::unordered_map<int, std::map<float, editor_hit_object>>& hit_objs
+) :
     kee::ui::base(reqs,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.04f),
@@ -1230,6 +1239,7 @@ compose_tab::compose_tab(const kee::ui::base::required& reqs) :
         ),
         true
     )),
+    hit_objs(hit_objs),
     mouse_wheel_move(0.0f),
     is_beat_snap(true),
     is_key_locked(true),
@@ -1464,16 +1474,10 @@ compose_tab::compose_tab(const kee::ui::base::required& reqs) :
             true
         ));
 
-        keys.emplace(id, key_holders.back().ref.add_child<compose_tab_key>(std::nullopt, *this, id));
+        keys.emplace(id, key_holders.back().ref.add_child<compose_tab_key>(std::nullopt, *this, hit_objs[id], id));
     }
 
     /* TODO: for testing only */
-
-    keys.at(KeyboardKey::KEY_Q).ref.hit_objects.emplace(0.0f, compose_tab_hit_object(KeyboardKey::KEY_Q, 2.0f));
-    keys.at(KeyboardKey::KEY_W).ref.hit_objects.emplace(0.0f, compose_tab_hit_object(KeyboardKey::KEY_W, 0.0f));
-    keys.at(KeyboardKey::KEY_W).ref.hit_objects.emplace(4.0f, compose_tab_hit_object(KeyboardKey::KEY_W, 0.0f));
-    keys.at(KeyboardKey::KEY_W).ref.hit_objects.emplace(8.0f, compose_tab_hit_object(KeyboardKey::KEY_W, 0.0f));
-    keys.at(KeyboardKey::KEY_W).ref.hit_objects.emplace(12.0f, compose_tab_hit_object(KeyboardKey::KEY_W, 0.0f));
 
     music.SetLooping(true);
     music.SetVolume(0.1f);
@@ -1532,7 +1536,7 @@ bool compose_tab::on_element_key_down(int keycode, magic_enum::containers::bitse
 
         for (const hit_obj_metadata& metadata : clipboard)
         {
-            std::map<float, compose_tab_hit_object>& hit_objects = keys.at(metadata.key).ref.hit_objects;
+            std::map<float, editor_hit_object>& hit_objects = keys.at(metadata.key).ref.hit_objects;
             const float new_beat = paste_beat + metadata.position.beat - clipboard_reference_beat;
             auto next_it = hit_objects.lower_bound(new_beat);
             
@@ -1554,10 +1558,10 @@ bool compose_tab::on_element_key_down(int keycode, magic_enum::containers::bitse
             std::vector<hit_obj_metadata> pasted_objs;
             for (const hit_obj_metadata& metadata : clipboard)
             {
-                std::map<float, compose_tab_hit_object>& hit_objects = keys.at(metadata.key).ref.hit_objects;
+                std::map<float, editor_hit_object>& hit_objects = keys.at(metadata.key).ref.hit_objects;
                 const float new_beat = paste_beat + metadata.position.beat - clipboard_reference_beat;
 
-                const auto it = hit_objects.emplace(new_beat, compose_tab_hit_object(metadata.key, metadata.position.duration)).first;
+                const auto it = hit_objects.emplace(new_beat, editor_hit_object(metadata.key, metadata.position.duration)).first;
                 const std::vector<int>& keys_to_render = obj_editor.ref.get_keys_to_render();
                 const auto new_key_it = std::ranges::find(keys_to_render, metadata.key);
                 const std::size_t new_key_idx = std::ranges::distance(keys_to_render.begin(), new_key_it);
@@ -1679,7 +1683,7 @@ void compose_tab::add_event(const compose_tab_event& e)
 void compose_tab::process_event(const compose_tab_event& e)
 {
     for (const hit_obj_metadata& hit_obj : e.added)
-        keys.at(hit_obj.key).ref.hit_objects.emplace(hit_obj.position.beat, compose_tab_hit_object(hit_obj.key, hit_obj.position.duration));
+        keys.at(hit_obj.key).ref.hit_objects.emplace(hit_obj.position.beat, editor_hit_object(hit_obj.key, hit_obj.position.duration));
 
     for (const hit_obj_metadata& hit_obj : e.removed)
         keys.at(hit_obj.key).ref.hit_objects.erase(hit_obj.position.beat);
@@ -1780,6 +1784,7 @@ void compose_tab::set_tick_freq_idx(std::size_t new_tick_freq_idx)
 
 editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
     kee::scene::base(window, assets),
+    hit_objs(editor::init_hit_objs()),
     exit_png("assets/img/exit.png"),
     tab_active_rect_rel_x(add_transition<float>(1.0f / magic_enum::enum_count<editor::tabs>())),
     exit_button_rect_alpha(add_transition<float>(0.0f)),
@@ -1836,7 +1841,7 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
         border(border::type::rel_w, 0.3f),
         true, false, false, 0.0f
     )),
-    active_elem(make_temp_child<compose_tab>())
+    active_elem(make_temp_child<compose_tab>(hit_objs))
 {
     const raylib::Rectangle tab_raw_rect = tab_rect.ref.get_raw_rect();
     std::get<kee::dims>(tab_display_frame.ref.dimensions).w.val = tab_raw_rect.width - tab_raw_rect.height;
@@ -1908,6 +1913,21 @@ editor::editor(const kee::scene::window& window, kee::global_assets& assets) :
             true, assets.font_semi_bold, enum_name, false
         ));
     }
+    
+    hit_objs.at(KeyboardKey::KEY_Q).emplace(0.0f, editor_hit_object(KeyboardKey::KEY_Q, 2.0f));
+    hit_objs.at(KeyboardKey::KEY_W).emplace(0.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
+    hit_objs.at(KeyboardKey::KEY_W).emplace(4.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
+    hit_objs.at(KeyboardKey::KEY_W).emplace(8.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
+    hit_objs.at(KeyboardKey::KEY_W).emplace(12.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
+}
+
+std::unordered_map<int, std::map<float, editor_hit_object>> editor::init_hit_objs()
+{
+    std::unordered_map<int, std::map<float, editor_hit_object>> res;
+    for (const auto& [id, rel_pos] : kee::key_ui_data)
+        res[id];
+
+    return res;
 }
 
 bool editor::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods)
