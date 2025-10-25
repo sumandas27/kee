@@ -1,11 +1,11 @@
 #include "kee/game.hpp"
 
-#include "kee/scene/editor.hpp"
+#include "kee/scene/editor/root.hpp"
 
 namespace kee {
 
 game::game() :
-    curr_scene(std::make_unique<kee::scene::editor>(window, *this, assets))
+    curr_scene(std::make_unique<kee::scene::editor::root>(window, *this, assets))
 { }
 
 void game::main_loop()

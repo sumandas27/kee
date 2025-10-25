@@ -1,10 +1,11 @@
-#include "kee/scene/editor.hpp"
+#include "kee/scene/editor/compose_tab.hpp"
 
 #include <chrono>
 #include <ranges>
 
 namespace kee {
 namespace scene {
+namespace editor {
 
 editor_hit_object::editor_hit_object(int key, float duration) :
     key(key),
@@ -121,7 +122,7 @@ compose_tab_event::compose_tab_event(const std::vector<hit_obj_metadata>& added,
 
 compose_tab_key::compose_tab_key(
     const kee::ui::required& reqs, 
-    kee::scene::compose_tab& compose_tab_scene,
+    compose_tab& compose_tab_scene,
     std::map<float, editor_hit_object>& hit_objects,
     int key_id
 ) :
@@ -312,7 +313,7 @@ object_editor::object_editor(
     const kee::ui::required& reqs,
     const std::vector<int>& selected_key_ids,
     std::unordered_map<int, kee::ui::handle<compose_tab_key>>& keys,
-    kee::scene::compose_tab& compose_tab_scene
+    compose_tab& compose_tab_scene
 ) :
     kee::ui::rect(reqs,
         raylib::Color(15, 15, 15, 255),
@@ -1802,167 +1803,6 @@ void compose_tab::set_tick_freq_idx(std::size_t new_tick_freq_idx)
     tick_curr_rect_x.set(std::nullopt, new_y, 0.2f, kee::transition_type::exp);
 }
 
-editor::editor(const kee::scene::window& window, kee::game& game, kee::global_assets& assets) :
-    kee::scene::base(window, game, assets),
-    exit_png("assets/img/exit.png"),
-    tab_active_rect_rel_x(add_transition<float>(1.0f / magic_enum::enum_count<editor::tabs>())),
-    exit_button_rect_alpha(add_transition<float>(0.0f)),
-    tab_rect(add_child<kee::ui::rect>(1,
-        raylib::Color(10, 10, 10, 255),
-        pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0),
-        dims(
-            dim(dim::type::rel, 1),
-            dim(dim::type::rel, 0.04f)
-        ),
-        false, std::nullopt, std::nullopt
-    )),
-    tab_display_frame(tab_rect.ref.add_child<kee::ui::base>(std::nullopt,
-        pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0),
-        dims(
-            dim(dim::type::abs, 0),
-            dim(dim::type::rel, 1)
-        ),
-        false
-    )),
-    tab_active_rect(tab_display_frame.ref.add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color(20, 20, 20, 255),
-        pos(pos::type::rel, tab_active_rect_rel_x.get()),
-        pos(pos::type::rel, 0),
-        dims(
-            dim(dim::type::rel, 1.0f / magic_enum::enum_count<editor::tabs>()),
-            dim(dim::type::rel, 1)
-        ),
-        false, std::nullopt, std::nullopt
-    )),
-    exit_button(tab_rect.ref.add_child<kee::ui::button>(std::nullopt,
-        pos(pos::type::end, 0),
-        pos(pos::type::rel, 0),
-        dims(
-            dim(dim::type::aspect, 1),
-            dim(dim::type::rel, 1)
-        ),
-        false
-    )),
-    exit_button_rect(exit_button.ref.add_child<kee::ui::rect>(0,
-        raylib::Color(255, 0, 0, static_cast<unsigned char>(exit_button_rect_alpha.get())),
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.5f),
-        border(border::type::abs, 0),
-        true, std::nullopt, std::nullopt
-    )),
-    exit_button_image(exit_button.ref.add_child<kee::ui::image>(1,
-        exit_png,
-        raylib::Color::White(),
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.5f),
-        border(border::type::rel_w, 0.3f),
-        true, false, false, 0.0f
-    )),
-    active_tab_elem(add_child<compose_tab>(std::nullopt, compose_info)),
-    active_tab(editor::tabs::compose)
-{
-    active_tab_elem.value().ref.take_keyboard_capture();
-
-    const raylib::Rectangle tab_raw_rect = tab_rect.ref.get_raw_rect();
-    std::get<kee::dims>(tab_display_frame.ref.dimensions).w.val = tab_raw_rect.width - tab_raw_rect.height;
-
-    exit_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
-    {
-        switch (button_event)
-        {
-        case ui::button::event::on_hot:
-            this->exit_button_rect_alpha.set(std::nullopt, 255, 0.5f, kee::transition_type::exp);
-            break;
-        case ui::button::event::on_leave:
-            this->exit_button_rect_alpha.set(std::nullopt, 0, 0.5f, kee::transition_type::exp);
-            break;
-        default:
-            break;
-        }
-    };
-
-    tab_buttons.reserve(magic_enum::enum_count<editor::tabs>());
-    tab_button_text.reserve(magic_enum::enum_count<editor::tabs>());
-
-    for (std::size_t i = 0; i < magic_enum::enum_count<editor::tabs>(); i++)
-    {
-        tab_button_text_colors.push_back(add_transition<kee::color>(kee::color::white()));
-
-        tab_buttons.push_back(tab_display_frame.ref.add_child<kee::ui::button>(std::nullopt,
-            pos(pos::type::rel, static_cast<float>(i) / magic_enum::enum_count<editor::tabs>()),
-            pos(pos::type::rel, 0),
-            dims(
-                dim(dim::type::rel, 1.0f / magic_enum::enum_count<editor::tabs>()),
-                dim(dim::type::rel, 1)
-            ),
-            false
-        ));
-
-        tab_buttons.back().ref.on_event = [&, idx = i](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
-        {
-            switch (button_event)
-            {
-            case ui::button::event::on_hot:
-                this->tab_button_text_colors[idx].get().set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
-                break;
-            case ui::button::event::on_leave:
-                this->tab_button_text_colors[idx].get().set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
-                break;
-            default:
-                break;
-            }
-        };
-
-        tab_buttons.back().ref.on_click_l = [&, idx = i]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
-        {
-            const float new_rel_x = static_cast<float>(idx) / magic_enum::enum_count<editor::tabs>();
-            this->tab_active_rect_rel_x.set(std::nullopt, new_rel_x, 0.3f, kee::transition_type::exp);
-
-            const editor::tabs tab_enum = static_cast<editor::tabs>(idx);
-            if (this->active_tab == tab_enum)
-                return;
-
-            this->active_tab = tab_enum;
-            switch (this->active_tab)
-            {
-            case editor::tabs::compose:
-                this->active_tab_elem.emplace(add_child<compose_tab>(std::nullopt, compose_info));
-                this->active_tab_elem.value().ref.take_keyboard_capture();
-                return;
-            default:
-                if (this->active_tab_elem.has_value())
-                {
-                    this->active_tab_elem.value().ref.release_keyboard_capture();
-                    this->active_tab_elem.reset();
-                }
-                return;
-            }
-        };
-
-        const editor::tabs tab_enum = static_cast<editor::tabs>(i);
-        std::string enum_name = std::string(magic_enum::enum_name(tab_enum));
-        std::transform(enum_name.begin(), enum_name.end(), enum_name.begin(), [](unsigned char c) { return static_cast<unsigned char>(std::toupper(c)); });
-
-        tab_button_text.push_back(tab_buttons.back().ref.add_child<kee::ui::text>(std::nullopt,
-            raylib::Color::White(),
-            pos(pos::type::rel, 0.5f),
-            pos(pos::type::rel, 0.5f),
-            ui::text_size(ui::text_size::type::rel_h, 0.6f),
-            true, assets.font_semi_bold, enum_name, false
-        ));
-    }
-}
-
-void editor::update_element([[maybe_unused]] float dt)
-{
-    for (std::size_t i = 0; i < tab_button_text.size(); i++)
-        tab_button_text[i].ref.set_opt_color(tab_button_text_colors[i].get().get().to_color());
-
-    tab_active_rect.ref.x.val = tab_active_rect_rel_x.get();
-    exit_button_rect.ref.set_opt_color(raylib::Color(255, 0, 0, static_cast<unsigned char>(exit_button_rect_alpha.get())));
-}
-
+} // namespace editor
 } // namespace scene
 } // namespace kee

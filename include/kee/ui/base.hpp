@@ -97,7 +97,8 @@ public:
     /**
      * You the developer are responsible for manually handling events, updating, and rendering temporary
      * children. Unlike regular children, child references to temporary elements are invalidated when moved.
-     * Do not use temporary children event handlers directly!
+     * Do not use temporary children event handlers directly! 
+     * TODO: NOT necessarily true, fix event handler description
      */
     template <std::derived_from<kee::ui::base> T, typename... Args>
     T make_temp_child(Args&&... args);

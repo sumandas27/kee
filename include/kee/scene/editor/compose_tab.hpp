@@ -13,15 +13,7 @@
 
 namespace kee {
 namespace scene {
-
-/* TODO: split each tab into own file */
-/* TODO: add hitsounds while composing */
-
-/* TODO: populate */
-/*class metadata_tab final : public kee::ui::base
-{
-
-};*/
+namespace editor {
 
 class compose_tab;
 
@@ -113,7 +105,7 @@ class compose_tab_key : public kee::ui::button
 public:
     compose_tab_key(
         const kee::ui::required& reqs, 
-        kee::scene::compose_tab& compose_tab_scene,
+        compose_tab& compose_tab_scene,
         std::map<float, editor_hit_object>& hit_objects,
         int key_id
     );
@@ -130,7 +122,7 @@ private:
     void update_element(float dt) override;
     void render_element() const override;
 
-    kee::scene::compose_tab& compose_tab_scene;
+    compose_tab& compose_tab_scene;
 
     const int key_id;
 };
@@ -236,7 +228,7 @@ public:
         const kee::ui::required& reqs,
         const std::vector<int>& selected_key_ids,
         std::unordered_map<int, kee::ui::handle<compose_tab_key>>& keys,
-        kee::scene::compose_tab& compose_tab_scene
+        compose_tab& compose_tab_scene
     );
 
     void reset_render_hit_objs();
@@ -269,7 +261,7 @@ private:
     const std::vector<int>& selected_key_ids;
 
     std::unordered_map<int, kee::ui::handle<compose_tab_key>>& keys;
-    kee::scene::compose_tab& compose_tab_scene;
+    compose_tab& compose_tab_scene;
 
     std::vector<kee::ui::rect> beat_render_rects;
     std::vector<kee::ui::text> whole_beat_texts;
@@ -420,61 +412,6 @@ private:
     std::vector<int> selected_key_ids;
 };
 
-/* TODO: populate */
-/*
-class decoration_tab final : public kee::ui::base
-{
-
-};
-
-class timing_tab final : public kee::ui::base
-{
-
-};
-*/
-
-class editor final : public kee::scene::base
-{
-public:
-    editor(const kee::scene::window& window, kee::game& game, kee::global_assets& assets);
-
-private:
-    enum class tabs;
-
-    void update_element(float dt) override;
-
-    compose_tab_info compose_info;
-
-    kee::image_texture exit_png;
-
-    std::vector<std::reference_wrapper<kee::transition<kee::color>>> tab_button_text_colors;
-    kee::transition<float>& tab_active_rect_rel_x;
-    kee::transition<float>& exit_button_rect_alpha;
-
-    kee::ui::handle<kee::ui::rect> tab_rect;
-    kee::ui::handle<kee::ui::base> tab_display_frame;
-    kee::ui::handle<kee::ui::rect> tab_active_rect;
-    std::vector<kee::ui::handle<kee::ui::button>> tab_buttons;
-    std::vector<kee::ui::handle<kee::ui::text>> tab_button_text;
-
-    kee::ui::handle<kee::ui::button> exit_button;
-    kee::ui::handle<kee::ui::rect> exit_button_rect;
-    kee::ui::handle<kee::ui::image> exit_button_image;
-
-    /* TODO: turn into variant */
-    std::optional<
-        kee::ui::handle<compose_tab>
-    > active_tab_elem;
-    editor::tabs active_tab;
-};
-
-enum class editor::tabs
-{
-    metadata,
-    compose,
-    decoration,
-    timing
-};
-
+} // namespace editor
 } // namespace scene
 } // namespace kee

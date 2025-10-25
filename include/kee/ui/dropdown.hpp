@@ -43,7 +43,7 @@ private:
     kee::ui::button dropdown_button;
     kee::ui::base dropdown_text_frame;
     kee::ui::text dropdown_text;
-    kee::ui::base dropdown_button_frame;
+    kee::ui::base dropdown_button_frame; /* TODO: remove button frame */
     kee::ui::base dropdown_img_frame;
     kee::ui::image dropdown_img;
 
