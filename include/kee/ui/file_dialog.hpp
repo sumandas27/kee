@@ -20,16 +20,25 @@ public:
         bool centered
     );
 
+    std::function<void(std::filesystem::path)> on_success;
+    std::function<void()> on_filter_mismatch;
+
 private:
+    void on_element_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods) override;
+    bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods) override;
+    bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods) override;
+
+    void update_element(float dt) override;
     void render_element() const override;
 
+    kee::transition<kee::color>& fd_outline_color;
+
     kee::ui::rect fd_rect;
-    //kee::ui::button button;
     
     kee::ui::base fd_text_frame;
     kee::ui::text fd_text;
 
-    kee::ui::base fd_image_frame;
+    kee::ui::button fd_button;
     kee::ui::image fd_image;
 };
 

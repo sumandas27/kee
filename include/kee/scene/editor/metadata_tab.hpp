@@ -7,12 +7,16 @@ namespace kee {
 namespace scene {
 namespace editor {
 
+class root;
+
 class metadata_tab : public kee::ui::base
 {
 public:
-    metadata_tab(const kee::ui::required& reqs);
+    metadata_tab(const kee::ui::required& reqs, kee::scene::editor::root& editor_scene);
 
 private:
+    kee::scene::editor::root& editor_scene;
+
     kee::ui::handle<kee::ui::text> audio_text;
     kee::ui::handle<kee::ui::file_dialog> audio_file_dialog;
 

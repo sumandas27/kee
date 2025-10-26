@@ -1,10 +1,12 @@
 #include "kee/scene/editor/metadata_tab.hpp"
 
+#include "kee/scene/editor/root.hpp"
+
 namespace kee {
 namespace scene {
 namespace editor {
 
-metadata_tab::metadata_tab(const kee::ui::required& reqs) :
+metadata_tab::metadata_tab(const kee::ui::required& reqs, kee::scene::editor::root& editor_scene) :
     kee::ui::base(reqs,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.04f),
@@ -14,6 +16,7 @@ metadata_tab::metadata_tab(const kee::ui::required& reqs) :
         ),
         false
     ),
+    editor_scene(editor_scene),
     audio_text(add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
         pos(pos::type::rel, 0.2f),
@@ -44,7 +47,12 @@ metadata_tab::metadata_tab(const kee::ui::required& reqs) :
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
         false, assets.font_semi_bold, "SONG NAME", false
     ))
-{ }
+{ 
+    audio_file_dialog.ref.on_filter_mismatch = [&]()
+    {
+        this->editor_scene.set_error("Not a valid audio file format!");
+    };
+}
 
 } // namespace editor
 } // namespace scene

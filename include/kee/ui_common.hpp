@@ -15,6 +15,8 @@
     #pragma warning(default: 4244)
 #endif
 
+#include <nfd.hpp>
+
 #include "kee/global_assets.hpp"
 
 namespace kee {

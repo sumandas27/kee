@@ -15,6 +15,8 @@ public:
     boost::optional<kee::ui::base&> element_keyboard_capture;
 
 private:
+    NFD::Guard nfd_guard;
+
     kee::scene::window window;
     kee::global_assets assets;
     raylib::AudioDevice audio;

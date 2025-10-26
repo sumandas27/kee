@@ -4,6 +4,7 @@ project(kee)
 
 add_subdirectory(externals/boost EXCLUDE_FROM_ALL)
 add_subdirectory(externals/magic_enum)
+add_subdirectory(externals/nativefiledialog-extended)
 add_subdirectory(externals/raylib)
 add_subdirectory(externals/raylib-cpp)
 
@@ -18,3 +19,4 @@ endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(${PROJECT_NAME} PRIVATE Boost::optional magic_enum raylib raylib_cpp)
+target_link_libraries(${PROJECT_NAME} PRIVATE nfd)

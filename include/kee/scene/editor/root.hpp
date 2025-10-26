@@ -14,7 +14,11 @@ class root final : public kee::scene::base
 public:
     root(const kee::scene::window& window, kee::game& game, kee::global_assets& assets);
 
+    void set_error(std::string_view error_str);
+
 private:
+    static constexpr float error_transition_time = 0.3f;
+
     enum class tabs;
 
     void update_element(float dt) override;
@@ -22,6 +26,7 @@ private:
     compose_tab_info compose_info;
 
     kee::image_texture exit_png;
+    kee::image_texture error_png;
 
     std::variant<
         kee::ui::handle<metadata_tab>,
@@ -34,6 +39,8 @@ private:
     std::vector<std::reference_wrapper<kee::transition<kee::color>>> tab_button_text_colors;
     kee::transition<float>& tab_active_rect_rel_x;
     kee::transition<float>& exit_button_rect_alpha;
+    kee::transition<float>& error_rect_rel_x;
+    kee::transition<float>& error_alpha;
 
     kee::ui::handle<kee::ui::rect> tab_rect;
     kee::ui::handle<kee::ui::base> tab_display_frame;
@@ -44,6 +51,13 @@ private:
     kee::ui::handle<kee::ui::button> exit_button;
     kee::ui::handle<kee::ui::rect> exit_button_rect;
     kee::ui::handle<kee::ui::image> exit_button_image;
+
+    kee::ui::handle<kee::ui::rect> error_rect;
+    kee::ui::handle<kee::ui::base> error_img_frame;
+    kee::ui::handle<kee::ui::image> error_img;
+    kee::ui::handle<kee::ui::text> error_text;
+
+    float error_timer;
 };
 
 enum class root::tabs

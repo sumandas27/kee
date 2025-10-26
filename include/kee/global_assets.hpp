@@ -52,6 +52,7 @@ public:
     const int sdf_triangle_loc_p2;
 
     const kee::image_texture play_png;
+    const kee::image_texture directory_png;
 
 private:
     static raylib::Font gen_sdf_font(const std::filesystem::path& font_path);

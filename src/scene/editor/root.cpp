@@ -7,10 +7,13 @@ namespace editor {
 root::root(const kee::scene::window& window, kee::game& game, kee::global_assets& assets) :
     kee::scene::base(window, game, assets),
     exit_png("assets/img/exit.png"),
-    active_tab_elem(add_child<metadata_tab>(std::nullopt)),
+    error_png("assets/img/error.png"),
+    active_tab_elem(add_child<metadata_tab>(std::nullopt, *this)),
     active_tab(root::tabs::metadata),
     tab_active_rect_rel_x(add_transition<float>(static_cast<float>(active_tab) / magic_enum::enum_count<root::tabs>())),
     exit_button_rect_alpha(add_transition<float>(0.0f)),
+    error_rect_rel_x(add_transition<float>(1.0f)),
+    error_alpha(add_transition<float>(0)),
     tab_rect(add_child<kee::ui::rect>(1,
         raylib::Color(10, 10, 10, 255),
         pos(pos::type::rel, 0),
@@ -63,7 +66,44 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_w, 0.3f),
         true, false, false, 0.0f
-    ))
+    )),
+    error_rect(add_child<kee::ui::rect>(std::nullopt,
+        raylib::Color(80, 80, 80, static_cast<unsigned char>(error_alpha.get())),
+        pos(pos::type::rel, error_rect_rel_x.get()),
+        pos(pos::type::rel, 0.93f),
+        dims(
+            dim(dim::type::rel, 0.2f),
+            dim(dim::type::rel, 0.05f)
+        ),
+        false,
+        ui::rect_outline(ui::rect_outline::type::rel_h, 0.1f, raylib::Color(255, 0, 0, static_cast<unsigned char>(error_alpha.get()))),
+        ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.2f, std::nullopt)
+    )),
+    error_img_frame(error_rect.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::aspect, 1),
+            dim(dim::type::rel, 1)
+        ),
+        false
+    )),
+    error_img(error_img_frame.ref.add_child<kee::ui::image>(std::nullopt,
+        error_png,
+        raylib::Color(255, 0, 0, static_cast<unsigned char>(error_alpha.get())),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_h, 0.3f),
+        true, false, false, 0.0f
+    )),
+    error_text(error_rect.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color(255, 255, 255, static_cast<unsigned char>(error_alpha.get())),
+        pos(pos::type::rel, 0.13f),
+        pos(pos::type::rel, 0.3f),
+        ui::text_size(ui::text_size::type::rel_h, 0.4f),
+        false, assets.font_semi_bold, std::string(), false
+    )),
+    error_timer(0.0f)
 {
     std::visit([](const auto& elem) {
         elem.ref.take_keyboard_capture();
@@ -136,7 +176,7 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
             switch (this->active_tab)
             {
             case root::tabs::metadata:
-                this->active_tab_elem.emplace<kee::ui::handle<metadata_tab>>(add_child<metadata_tab>(std::nullopt));
+                this->active_tab_elem.emplace<kee::ui::handle<metadata_tab>>(add_child<metadata_tab>(std::nullopt, *this));
                 break;
             case root::tabs::compose:
                 this->active_tab_elem.emplace<kee::ui::handle<compose_tab>>(add_child<compose_tab>(std::nullopt, compose_info));
@@ -168,13 +208,44 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
     }
 }
 
-void root::update_element([[maybe_unused]] float dt)
+void root::set_error(std::string_view error_str)
 {
+    error_text.ref.set_string(error_str);
+    error_alpha.set(0.0f, 255.0f, root::error_transition_time, kee::transition_type::exp);
+    error_rect_rel_x.set(1.0f, 0.79f, root::error_transition_time, kee::transition_type::exp);
+
+    error_timer = 3.0f + root::error_transition_time;
+}
+
+void root::update_element(float dt)
+{
+    /* TODO: fix this */
+    if (error_timer > 0.0f)
+    {
+        std::println("{}", dt);
+        error_timer -= dt;
+        if (error_timer <= 0.0f)
+        {
+            error_alpha.set(255.0f, 0.0f, root::error_transition_time, kee::transition_type::exp);
+            error_rect_rel_x.set(0.79f, 1.0f, root::error_transition_time, kee::transition_type::exp);
+
+            error_timer = 0.0f;
+        }
+    }
+
     for (std::size_t i = 0; i < tab_button_text.size(); i++)
         tab_button_text[i].ref.set_opt_color(tab_button_text_colors[i].get().get().to_color());
 
     tab_active_rect.ref.x.val = tab_active_rect_rel_x.get();
     exit_button_rect.ref.set_opt_color(raylib::Color(255, 0, 0, static_cast<unsigned char>(exit_button_rect_alpha.get())));
+
+    const unsigned char error_a = static_cast<unsigned char>(error_alpha.get());
+    error_rect.ref.set_opt_color(raylib::Color(80, 80, 80, error_a));
+    error_rect.ref.border.value().opt_color = raylib::Color(255, 0, 0, error_a);
+    error_img.ref.set_opt_color(raylib::Color(255, 0, 0, error_a));
+    error_text.ref.set_opt_color(raylib::Color(255, 255, 255, error_a));
+
+    error_rect.ref.x.val = error_rect_rel_x.get();
 }
 
 } // namespace editor
