@@ -50,7 +50,7 @@ metadata_tab::metadata_tab(const kee::ui::required& reqs, kee::scene::editor::ro
 { 
     audio_file_dialog.ref.on_filter_mismatch = [&]()
     {
-        this->editor_scene.set_error("Not a valid audio file format!");
+        this->editor_scene.set_error("Not a valid audio file format!", true);
     };
 }
 

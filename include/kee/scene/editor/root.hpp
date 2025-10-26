@@ -14,10 +14,10 @@ class root final : public kee::scene::base
 public:
     root(const kee::scene::window& window, kee::game& game, kee::global_assets& assets);
 
-    void set_error(std::string_view error_str);
+    void set_error(std::string_view error_str, bool from_file_dialog);
 
 private:
-    static constexpr float error_transition_time = 0.3f;
+    static constexpr float error_transition_time = 0.5f;
 
     enum class tabs;
 
@@ -57,6 +57,7 @@ private:
     kee::ui::handle<kee::ui::image> error_img;
     kee::ui::handle<kee::ui::text> error_text;
 
+    std::optional<int> error_skips_before_start;
     float error_timer;
 };
 

@@ -208,13 +208,15 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
     }
 }
 
-void root::set_error(std::string_view error_str)
+void root::set_error(std::string_view error_str, bool from_file_dialog)
 {
     error_text.ref.set_string(error_str);
-    error_alpha.set(0.0f, 255.0f, root::error_transition_time, kee::transition_type::exp);
-    error_rect_rel_x.set(1.0f, 0.79f, root::error_transition_time, kee::transition_type::exp);
-
-    error_timer = 3.0f + root::error_transition_time;
+    /**
+     * File dialogs hang the program during file selection, making that frame's 
+     * `dt` significantly large, messing up transition timings for the error's UI.
+     * These frames are skipped before error UI rendering is triggered.
+     */
+    error_skips_before_start = from_file_dialog ? 2 : 0;
 }
 
 void root::update_element(float dt)
@@ -222,7 +224,6 @@ void root::update_element(float dt)
     /* TODO: fix this */
     if (error_timer > 0.0f)
     {
-        std::println("{}", dt);
         error_timer -= dt;
         if (error_timer <= 0.0f)
         {
@@ -230,6 +231,20 @@ void root::update_element(float dt)
             error_rect_rel_x.set(0.79f, 1.0f, root::error_transition_time, kee::transition_type::exp);
 
             error_timer = 0.0f;
+        }
+    }
+
+    if (error_skips_before_start.has_value())
+    {
+        if (error_skips_before_start.value() != 0)
+            error_skips_before_start.value()--;
+        else
+        {
+            error_alpha.set(0.0f, 255.0f, root::error_transition_time, kee::transition_type::exp);
+            error_rect_rel_x.set(1.0f, 0.79f, root::error_transition_time, kee::transition_type::exp);
+
+            error_timer = 3.0f + root::error_transition_time;
+            error_skips_before_start.reset();
         }
     }
 
