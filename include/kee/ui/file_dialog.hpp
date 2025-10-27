@@ -9,6 +9,15 @@
 namespace kee {
 namespace ui {
 
+class file_dialog_filter
+{
+public:
+    file_dialog_filter(std::string_view name, std::string_view spec);
+
+    std::string name;
+    std::string spec;
+};
+
 class file_dialog : public kee::ui::base
 {
 public:
@@ -17,7 +26,8 @@ public:
         kee::pos x,
         kee::pos y,
         const std::variant<kee::dims, kee::border>& dimensions,
-        bool centered
+        bool centered,
+        std::vector<file_dialog_filter> filters
     );
 
     std::function<void(std::filesystem::path)> on_success;
@@ -40,6 +50,8 @@ private:
 
     kee::ui::button fd_button;
     kee::ui::image fd_image;
+
+    std::vector<file_dialog_filter> filters;
 };
 
 } // namespace ui

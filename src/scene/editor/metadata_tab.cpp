@@ -31,7 +31,10 @@ metadata_tab::metadata_tab(const kee::ui::required& reqs, kee::scene::editor::ro
             dim(dim::type::rel, 0.45f),
             dim(dim::type::rel, 0.03f)
         ),
-        false
+        false,
+        std::vector<kee::ui::file_dialog_filter>({
+            kee::ui::file_dialog_filter("MP3 File", ".mp3")
+        })
     )),
     artist_text(add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),

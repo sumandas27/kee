@@ -3,12 +3,18 @@
 namespace kee {
 namespace ui {
 
+file_dialog_filter::file_dialog_filter(std::string_view name, std::string_view spec) :
+    name(name),
+    spec(spec)
+{ }
+
 file_dialog::file_dialog(
     const kee::ui::required& reqs,
     kee::pos x,
     kee::pos y,
     const std::variant<kee::dims, kee::border>& dimensions,
-    bool centered
+    bool centered,
+    std::vector<file_dialog_filter> filters
 ) :
     kee::ui::base(reqs, x, y, dimensions, centered),
     on_success([]([[maybe_unused]] std::filesystem::path selected_file){}),
@@ -55,7 +61,8 @@ file_dialog::file_dialog(
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_w, 0.2f),
         true, false, false, 0.0f
-    ))
+    )),
+    filters(filters)
 { 
     fd_button.on_event = [&](button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
@@ -74,20 +81,33 @@ file_dialog::file_dialog(
 
     fd_button.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        /* TODO: code filter as file_dialog param */
-        nfdfilteritem_t mp3_filter;
-        mp3_filter.name = "MP3 File";
-        mp3_filter.spec = "mp3";
+        std::vector<nfdfilteritem_t> nfd_filters(this->filters.size());
+        for (std::size_t i = 0; i < nfd_filters.size(); i++)
+        {
+            nfd_filters[i].name = this->filters[i].name.c_str();
+            nfd_filters[i].spec = this->filters[i].spec.c_str();
+        }
 
         NFD::UniquePath out_path;
-        nfdresult_t open_dialog_res = NFD::OpenDialog(out_path, &mp3_filter, 1);
+        nfdresult_t open_dialog_res = NFD::OpenDialog(out_path, nfd_filters.data(), 1);
         switch (open_dialog_res)
         {
-        case NFD_OKAY:
-            /* TODO: check if file is actually mp3 */
-            /* TODO: call func lambda */
-            this->on_filter_mismatch();
+        case NFD_OKAY: {
+            const std::filesystem::path selected_path(out_path.get());
+            const bool filter_match = std::any_of(this->filters.begin(), this->filters.end(), 
+                [&](const file_dialog_filter& fd_filter)
+                {
+                    return selected_path.extension() == fd_filter.spec;
+                }
+            );
+
+            if (filter_match)
+                this->on_success(selected_path);
+            else
+                this->on_filter_mismatch();
+
             break;
+        }
         case NFD_CANCEL:
             break;
         case NFD_ERROR:
