@@ -43,12 +43,30 @@ metadata_tab::metadata_tab(const kee::ui::required& reqs, kee::scene::editor::ro
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
         false, assets.font_semi_bold, "ARTIST", false
     )),
+    artist_textbox(add_child<kee::ui::textbox>(std::nullopt,
+        pos(pos::type::rel, 0.35f),
+        pos(pos::type::rel, 0.1125f),
+        dims(
+            dim(dim::type::rel, 0.45f),
+            dim(dim::type::rel, 0.03f)
+        ),
+        false
+    )),
     song_name_text(add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
         pos(pos::type::rel, 0.2f),
         pos(pos::type::rel, 0.175f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
         false, assets.font_semi_bold, "SONG NAME", false
+    )),
+    song_name_textbox(add_child<kee::ui::textbox>(std::nullopt,
+        pos(pos::type::rel, 0.35f),
+        pos(pos::type::rel, 0.175f),
+        dims(
+            dim(dim::type::rel, 0.45f),
+            dim(dim::type::rel, 0.03f)
+        ),
+        false
     ))
 { 
     audio_file_dialog.ref.on_filter_mismatch = [&]()

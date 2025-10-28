@@ -2,6 +2,7 @@
 
 #include "kee/ui/base.hpp"
 #include "kee/ui/file_dialog.hpp"
+#include "kee/ui/textbox.hpp"
 
 namespace kee {
 namespace scene {
@@ -21,10 +22,10 @@ private:
     kee::ui::handle<kee::ui::file_dialog> audio_file_dialog;
 
     kee::ui::handle<kee::ui::text> artist_text;
-    /* TODO: textbox */
+    kee::ui::handle<kee::ui::textbox> artist_textbox;
     
     kee::ui::handle<kee::ui::text> song_name_text;
-    /* TODO: textbox */
+    kee::ui::handle<kee::ui::textbox> song_name_textbox;
 };
 
 } // namespace editor
