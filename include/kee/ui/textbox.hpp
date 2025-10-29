@@ -34,7 +34,7 @@ private:
     kee::ui::base textbox_text_frame;
     kee::ui::text textbox_text;
 
-    kee::ui::button textbox_button;
+    mouse_state textbox_state;
 };
 
 } // namespace ui
