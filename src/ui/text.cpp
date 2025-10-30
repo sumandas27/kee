@@ -39,6 +39,11 @@ const std::string& text::get_string() const
     return str;
 }
 
+float text::get_base_scale() const
+{
+    return str_size * scale / font.baseSize;
+}
+
 void text::set_string(std::string_view new_str)
 {
     update_dims(new_str, std::nullopt, std::nullopt);

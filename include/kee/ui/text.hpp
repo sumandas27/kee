@@ -40,9 +40,12 @@ public:
     );
 
     const std::string& get_string() const;
+    float get_base_scale() const;
 
     void set_string(std::string_view new_str);
     void set_scale(float new_scale);
+
+    const raylib::Font& font;
 
 private:
     void render_element() const override;
@@ -52,8 +55,6 @@ private:
         std::optional<kee::ui::text_size> new_str_size, 
         std::optional<float> new_scale
     );
-
-    const raylib::Font& font;
 
     static constexpr float font_cap_height_multiplier_approx = 0.9f;
     const bool font_cap_height_only;

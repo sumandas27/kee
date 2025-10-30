@@ -8,6 +8,44 @@
 namespace kee {
 namespace ui {
 
+class textbox;
+
+class cursor_idx
+{
+public:
+    cursor_idx(std::size_t char_idx, float pos_x);
+
+    std::size_t char_idx;
+    float pos_x;
+};
+
+class on_down_idxs
+{
+public:
+    on_down_idxs(const cursor_idx& idx);
+
+    cursor_idx beg;
+    cursor_idx end;
+};
+
+class cursor
+{
+public:
+    cursor(textbox& parent, const cursor_idx& idx);
+
+    kee::ui::rect ui;
+
+    float blink_timer;
+};
+
+class multiselect
+{
+public:
+    multiselect(textbox& parent, const cursor_idx& beg, const cursor_idx& end);
+
+    kee::ui::rect ui;
+};
+
 class textbox : public kee::ui::base
 {
 public:
@@ -27,14 +65,20 @@ private:
     void update_element(float dt) override;
     void render_element() const override;
 
+    cursor_idx get_curr_cursor_idx(const raylib::Vector2& mouse_pos) const;
+
     kee::transition<kee::color>& textbox_outline_color;
 
     kee::ui::rect textbox_rect;
-    
+
     kee::ui::base textbox_text_frame;
     kee::ui::text textbox_text;
 
     mouse_state textbox_state;
+    std::optional<on_down_idxs> char_idxs;
+    std::optional<std::variant<cursor, multiselect>> selection_ui;
+
+    bool has_render_priority;
 };
 
 } // namespace ui
