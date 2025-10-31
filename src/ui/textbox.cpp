@@ -122,9 +122,28 @@ bool textbox::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
         if (cursor_ctor_param.has_value())
             selection_ui.emplace(cursor(*this, cursor_ctor_param.value()));
 
+        cursor& cursor_ui = std::get<cursor>(selection_ui.value());
+        const float new_char_pos_x = cursor_ui.ui.get_raw_rect().x;
+        const std::size_t curr_idx = cursor_ui.char_idx;
+
+        const float textbox_frame_x = textbox_text_frame.get_raw_rect().x;
+        float textbox_text_x_change = textbox_frame_x - new_char_pos_x;
+        if (curr_idx > 0)
+        {
+            const GlyphInfo gi = GetGlyphInfo(textbox_text.font, static_cast<int>(textbox_text.get_string()[curr_idx - 1]));
+            const float char_size = gi.advanceX * textbox_text.get_base_scale();
+            textbox_text_x_change += char_size * 0.8f;
+        }
+
+        if (new_char_pos_x < textbox_frame_x)
+            textbox_text.x.val += textbox_text_x_change;
+
+        cursor_ui.ui.x.val = char_idx_to_pos_x(cursor_ui.char_idx);
         return true;
     }
     case KeyboardKey::KEY_RIGHT: {
+        /* TODO: keep cursor in bounds on left and right inputs */
+
         std::optional<cursor_idx> cursor_ctor_param;
         std::visit([&](auto&& ui) 
         {
@@ -188,10 +207,33 @@ void textbox::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[maybe_un
         mouse_pos.x >= raw_rect.x && mouse_pos.x <= raw_rect.x + raw_rect.width &&
         mouse_pos.y >= raw_rect.y && mouse_pos.y <= raw_rect.y + raw_rect.height;
 
+    scroll_vel.reset();
     if (char_idxs.has_value())
     {
-        char_idxs.value().end = get_curr_cursor_idx(mouse_pos);
-        
+        const raylib::Rectangle textbox_frame_rect = textbox_text_frame.get_raw_rect();
+        if (mouse_pos.x < textbox_frame_rect.x)
+        {
+            if (!char_idxs.value().scroll_pos.has_value())
+            {
+                char_idxs.value().end = pos_x_to_char_idx(textbox_frame_rect.x, true);
+                char_idxs.value().scroll_pos = 0.0f;
+            }
+
+            scroll_vel = -(textbox_frame_rect.x - mouse_pos.x) * textbox::scroll_velocity;
+        }
+        else if (mouse_pos.x > textbox_frame_rect.x + textbox_frame_rect.width)
+        {
+            if (!char_idxs.value().scroll_pos.has_value())
+            {
+                char_idxs.value().end = pos_x_to_char_idx(textbox_frame_rect.x + textbox_frame_rect.width, false);
+                char_idxs.value().scroll_pos = 0.0f;
+            }
+            
+            scroll_vel = (mouse_pos.x - textbox_frame_rect.x - textbox_frame_rect.width) * textbox::scroll_velocity;
+        }
+        else
+            char_idxs.value().end = pos_x_to_char_idx(mouse_pos.x, std::nullopt);
+
         if (char_idxs.value().beg.char_idx != char_idxs.value().end.char_idx)
         {
             if (std::holds_alternative<multiselect>(selection_ui.value()))
@@ -258,7 +300,7 @@ bool textbox::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mo
             take_keyboard_capture();
         }
 
-        char_idxs = get_curr_cursor_idx(mouse_pos);
+        char_idxs = on_down_idxs(pos_x_to_char_idx(mouse_pos.x, std::nullopt));
         selection_ui.emplace(cursor(*this, char_idxs.value().beg));
 
         textbox_state = mouse_state::down;
@@ -294,6 +336,44 @@ void textbox::update_element([[maybe_unused]] float dt)
             blink_timer = cursor::blink_time;
         }
     }
+
+    if (char_idxs.has_value())
+    {
+        if (scroll_vel.has_value())
+        {
+            char_idxs.value().scroll_pos.value() += scroll_vel.value() * dt;
+
+            const raylib::Rectangle textbox_frame_rect = textbox_text_frame.get_raw_rect();
+            if (char_idxs.value().scroll_pos < -1.0f)
+            {
+                const std::size_t shift_chars_l = static_cast<std::size_t>(std::floor(-char_idxs.value().scroll_pos.value()));
+                const std::size_t new_char_idx = (char_idxs.value().end.char_idx >= shift_chars_l) ? char_idxs.value().end.char_idx - shift_chars_l : 0;
+                
+                const float new_char_pos_x = char_idx_to_pos_x(new_char_idx);
+                if (new_char_pos_x < textbox_frame_rect.x)
+                    textbox_text.x.val -= new_char_pos_x + (get_raw_rect().x - textbox_frame_rect.x);
+
+                char_idxs.value().beg.pos_x = char_idx_to_pos_x(char_idxs.value().beg.char_idx);
+                char_idxs.value().end = cursor_idx(new_char_idx, char_idx_to_pos_x(new_char_idx));
+                char_idxs.value().scroll_pos.value() += shift_chars_l;
+            }
+            else if (char_idxs.value().scroll_pos > 1.0f)
+            {
+                const std::size_t shift_chars_r = static_cast<std::size_t>(std::floor(char_idxs.value().scroll_pos.value()));
+                const std::size_t new_char_idx = std::min(char_idxs.value().end.char_idx + shift_chars_r, textbox_text.get_string().size());
+                
+                const float new_char_pos_x = char_idx_to_pos_x(new_char_idx);
+                if (new_char_pos_x - textbox_text.x.val > textbox_frame_rect.width)
+                    textbox_text.x.val += textbox_frame_rect.width - new_char_pos_x;
+
+                char_idxs.value().beg.pos_x = char_idx_to_pos_x(char_idxs.value().beg.char_idx);
+                char_idxs.value().end = cursor_idx(new_char_idx, char_idx_to_pos_x(new_char_idx));
+                char_idxs.value().scroll_pos.value() -= shift_chars_r;
+            }
+        }
+        else
+            char_idxs.value().scroll_pos.reset();
+    }
 }
 
 void textbox::render_element() const
@@ -311,12 +391,12 @@ void textbox::render_element() const
         static_cast<int>(text_frame_rect.height)
     );
     textbox_text.render();
-    EndScissorMode();
 
     if (selection_ui.has_value())
         std::visit([](const auto& ui) {
             ui.ui.render();
         }, selection_ui.value());
+    EndScissorMode();
 }
 
 float textbox::char_idx_to_pos_x(std::size_t char_idx) const
@@ -334,9 +414,9 @@ float textbox::char_idx_to_pos_x(std::size_t char_idx) const
     return res;
 }
 
-cursor_idx textbox::get_curr_cursor_idx(const raylib::Vector2& mouse_pos) const
+cursor_idx textbox::pos_x_to_char_idx(float mouse_pos_x, std::optional<bool> snap_left) const
 {
-    const float local_x = mouse_pos.x - textbox_text.get_raw_rect().x;
+    const float local_x = mouse_pos_x - textbox_text.get_raw_rect().x;
     const std::string& textbox_string = textbox_text.get_string();
 
     float curr_x = 0.0f;
@@ -348,7 +428,19 @@ cursor_idx textbox::get_curr_cursor_idx(const raylib::Vector2& mouse_pos) const
          */
         const GlyphInfo gi = GetGlyphInfo(textbox_text.font, static_cast<int>(textbox_string[i]));
         const float char_width = gi.advanceX * textbox_text.get_base_scale();
-        if (local_x < curr_x + char_width / 2.0f)
+
+        float compare_x;
+        if (snap_left.has_value())
+        {
+            if (snap_left.value())
+                compare_x = curr_x;
+            else
+                compare_x = curr_x + char_width;
+        }
+        else
+            compare_x = curr_x + char_width / 2.0f;
+
+        if (local_x < compare_x)
             break;
 
         curr_x += char_width;

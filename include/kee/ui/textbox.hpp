@@ -26,6 +26,8 @@ public:
 
     cursor_idx beg;
     cursor_idx end;
+
+    std::optional<float> scroll_pos;
 };
 
 class cursor
@@ -65,6 +67,8 @@ public:
     );
 
 private:
+    static constexpr float scroll_velocity = 0.2f;
+
     bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
 
     void on_element_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods) override;
@@ -75,7 +79,7 @@ private:
     void render_element() const override;
 
     float char_idx_to_pos_x(std::size_t char_idx) const;
-    cursor_idx get_curr_cursor_idx(const raylib::Vector2& mouse_pos) const;
+    cursor_idx pos_x_to_char_idx(float mouse_pos_x, std::optional<bool> snap_left) const; /* TODO: rename +  update params to left or right */
 
     const boost::optional<kee::ui::base&> keyboard_owner;
 
@@ -88,6 +92,7 @@ private:
 
     mouse_state textbox_state;
     std::optional<on_down_idxs> char_idxs;
+    std::optional<float> scroll_vel;
     std::optional<std::variant<cursor, multiselect>> selection_ui;
 
     bool has_render_priority;
