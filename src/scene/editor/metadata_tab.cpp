@@ -50,7 +50,7 @@ metadata_tab::metadata_tab(const kee::ui::required& reqs, kee::scene::editor::ro
             dim(dim::type::rel, 0.45f),
             dim(dim::type::rel, 0.03f)
         ),
-        false
+        false, *this
     )),
     song_name_text(add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
@@ -66,7 +66,7 @@ metadata_tab::metadata_tab(const kee::ui::required& reqs, kee::scene::editor::ro
             dim(dim::type::rel, 0.45f),
             dim(dim::type::rel, 0.03f)
         ),
-        false
+        false, *this
     ))
 { 
     audio_file_dialog.ref.on_filter_mismatch = [&]()

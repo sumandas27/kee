@@ -21,7 +21,7 @@ void game::main_loop()
         kee::ui::base& keyboard_handler = element_keyboard_capture.value_or(*curr_scene);
         for (int key = KeyboardKey::KEY_NULL; key <= KeyboardKey::KEY_KB_MENU; key++)
         {
-            if (raylib::Keyboard::IsKeyPressed(key))
+            if (raylib::Keyboard::IsKeyPressed(key) || raylib::Keyboard::IsKeyPressedRepeat(key))
                 keyboard_handler.on_key_down(key, mods);
 
             if (raylib::Keyboard::IsKeyReleased(key))
