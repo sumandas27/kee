@@ -52,6 +52,7 @@ textbox::textbox(
     boost::optional<kee::ui::base&> keyboard_owner
 ) :
     kee::ui::base(reqs, x, y, dimensions, centered),
+    on_string_input([]([[maybe_unused]] std::string_view new_str){ return true; }),
     keyboard_owner(keyboard_owner),
     textbox_outline_color(add_transition<kee::color>(kee::color::white())),
     textbox_rect(make_temp_child<kee::ui::rect>(
@@ -64,12 +65,12 @@ textbox::textbox(
         ),
         false,
         rect_outline(rect_outline::type::rel_h, 0.07f, textbox_outline_color.get().to_color()),
-        std::nullopt
+        rect_roundness(rect_roundness::type::rel_h, 0.2f, std::nullopt)
     )),
     textbox_text_frame(make_temp_child<kee::ui::base>(
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
-        border(border::type::rel_h, 0.1f),
+        border(border::type::rel_h, 0.15f),
         true
     )),
     textbox_text(textbox_text_frame.make_temp_child<kee::ui::text>(
@@ -77,7 +78,7 @@ textbox::textbox(
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         text_size(text_size::type::rel_h, 1),
-        false, assets.font_regular, "TEST STRING raylib::Keyboard::IsKeyPressedRepeat(key) raylib::Keyboard::IsKeyPressedRepeat(key)", false
+        false, assets.font_regular, std::string(), false
     )),
     textbox_state(mouse_state::off),
     has_render_priority(false)
@@ -190,7 +191,6 @@ bool textbox::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
                 {
                     ui.char_idx--;
                     ui.ui.x.val = this->char_idx_to_pos_x(ui.char_idx);
-
                     ui.ui.set_opt_color(kee::color::dark_orange().to_color());
                     ui.blink_timer = cursor::blink_time;
                 }
@@ -218,6 +218,54 @@ bool textbox::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
     default:
         return false;
     }
+}
+
+bool textbox::on_element_char_press(char c)
+{
+    if (!selection_ui.has_value())
+        return false;
+
+    std::optional<cursor_idx> cursor_ctor_param;
+    std::visit([&](auto&& ui) 
+    {
+        using T = std::decay_t<decltype(ui)>;
+        if constexpr (std::is_same_v<T, cursor>)
+        {
+            std::string new_string = this->textbox_text.get_string();
+            new_string.insert(ui.char_idx, 1, c);
+            this->textbox_text.set_string(new_string);
+
+            ui.char_idx++;
+            ui.ui.x.val = this->char_idx_to_pos_x(ui.char_idx);
+            ui.ui.set_opt_color(kee::color::dark_orange().to_color());
+            ui.blink_timer = cursor::blink_time;
+        }
+        else if constexpr (std::is_same_v<T, multiselect>)
+        {
+            std::string new_string = this->textbox_text.get_string();
+            new_string.erase(ui.beg_char_idx, ui.end_char_idx - ui.beg_char_idx);
+            new_string.insert(ui.beg_char_idx, 1, c);
+            this->textbox_text.set_string(new_string);
+
+            cursor_ctor_param = cursor_idx(ui.beg_char_idx + 1, this->char_idx_to_pos_x(ui.beg_char_idx + 1));
+        }
+    }, 
+    selection_ui.value());
+
+    if (cursor_ctor_param.has_value())
+        selection_ui.emplace(cursor(*this, cursor_ctor_param.value()));
+
+    cursor& cursor_ui = std::get<cursor>(selection_ui.value());
+    const raylib::Rectangle cursor_rect = cursor_ui.ui.get_raw_rect();
+    const raylib::Rectangle text_rect = textbox_text_frame.get_raw_rect();
+    
+    if (cursor_rect.x + cursor_rect.width > text_rect.x + text_rect.width)
+    {
+        textbox_text.x.val -= (cursor_rect.x + cursor_rect.width) - (text_rect.x + text_rect.width);
+        cursor_ui.ui.x.val = char_idx_to_pos_x(cursor_ui.char_idx);
+    }
+
+    return true;
 }
 
 void textbox::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -295,7 +343,17 @@ bool textbox::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mo
     {
         if (has_render_priority)
         {
-            textbox_outline_color.set(kee::color::white());
+            if (!on_string_input(textbox_text.get_string()))
+            {
+                textbox_outline_color.set(kee::color::red(), kee::color::white(), 1.0f, kee::transition_type::lin);
+                textbox_text.set_string(old_str);
+            }
+            else
+            {
+                textbox_outline_color.set(kee::color::white());
+                old_str = textbox_text.get_string();
+            }
+
             selection_ui.reset();
             release_render_priority();
             has_render_priority = false;

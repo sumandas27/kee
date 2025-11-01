@@ -30,12 +30,12 @@ file_dialog::file_dialog(
         ),
         false,
         rect_outline(rect_outline::type::rel_h, 0.07f, fd_outline_color.get().to_color()),
-        std::nullopt
+        rect_roundness(rect_roundness::type::rel_h, 0.15f, std::nullopt)
     )),
     fd_text_frame(make_temp_child<kee::ui::base>(
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
-        border(border::type::rel_h, 0.1f),
+        border(border::type::rel_h, 0.15f),
         true
     )),
     fd_text(fd_text_frame.make_temp_child<kee::ui::text>(

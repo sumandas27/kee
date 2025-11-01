@@ -1,8 +1,8 @@
 #pragma once
 
-#include "kee/scene/editor/metadata_tab.hpp"
 #include "kee/scene/editor/compose_tab.hpp"
 #include "kee/scene/editor/decoration_tab.hpp"
+#include "kee/scene/editor/setup_tab.hpp"
 #include "kee/scene/editor/timing_tab.hpp"
 
 namespace kee {
@@ -29,7 +29,7 @@ private:
     kee::image_texture error_png;
 
     std::variant<
-        kee::ui::handle<metadata_tab>,
+        kee::ui::handle<setup_tab>,
         kee::ui::handle<compose_tab>,
         kee::ui::handle<decoration_tab>,
         kee::ui::handle<timing_tab>
@@ -63,7 +63,7 @@ private:
 
 enum class root::tabs
 {
-    metadata,
+    setup,
     compose,
     decoration,
     timing

@@ -28,7 +28,8 @@ void game::main_loop()
                 keyboard_handler.on_key_up(key, mods);
         }
 
-        /* TODO NEXT: impl char callback */
+        for (int key = raylib::Keyboard::GetCharPressed(); key > 0; key = raylib::Keyboard::GetCharPressed())
+            keyboard_handler.on_char_press(static_cast<char>(key));
 
         const raylib::Vector2 mouse_pos = raylib::Mouse::GetPosition();
         curr_scene->on_mouse_move(mouse_pos, mods);

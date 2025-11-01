@@ -8,8 +8,8 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
     kee::scene::base(window, game, assets),
     exit_png("assets/img/exit.png"),
     error_png("assets/img/error.png"),
-    active_tab_elem(add_child<metadata_tab>(std::nullopt, *this)),
-    active_tab(root::tabs::metadata),
+    active_tab_elem(add_child<setup_tab>(std::nullopt, *this)),
+    active_tab(root::tabs::setup),
     tab_active_rect_rel_x(add_transition<float>(static_cast<float>(active_tab) / magic_enum::enum_count<root::tabs>())),
     exit_button_rect_alpha(add_transition<float>(0.0f)),
     error_rect_rel_x(add_transition<float>(1.0f)),
@@ -175,8 +175,8 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
             this->active_tab = tab_enum;
             switch (this->active_tab)
             {
-            case root::tabs::metadata:
-                this->active_tab_elem.emplace<kee::ui::handle<metadata_tab>>(add_child<metadata_tab>(std::nullopt, *this));
+            case root::tabs::setup:
+                this->active_tab_elem.emplace<kee::ui::handle<setup_tab>>(add_child<setup_tab>(std::nullopt, *this));
                 break;
             case root::tabs::compose:
                 this->active_tab_elem.emplace<kee::ui::handle<compose_tab>>(add_child<compose_tab>(std::nullopt, compose_info));

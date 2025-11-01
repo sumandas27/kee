@@ -66,10 +66,17 @@ public:
         boost::optional<kee::ui::base&> keyboard_owner
     );
 
+    /**
+     * Change external state based on a new textbox string input. Return a boolean
+     * indicating if string is valid, if invalid textbox reverts to previous string.
+     */
+    std::function<bool(std::string_view)> on_string_input;
+
 private:
     static constexpr float scroll_velocity = 0.5f;
 
     bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
+    bool on_element_char_press(char c) override;
 
     void on_element_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods) override;
     bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods) override;
@@ -95,6 +102,7 @@ private:
     std::optional<float> scroll_vel;
     std::optional<std::variant<cursor, multiselect>> selection_ui;
 
+    std::string old_str;
     bool has_render_priority;
 };
 
