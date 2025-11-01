@@ -127,23 +127,23 @@ bool textbox::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
         const std::size_t curr_idx = cursor_ui.char_idx;
 
         const float textbox_frame_x = textbox_text_frame.get_raw_rect().x;
-        float textbox_text_x_change = textbox_frame_x - new_char_pos_x;
-        if (curr_idx > 0)
+        if (new_char_pos_x < textbox_frame_x)
         {
-            const GlyphInfo gi = GetGlyphInfo(textbox_text.font, static_cast<int>(textbox_text.get_string()[curr_idx - 1]));
-            const float char_size = gi.advanceX * textbox_text.get_base_scale();
-            textbox_text_x_change += char_size * 0.8f;
+            float textbox_text_x_change = textbox_frame_x - new_char_pos_x;
+            if (curr_idx > 0)
+            {
+                const GlyphInfo gi = GetGlyphInfo(textbox_text.font, static_cast<int>(textbox_text.get_string()[curr_idx - 1]));
+                const float char_size = gi.advanceX * textbox_text.get_base_scale();
+                textbox_text_x_change += char_size * 0.8f;
+            }
+
+            textbox_text.x.val += textbox_text_x_change;
+            cursor_ui.ui.x.val = char_idx_to_pos_x(cursor_ui.char_idx);
         }
 
-        if (new_char_pos_x < textbox_frame_x)
-            textbox_text.x.val += textbox_text_x_change;
-
-        cursor_ui.ui.x.val = char_idx_to_pos_x(cursor_ui.char_idx);
         return true;
     }
     case KeyboardKey::KEY_RIGHT: {
-        /* TODO: keep cursor in bounds on left and right inputs */
-
         std::optional<cursor_idx> cursor_ctor_param;
         std::visit([&](auto&& ui) 
         {
@@ -166,6 +166,16 @@ bool textbox::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
 
         if (cursor_ctor_param.has_value())
             selection_ui.emplace(cursor(*this, cursor_ctor_param.value()));
+
+        cursor& cursor_ui = std::get<cursor>(selection_ui.value());
+        const raylib::Rectangle cursor_rect = cursor_ui.ui.get_raw_rect();
+        const raylib::Rectangle text_rect = textbox_text_frame.get_raw_rect();
+        
+        if (cursor_rect.x + cursor_rect.width > text_rect.x + text_rect.width)
+        {
+            textbox_text.x.val -= (cursor_rect.x + cursor_rect.width) - (text_rect.x + text_rect.width);
+            cursor_ui.ui.x.val = char_idx_to_pos_x(cursor_ui.char_idx);
+        }
 
         return true;
     }
@@ -192,6 +202,16 @@ bool textbox::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
 
         if (cursor_ctor_param.has_value())
             selection_ui.emplace(cursor(*this, cursor_ctor_param.value()));
+
+        cursor& cursor_ui = std::get<cursor>(selection_ui.value());
+        const raylib::Rectangle cursor_rect = cursor_ui.ui.get_raw_rect();
+        const float textbox_frame_x = textbox_text_frame.get_raw_rect().x;
+
+        if (cursor_rect.x < textbox_frame_x)
+        {
+            textbox_text.x.val += textbox_frame_x - cursor_rect.x;
+            cursor_ui.ui.x.val = char_idx_to_pos_x(cursor_ui.char_idx);
+        }
 
         return true;
     }

@@ -67,7 +67,7 @@ public:
     );
 
 private:
-    static constexpr float scroll_velocity = 0.2f;
+    static constexpr float scroll_velocity = 0.5f;
 
     bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
 
@@ -79,8 +79,8 @@ private:
     void render_element() const override;
 
     float char_idx_to_pos_x(std::size_t char_idx) const;
-    cursor_idx pos_x_to_char_idx(float mouse_pos_x, std::optional<bool> snap_left) const; /* TODO: rename +  update params to left or right */
-
+    cursor_idx pos_x_to_char_idx(float mouse_pos_x, std::optional<bool> snap_left) const;
+    
     const boost::optional<kee::ui::base&> keyboard_owner;
 
     kee::transition<kee::color>& textbox_outline_color;
