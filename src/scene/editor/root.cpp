@@ -67,7 +67,7 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
         border(border::type::rel_w, 0.3f),
         true, false, false, 0.0f
     )),
-    error_rect(add_child<kee::ui::rect>(std::nullopt,
+    error_rect(add_child<kee::ui::rect>(1,
         raylib::Color(80, 80, 80, static_cast<unsigned char>(error_alpha.get())),
         pos(pos::type::rel, error_rect_rel_x.get()),
         pos(pos::type::rel, 0.93f),

@@ -32,6 +32,12 @@ private:
 
     kee::ui::handle<kee::ui::rect> difficulty_bg;
     kee::ui::handle<kee::ui::text> difficulty_label;
+
+    kee::ui::handle<kee::ui::text> approach_text;
+    kee::ui::handle<kee::ui::textbox> approach_textbox;
+
+    kee::ui::handle<kee::ui::text> forgiveness_text;
+    kee::ui::handle<kee::ui::textbox> forgiveness_textbox;
 };
 
 } // namespace editor

@@ -103,11 +103,65 @@ setup_tab::setup_tab(const kee::ui::required& reqs, kee::scene::editor::root& ed
         pos(pos::type::rel, 0.05f),
         ui::text_size(ui::text_size::type::rel_h, 0.05f),
         true, assets.font_semi_bold, "DIFFICULTY", false
+    )),
+    approach_text(difficulty_bg.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0.1f),
+        pos(pos::type::rel, 0.12f),
+        ui::text_size(ui::text_size::type::rel_h, 0.03f),
+        false, assets.font_semi_bold, "APPROACH BEATS", false
+    )),
+    approach_textbox(difficulty_bg.ref.add_child<kee::ui::textbox>(std::nullopt,
+        pos(pos::type::rel, 0.65f),
+        pos(pos::type::rel, 0.12f),
+        dims(
+            dim(dim::type::rel, 0.25f),
+            dim(dim::type::rel, 0.03f)
+        ),
+        false, *this
+    )),
+    forgiveness_text(difficulty_bg.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0.1f),
+        pos(pos::type::rel, 0.1825f),
+        ui::text_size(ui::text_size::type::rel_h, 0.03f),
+        false, assets.font_semi_bold, "BEAT FORGIVENESS", false
+    )),
+    forgiveness_textbox(difficulty_bg.ref.add_child<kee::ui::textbox>(std::nullopt,
+        pos(pos::type::rel, 0.65f),
+        pos(pos::type::rel, 0.1825f),
+        dims(
+            dim(dim::type::rel, 0.25f),
+            dim(dim::type::rel, 0.03f)
+        ),
+        false, *this
     ))
 { 
     audio_file_dialog.ref.on_filter_mismatch = [&]()
     {
         this->editor_scene.set_error("Not a valid audio file format!", true);
+    };
+
+    approach_textbox.ref.on_string_input = [&](std::string_view new_str) -> bool
+    {
+        float text_float;
+
+        auto [ptr, ec] = std::from_chars(new_str.data(), new_str.data() + new_str.size(), text_float);
+        if (ec != std::errc() || ptr != new_str.data() + new_str.size())
+            return false;
+
+        /* TODO: complete */
+    };
+
+    forgiveness_textbox.ref.on_string_input = [&](std::string_view new_str) -> bool
+    {
+        float text_float;
+
+        auto [ptr, ec] = std::from_chars(new_str.data(), new_str.data() + new_str.size(), text_float);
+        if (ec != std::errc() || ptr != new_str.data() + new_str.size())
+            return false;
+
+        /* TODO: complete */
     };
 }
 
