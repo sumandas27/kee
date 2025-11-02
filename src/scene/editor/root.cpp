@@ -411,6 +411,26 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
         }
     };
 
+    playback_l_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        if (this->playback_speed_idx > 0)
+        {
+            this->playback_speed_idx--;
+            this->playback_text.ref.set_string(std::format("{:.2f}x", root::playback_speeds[this->playback_speed_idx]));
+            this->music.SetPitch(root::playback_speeds[this->playback_speed_idx]);
+        }
+    };
+
+    playback_r_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        if (this->playback_speed_idx < root::playback_speeds.size() - 1)
+        {
+            this->playback_speed_idx++;
+            this->playback_text.ref.set_string(std::format("{:.2f}x", root::playback_speeds[this->playback_speed_idx]));
+            this->music.SetPitch(root::playback_speeds[this->playback_speed_idx]);
+        }
+    };
+
     playback_r_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
         switch (button_event)
@@ -515,11 +535,15 @@ void root::update_element(float dt)
     tab_active_rect.ref.x.val = tab_active_rect_rel_x.get();
     exit_button_rect.ref.set_opt_color(raylib::Color(255, 0, 0, static_cast<unsigned char>(exit_button_rect_alpha.get())));
 
-    std::get<kee::border>(playback_l_img.ref.dimensions).val = (1.0f - playback_l_img_scale.get()) / 2;
-    std::get<kee::border>(playback_r_img.ref.dimensions).val = (1.0f - playback_r_img_scale.get()) / 2;
+    const float playback_l_scale = (playback_speed_idx > 0) ? playback_l_img_scale.get() : 0.7f;
+    const float playback_r_scale = (playback_speed_idx < root::playback_speeds.size() - 1) ? playback_r_img_scale.get() : 0.7f;
+    std::get<kee::border>(playback_l_img.ref.dimensions).val = (1.0f - playback_l_scale) / 2;
+    std::get<kee::border>(playback_r_img.ref.dimensions).val = (1.0f - playback_r_scale) / 2;
 
-    playback_l_img.ref.set_opt_color(playback_l_img_color.get().to_color());
-    playback_r_img.ref.set_opt_color(playback_r_img_color.get().to_color());
+    const raylib::Color playback_l_color = (playback_speed_idx > 0) ? playback_l_img_color.get().to_color() : raylib::Color(255, 255, 255, 80);
+    const raylib::Color playback_r_color = (playback_speed_idx < root::playback_speeds.size() - 1) ? playback_r_img_color.get().to_color() : raylib::Color(255, 255, 255, 80);
+    playback_l_img.ref.set_opt_color(playback_l_color);
+    playback_r_img.ref.set_opt_color(playback_r_color);
 
     const unsigned char error_a = static_cast<unsigned char>(error_alpha.get());
     error_rect.ref.set_opt_color(raylib::Color(80, 80, 80, error_a));
