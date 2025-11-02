@@ -10,7 +10,7 @@ timing_tab::timing_tab(const kee::ui::required& reqs) :
         pos(pos::type::rel, 0.04f),
         dims(
             dim(dim::type::rel, 1.0f),
-            dim(dim::type::rel, 0.96f)
+            dim(dim::type::rel, 0.88f)
         ),
         false
     ),

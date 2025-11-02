@@ -8,10 +8,18 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
     kee::scene::base(window, game, assets),
     exit_png("assets/img/exit.png"),
     error_png("assets/img/error.png"),
+    pause_png("assets/img/pause.png"),
+    arrow_png("assets/img/arrow.png"),
     active_tab_elem(add_child<setup_tab>(std::nullopt, *this)),
     active_tab(root::tabs::setup),
     tab_active_rect_rel_x(add_transition<float>(static_cast<float>(active_tab) / magic_enum::enum_count<root::tabs>())),
     exit_button_rect_alpha(add_transition<float>(0.0f)),
+    pause_play_color(add_transition<kee::color>(kee::color::white())),
+    pause_play_scale(add_transition<float>(1.0f)),
+    playback_l_img_color(add_transition<kee::color>(kee::color::white())),
+    playback_l_img_scale(add_transition<float>(0.7f)),
+    playback_r_img_color(add_transition<kee::color>(kee::color::white())),
+    playback_r_img_scale(add_transition<float>(0.7f)),
     error_rect_rel_x(add_transition<float>(1.0f)),
     error_alpha(add_transition<float>(0)),
     tab_rect(add_child<kee::ui::rect>(1,
@@ -67,6 +75,122 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
         border(border::type::rel_w, 0.3f),
         true, false, false, 0.0f
     )),
+    playback_bg(add_child<kee::ui::rect>(std::nullopt,
+        raylib::Color(30, 30, 30),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.92f),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 0.08f)
+        ),
+        false, std::nullopt, std::nullopt
+    )),
+    playback_ui_frame(playback_bg.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_h, 0.15f),
+        true
+    )),
+    music_slider(playback_ui_frame.ref.add_child<kee::ui::slider>(std::nullopt,
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 0.1f)
+        ),
+        false
+    )),
+    pause_play(playback_ui_frame.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::beg, 0),
+        pos(pos::type::end, 0),
+        dims(
+            dim(dim::type::aspect, 1),
+            dim(dim::type::rel, 0.7f)
+        ),
+        false
+    )),
+    pause_play_img(pause_play.ref.add_child<kee::ui::image>(std::nullopt,
+        assets.play_png,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0.5),
+        pos(pos::type::rel, 0.5),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 1)
+        ),
+        true, false, false, 0.0f
+    )),
+    music_time_text(playback_ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::end, 0),
+        pos(pos::type::end, 0),
+        ui::text_size(ui::text_size::type::rel_h, 0.75f),
+        false, assets.font_regular, std::string(), false
+    )),
+    playback_l_button(playback_ui_frame.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::rel, 0.05f),
+        pos(pos::type::rel, 0.3f),
+        dims(
+            dim(dim::type::rel, 0.02f),
+            dim(dim::type::rel, 0.7f)
+        ),
+        false
+    )),
+    playback_l_bg(playback_l_button.ref.add_child<kee::ui::rect>(0,
+        raylib::Color(20, 20, 20),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        border(border::type::rel_h, 0),
+        false, std::nullopt, std::nullopt
+    )),
+    playback_l_img(playback_l_button.ref.add_child<kee::ui::image>(1,
+        arrow_png, raylib::Color::White(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_h, 0.15f),
+        true, false, false, 0.0f
+    )),
+    playback_speed_idx(3),
+    playback_text_bg(playback_ui_frame.ref.add_child<kee::ui::rect>(std::nullopt,
+        raylib::Color(10, 10, 10),
+        pos(pos::type::rel, 0.07f),
+        pos(pos::type::rel, 0.3f),
+        dims(
+            dim(dim::type::rel, 0.06f),
+            dim(dim::type::rel, 0.7f)
+        ),
+        false, std::nullopt, std::nullopt
+    )),
+    playback_text(playback_text_bg.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        ui::text_size(ui::text_size::type::rel_h, 0.7f),
+        true, assets.font_semi_bold, std::format("{:.2f}x", root::playback_speeds[playback_speed_idx]), false
+    )),
+    playback_r_button(playback_ui_frame.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::rel, 0.13f),
+        pos(pos::type::rel, 0.3f),
+        dims(
+            dim(dim::type::rel, 0.02f),
+            dim(dim::type::rel, 0.7f)
+        ),
+        false
+    )),
+    playback_r_bg(playback_r_button.ref.add_child<kee::ui::rect>(0,
+        raylib::Color(20, 20, 20),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        border(border::type::rel_h, 0),
+        false, std::nullopt, std::nullopt
+    )),
+    playback_r_img(playback_r_button.ref.add_child<kee::ui::image>(std::nullopt,
+        arrow_png, raylib::Color::White(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_h, 0.15f),
+        true, true, false, 0.0f
+    )),
     error_rect(add_child<kee::ui::rect>(1,
         raylib::Color(80, 80, 80, static_cast<unsigned char>(error_alpha.get())),
         pos(pos::type::rel, error_rect_rel_x.get()),
@@ -103,7 +227,10 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
         ui::text_size(ui::text_size::type::rel_h, 0.4f),
         false, assets.font_semi_bold, std::string(), false
     )),
-    error_timer(0.0f)
+    music("assets/daft-punk-something-about-us/daft-punk-something-about-us.mp3"),
+    music_time(0.0f),
+    error_timer(0.0f),
+    compose_info(music, arrow_png, music_time)
 {
     std::visit([](const auto& elem) {
         elem.ref.take_keyboard_capture();
@@ -206,6 +333,111 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
             true, assets.font_semi_bold, enum_name, false
         ));
     }
+
+    music_slider.ref.on_event = [&, music_is_playing = music.IsPlaying()](ui::slider::event slider_event) mutable
+    {
+        switch (slider_event)
+        {
+        case ui::slider::event::on_down:
+            music_is_playing = music.IsPlaying();
+            this->music.Pause();
+            break;
+        case ui::slider::event::on_release:
+            this->music.Seek(music_slider.ref.progress * this->music.GetTimeLength());
+            if (music_is_playing)
+                this->music.Resume();
+            break;
+        default:
+            break;
+        }
+    };
+
+    pause_play.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            pause_play_color.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
+            pause_play_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_down_l:
+            pause_play_scale.set(std::nullopt, 0.9f, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            pause_play_color.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
+            pause_play_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    pause_play.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    { 
+        if (this->music.IsPlaying())
+        {
+            this->music.Pause();
+            this->pause_play_img.ref.set_image(this->assets.play_png);
+        }
+        else
+        {
+            this->music.Seek(music_slider.ref.progress * this->music.GetTimeLength());
+            this->music.Resume();
+            this->pause_play_img.ref.set_image(pause_png);            
+        }
+    };
+
+    const unsigned int music_length = static_cast<unsigned int>(music.GetTimeLength());
+    const std::string music_length_str = std::format("0:00 / {}:{:02}", music_length / 60, music_length % 60);
+    music_time_text.ref.set_string(music_length_str);
+
+    playback_l_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            playback_l_img_color.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
+            playback_l_img_scale.set(std::nullopt, 0.7f, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_down_l:
+            playback_l_img_scale.set(std::nullopt, 0.6f, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            playback_l_img_color.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
+            playback_l_img_scale.set(std::nullopt, 0.7f, 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    playback_r_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            playback_r_img_color.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
+            playback_r_img_scale.set(std::nullopt, 0.7f, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_down_l:
+            playback_r_img_scale.set(std::nullopt, 0.6f, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            playback_r_img_color.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
+            playback_r_img_scale.set(std::nullopt, 0.7f, 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    music.SetLooping(true);
+    music.SetVolume(0.1f);
+    /**
+     * First `.Play()` on a `raylib::Music` is slow.
+     */
+    music.Play();
+    music.Pause();
 }
 
 void root::set_error(std::string_view error_str, bool from_file_dialog)
@@ -219,9 +451,38 @@ void root::set_error(std::string_view error_str, bool from_file_dialog)
     error_skips_before_start = from_file_dialog ? 2 : 0;
 }
 
+bool root::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods)
+{
+    if (keycode != KeyboardKey::KEY_SPACE || mods.test(kee::mods::ctrl))
+        return false;
+
+    pause_play.ref.on_click_l(mods);
+    return true;
+}
+
 void root::update_element(float dt)
 {
-    /* TODO: fix this */
+    music.Update();
+
+    if (!music_slider.ref.is_down())
+    {
+        if (music.IsPlaying())
+            music_time = music.GetTimePlayed();
+
+        music_slider.ref.progress = music_time / music.GetTimeLength();
+    }
+    else
+        music_time = music_slider.ref.progress * music.GetTimeLength();
+
+    std::get<kee::dims>(pause_play_img.ref.dimensions).w.val = pause_play_scale.get();
+    std::get<kee::dims>(pause_play_img.ref.dimensions).h.val = pause_play_scale.get();
+    pause_play_img.ref.set_opt_color(pause_play_color.get().to_color());
+
+    const unsigned int music_length = static_cast<unsigned int>(compose_info.music.GetTimeLength());
+    const unsigned int music_time_int = static_cast<unsigned int>(compose_info.music_time);
+    const std::string music_time_str = std::format("{}:{:02} / {}:{:02}", music_time_int / 60, music_time_int % 60, music_length / 60, music_length % 60);
+    music_time_text.ref.set_string(music_time_str);
+
     if (error_timer > 0.0f)
     {
         error_timer -= dt;
@@ -254,12 +515,17 @@ void root::update_element(float dt)
     tab_active_rect.ref.x.val = tab_active_rect_rel_x.get();
     exit_button_rect.ref.set_opt_color(raylib::Color(255, 0, 0, static_cast<unsigned char>(exit_button_rect_alpha.get())));
 
+    std::get<kee::border>(playback_l_img.ref.dimensions).val = (1.0f - playback_l_img_scale.get()) / 2;
+    std::get<kee::border>(playback_r_img.ref.dimensions).val = (1.0f - playback_r_img_scale.get()) / 2;
+
+    playback_l_img.ref.set_opt_color(playback_l_img_color.get().to_color());
+    playback_r_img.ref.set_opt_color(playback_r_img_color.get().to_color());
+
     const unsigned char error_a = static_cast<unsigned char>(error_alpha.get());
     error_rect.ref.set_opt_color(raylib::Color(80, 80, 80, error_a));
     error_rect.ref.border.value().opt_color = raylib::Color(255, 0, 0, error_a);
     error_img.ref.set_opt_color(raylib::Color(255, 0, 0, error_a));
     error_text.ref.set_opt_color(raylib::Color(255, 255, 255, error_a));
-
     error_rect.ref.x.val = error_rect_rel_x.get();
 }
 

@@ -12,7 +12,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, kee::scene::editor::root& ed
         pos(pos::type::rel, 0.04f),
         dims(
             dim(dim::type::rel, 1.0f),
-            dim(dim::type::rel, 0.96f)
+            dim(dim::type::rel, 0.88f)
         ),
         false
     ),
@@ -151,6 +151,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, kee::scene::editor::root& ed
             return false;
 
         /* TODO: complete */
+        return true;
     };
 
     forgiveness_textbox.ref.on_string_input = [&](std::string_view new_str) -> bool
@@ -162,6 +163,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, kee::scene::editor::root& ed
             return false;
 
         /* TODO: complete */
+        return true;
     };
 }
 

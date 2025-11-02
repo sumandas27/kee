@@ -289,14 +289,15 @@ public:
     static constexpr std::size_t tick_freq_count = 8;
     static constexpr std::array<int, tick_freq_count> tick_freqs = { 1, 2, 3, 4, 6, 8, 12, 16 };
 
-    static constexpr std::array<float, 6> playback_speeds = { 0.25f, 0.5f, 0.75f, 1.0f, 1.5f, 2.0f };
+    compose_tab_info(const raylib::Music& music, const kee::image_texture& arrow_png, float& music_time);
 
-    compose_tab_info();
+    const raylib::Music& music;   
+    const kee::image_texture& arrow_png;
+
+    float& music_time;
 
     std::unordered_map<int, std::map<float, editor_hit_object>> hit_objs;
 
-    raylib::Music music;
-    float music_time;
 
     bool is_beat_snap;
     bool is_key_locked;
@@ -305,7 +306,6 @@ public:
     std::size_t event_history_idx;
 
     std::size_t tick_freq_idx;
-    std::size_t playback_speed_idx;
 
 private:
     static std::unordered_map<int, std::map<float, editor_hit_object>> init_hit_objs();
@@ -320,7 +320,6 @@ public:
     static const std::unordered_map<int, int> key_to_prio;
 
     compose_tab(const kee::ui::required& reqs, compose_tab_info& compose_info);
-    ~compose_tab();
 
     int get_ticks_per_beat() const;
     bool is_music_playing() const;
@@ -353,11 +352,6 @@ private:
     const float music_start_offset;
     const float music_bpm;
 
-    kee::image_texture pause_png;
-    kee::image_texture arrow_png;
-
-    kee::transition<kee::color>& pause_play_color;
-    kee::transition<float>& pause_play_scale;
     kee::transition<kee::color>& beat_snap_button_color;
     kee::transition<float>& beat_snap_button_outline;
     kee::transition<kee::color>& key_lock_button_color;
@@ -391,13 +385,6 @@ private:
     std::vector<kee::ui::handle<kee::ui::button>> tick_frame_buttons;
     std::vector<std::reference_wrapper<kee::transition<kee::color>>> tick_frame_text_colors;
 
-    kee::ui::handle<kee::ui::text> playback_speed_text;
-    kee::ui::handle<kee::ui::dropdown> playback_dropdown;
-
-    kee::ui::handle<kee::ui::slider> music_slider;
-    kee::ui::handle<kee::ui::button> pause_play;
-    kee::ui::handle<kee::ui::image> pause_play_img;
-    kee::ui::handle<kee::ui::text> music_time_text;
     kee::ui::handle<kee::ui::base> key_border;
     kee::ui::handle<kee::ui::base> key_frame;
 

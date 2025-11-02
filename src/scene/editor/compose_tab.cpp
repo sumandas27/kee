@@ -309,6 +309,8 @@ hit_obj_node::hit_obj_node(
     new_obj(new_obj)
 { }
 
+/* TODO: change da ui numbers */
+
 object_editor::object_editor(
     const kee::ui::required& reqs,
     const std::vector<int>& selected_key_ids,
@@ -321,7 +323,7 @@ object_editor::object_editor(
         pos(pos::type::rel, 0),
         dims(
             dim(dim::type::rel, 1.0f),
-            dim(dim::type::rel, 0.2f)
+            dim(dim::type::rel, 0.25f)
         ),
         false, std::nullopt, std::nullopt
     ),
@@ -1001,21 +1003,16 @@ const std::unordered_map<int, int> compose_tab::key_to_prio = []
     return res;
 }();
 
-compose_tab_info::compose_tab_info() :
+compose_tab_info::compose_tab_info(const raylib::Music& music, const kee::image_texture& arrow_png, float& music_time) :
+    music(music),
+    arrow_png(arrow_png),
+    music_time(music_time),
     hit_objs(compose_tab_info::init_hit_objs()),
-    music("assets/daft-punk-something-about-us/daft-punk-something-about-us.mp3"),
-    music_time(0.0f),
     is_beat_snap(true),
     is_key_locked(true),  
     event_history_idx(0),
-    tick_freq_idx(3),
-    playback_speed_idx(3)
-{ 
-    music.SetLooping(true);
-    music.SetVolume(0.1f);
-    music.Play();
-    music.Pause();
-}
+    tick_freq_idx(3)
+{ }
 
 std::unordered_map<int, std::map<float, editor_hit_object>> compose_tab_info::init_hit_objs()
 {
@@ -1037,7 +1034,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, compose_tab_info& compos
         pos(pos::type::rel, 0.04f),
         dims(
             dim(dim::type::rel, 1.0f),
-            dim(dim::type::rel, 0.96f)
+            dim(dim::type::rel, 0.88f)
         ),
         false
     ),
@@ -1046,10 +1043,6 @@ compose_tab::compose_tab(const kee::ui::required& reqs, compose_tab_info& compos
     music_start_offset(0.5f),
     obj_editor(add_child<object_editor>(std::nullopt, selected_key_ids, keys, *this)),
     music_bpm(100.0f),
-    pause_png("assets/img/pause.png"),
-    arrow_png("assets/img/arrow.png"),
-    pause_play_color(add_transition<kee::color>(kee::color::white())),
-    pause_play_scale(add_transition<float>(1.0f)),
     beat_snap_button_color(add_transition<kee::color>(kee::color::white())),
     beat_snap_button_outline(add_transition<float>(compose_info.is_beat_snap ? 0.6f : 0.2f)),
     key_lock_button_color(add_transition<kee::color>(kee::color::white())),
@@ -1062,21 +1055,21 @@ compose_tab::compose_tab(const kee::ui::required& reqs, compose_tab_info& compos
     inspector_rect(add_child<kee::ui::rect>(std::nullopt,
         raylib::Color(20, 20, 20),
         pos(pos::type::rel, 0.8f),
-        pos(pos::type::rel, 0.2f),
+        pos(pos::type::rel, 0.25f),
         dims(
             dim(dim::type::rel, 0.2f),
-            dim(dim::type::rel, 0.8f)
+            dim(dim::type::rel, 0.75f)
         ),
         false, std::nullopt, std::nullopt
     )),
     beat_snap_button(inspector_rect.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0.1f),
-        pos(pos::type::rel, 0.23f),
+        pos(pos::type::rel, 0.25f),
         dims(
             dim(dim::type::aspect, 1),
-            dim(dim::type::rel, 0.02f)
+            dim(dim::type::rel, 0.025f)
         ),
-        true
+        false
     )),
     beat_snap_button_rect(beat_snap_button.ref.add_child<kee::ui::rect>(std::nullopt,
         raylib::Color::Blank(),
@@ -1092,19 +1085,19 @@ compose_tab::compose_tab(const kee::ui::required& reqs, compose_tab_info& compos
     )),
     beat_snap_text(inspector_rect.ref.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
-        pos(pos::type::rel, 0.325f),
         pos(pos::type::rel, 0.23f),
-        ui::text_size(ui::text_size::type::rel_h, 0.025f),
-        true, assets.font_semi_bold, "BEAT SNAP", false
+        pos(pos::type::rel, 0.245f),
+        ui::text_size(ui::text_size::type::rel_h, 0.035f),
+        false, assets.font_semi_bold, "BEAT SNAP", false
     )),
     key_lock_button(inspector_rect.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0.1f),
-        pos(pos::type::rel, 0.28f),
+        pos(pos::type::rel, 0.32f),
         dims(
             dim(dim::type::aspect, 1),
-            dim(dim::type::rel, 0.02f)
+            dim(dim::type::rel, 0.025f)
         ),
-        true
+        false
     )),
     key_lock_button_rect(key_lock_button.ref.add_child<kee::ui::rect>(std::nullopt,
         raylib::Color::Blank(),
@@ -1120,29 +1113,29 @@ compose_tab::compose_tab(const kee::ui::required& reqs, compose_tab_info& compos
     )),
     key_lock_text(inspector_rect.ref.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
-        pos(pos::type::rel, 0.31f),
-        pos(pos::type::rel, 0.28f),
-        ui::text_size(ui::text_size::type::rel_h, 0.025f),
-        true, assets.font_semi_bold, "KEY LOCK", false
+        pos(pos::type::rel, 0.23f),
+        pos(pos::type::rel, 0.315f),
+        ui::text_size(ui::text_size::type::rel_h, 0.035f),
+        false, assets.font_semi_bold, "KEY LOCK", false
     )),
     tick_text(inspector_rect.ref.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
         pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.05f),
-        ui::text_size(ui::text_size::type::rel_h, 0.06f),
+        pos(pos::type::rel, 0.08f),
+        ui::text_size(ui::text_size::type::rel_h, 0.07f),
         true, assets.font_semi_bold, "1 / " + std::to_string(get_ticks_per_beat()), false
     )),
     tick_l_button(inspector_rect.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0.2f),
-        pos(pos::type::rel, 0.05f),
+        pos(pos::type::rel, 0.08f),
         dims(
             dim(dim::type::aspect, 1),
-            dim(dim::type::rel, 0.035f)
+            dim(dim::type::rel, 0.04f)
         ),
         true
     )),
     tick_l_img(tick_l_button.ref.add_child<kee::ui::image>(std::nullopt,
-        arrow_png, raylib::Color::White(),
+        compose_info.arrow_png, raylib::Color::White(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         dims(
@@ -1153,15 +1146,15 @@ compose_tab::compose_tab(const kee::ui::required& reqs, compose_tab_info& compos
     )),
     tick_r_button(inspector_rect.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0.8f),
-        pos(pos::type::rel, 0.05f),
+        pos(pos::type::rel, 0.08f),
         dims(
             dim(dim::type::aspect, 1),
-            dim(dim::type::rel, 0.035f)
+            dim(dim::type::rel, 0.04f)
         ),
         true
     )),
     tick_r_img(tick_r_button.ref.add_child<kee::ui::image>(std::nullopt,
-        arrow_png, raylib::Color::White(),
+        compose_info.arrow_png, raylib::Color::White(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         dims(
@@ -1173,10 +1166,10 @@ compose_tab::compose_tab(const kee::ui::required& reqs, compose_tab_info& compos
     tick_frame(inspector_rect.ref.add_child<kee::ui::rect>(std::nullopt,
         raylib::Color(30, 30, 30, 255),
         pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0.1f),
+        pos(pos::type::rel, 0.15f),
         dims(
             dim(dim::type::rel, 1),
-            dim(dim::type::rel, 0.03f)
+            dim(dim::type::rel, 0.04f)
         ),
         false, std::nullopt, std::nullopt
     )),
@@ -1190,68 +1183,9 @@ compose_tab::compose_tab(const kee::ui::required& reqs, compose_tab_info& compos
         ),
         true, std::nullopt, std::nullopt
     )),
-    playback_speed_text(inspector_rect.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
-        pos(pos::type::rel, 0.295f),
-        pos(pos::type::rel, 0.17f),
-        ui::text_size(ui::text_size::type::rel_h, 0.025f),
-        true, assets.font_semi_bold, "PLAYBACK SPEED:", false
-    )),
-    playback_dropdown(inspector_rect.ref.add_child<kee::ui::dropdown>(std::nullopt,
-        pos(pos::type::rel, 0.75f),
-        pos(pos::type::rel, 0.17f),
-        dims(
-            dim(dim::type::rel, 0.3f),
-            dim(dim::type::rel, 0.03f)
-        ),
-        true, 
-        std::vector<std::string>(
-            std::from_range,
-            compose_tab_info::playback_speeds | std::views::transform([](float playback_speed){
-                return std::format("{:.2f}x", playback_speed);
-            })
-        ),
-        compose_info.playback_speed_idx    
-    )),
-    music_slider(add_child<kee::ui::slider>(std::nullopt,
-        pos(pos::type::rel, 0.01f),
-        pos(pos::type::rel, 0.22f),
-        dims(
-            dim(dim::type::rel, 0.78f),
-            dim(dim::type::rel, 0.005f)
-        ),
-        false
-    )),
-    pause_play(music_slider.ref.add_child<kee::ui::button>(std::nullopt,
-        pos(pos::type::beg, 0),
-        pos(pos::type::beg, 40),
-        dims(
-            dim(dim::type::aspect, 1),
-            dim(dim::type::abs, 60)
-        ),
-        false
-    )),
-    pause_play_img(pause_play.ref.add_child<kee::ui::image>(std::nullopt,
-        assets.play_png,
-        raylib::Color::White(),
-        pos(pos::type::rel, 0.5),
-        pos(pos::type::rel, 0.5),
-        dims(
-            dim(dim::type::rel, 1),
-            dim(dim::type::rel, 1)
-        ),
-        true, false, false, 0.0f
-    )),
-    music_time_text(music_slider.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
-        pos(pos::type::end, 0),
-        pos(pos::type::beg, 30),
-        ui::text_size(ui::text_size::type::abs, 80),
-        false, assets.font_regular, std::string(), false
-    )),
     key_border(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.4f),
-        pos(pos::type::rel, 0.63f),
+        pos(pos::type::rel, 0.625f),
         dims(
             dim(dim::type::rel, 0.75f),
             dim(dim::type::rel, 0.6f)
@@ -1422,69 +1356,6 @@ compose_tab::compose_tab(const kee::ui::required& reqs, compose_tab_info& compos
         }
     };
 
-    playback_dropdown.ref.on_select = [&](std::size_t idx)
-    {
-        this->compose_info.playback_speed_idx = idx;
-        this->compose_info.music.SetPitch(compose_tab_info::playback_speeds[idx]);
-    };
-
-    music_slider.ref.on_event = [&, music_is_playing = compose_info.music.IsPlaying()](ui::slider::event slider_event) mutable
-    {
-        switch (slider_event)
-        {
-        case ui::slider::event::on_down:
-            music_is_playing = compose_info.music.IsPlaying();
-            this->compose_info.music.Pause();
-            break;
-        case ui::slider::event::on_release:
-            this->compose_info.music.Seek(music_slider.ref.progress * this->compose_info.music.GetTimeLength());
-            if (music_is_playing)
-                this->compose_info.music.Resume();
-            break;
-        default:
-            break;
-        }
-    };
-
-    pause_play.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
-    {
-        switch (button_event)
-        {
-        case ui::button::event::on_hot:
-            pause_play_color.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
-            pause_play_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
-            break;
-        case ui::button::event::on_down_l:
-            pause_play_scale.set(std::nullopt, 0.9f, 0.5f, kee::transition_type::exp);
-            break;
-        case ui::button::event::on_leave:
-            pause_play_color.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
-            pause_play_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
-            break;
-        default:
-            break;
-        }
-    };
-
-    pause_play.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
-    { 
-        if (this->compose_info.music.IsPlaying())
-        {
-            this->compose_info.music.Pause();
-            this->pause_play_img.ref.set_image(this->assets.play_png);
-        }
-        else
-        {
-            this->compose_info.music.Seek(music_slider.ref.progress * this->compose_info.music.GetTimeLength());
-            this->compose_info.music.Resume();
-            this->pause_play_img.ref.set_image(pause_png);            
-        }
-    };
-
-    const unsigned int music_length = static_cast<unsigned int>(compose_info.music.GetTimeLength());
-    const std::string music_length_str = std::format("0:00 / {}:{:02}", music_length / 60, music_length % 60);
-    music_time_text.ref.set_string(music_length_str);
-
     for (const auto& [id, rel_pos] : kee::key_ui_data)
     {
         key_holders.push_back(key_frame.ref.add_child<kee::ui::base>(std::nullopt,
@@ -1501,11 +1372,6 @@ compose_tab::compose_tab(const kee::ui::required& reqs, compose_tab_info& compos
     }
 
     unselect();
-}
-
-compose_tab::~compose_tab()
-{
-    compose_info.music.Pause();
 }
 
 int compose_tab::get_ticks_per_beat() const
@@ -1595,16 +1461,13 @@ bool compose_tab::on_element_key_down(int keycode, magic_enum::containers::bitse
     switch (keycode)
     {
     case KeyboardKey::KEY_SPACE:
-        if (mods.test(kee::mods::ctrl))
-        {
-            for (int prev_id : selected_key_ids)
-                keys.at(prev_id).ref.set_opt_color(raylib::Color::White());
+        if (!mods.test(kee::mods::ctrl))
+            return false;
 
-            unselect();
-        }
-        else
-            pause_play.ref.on_click_l(mods);
+        for (int prev_id : selected_key_ids)
+            keys.at(prev_id).ref.set_opt_color(raylib::Color::White());
 
+        unselect();
         return true;
     case KeyboardKey::KEY_A:
         if (!mods.test(kee::mods::ctrl))
@@ -1751,22 +1614,6 @@ bool compose_tab::on_element_mouse_scroll(float mouse_scroll)
 
 void compose_tab::update_element([[maybe_unused]] float dt)
 {
-    compose_info.music.Update();
-
-    if (!music_slider.ref.is_down())
-    {
-        if (compose_info.music.IsPlaying())
-            compose_info.music_time = compose_info.music.GetTimePlayed();
-
-        music_slider.ref.progress = compose_info.music_time / compose_info.music.GetTimeLength();
-    }
-    else
-        compose_info.music_time = music_slider.ref.progress * compose_info.music.GetTimeLength();
-
-    std::get<kee::dims>(pause_play_img.ref.dimensions).w.val = pause_play_scale.get();
-    std::get<kee::dims>(pause_play_img.ref.dimensions).h.val = pause_play_scale.get();
-    pause_play_img.ref.set_opt_color(pause_play_color.get().to_color());
-
     beat_snap_button_rect.ref.border.value().opt_color.value() = beat_snap_button_color.get().to_color();
     beat_snap_button_rect.ref.border.value().val = beat_snap_button_outline.get();
 
@@ -1787,11 +1634,6 @@ void compose_tab::update_element([[maybe_unused]] float dt)
     tick_r_img.ref.set_opt_color(tick_r_img_color);
 
     tick_curr_rect.ref.x.val = tick_curr_rect_x.get();
-
-    const unsigned int music_length = static_cast<unsigned int>(compose_info.music.GetTimeLength());
-    const unsigned int music_time_int = static_cast<unsigned int>(compose_info.music_time);
-    const std::string music_time_str = std::format("{}:{:02} / {}:{:02}", music_time_int / 60, music_time_int % 60, music_length / 60, music_length % 60);
-    music_time_text.ref.set_string(music_time_str);
 }
 
 void compose_tab::set_tick_freq_idx(std::size_t new_tick_freq_idx)
