@@ -1,5 +1,7 @@
 #include "kee/scene/editor/setup_tab.hpp"
 
+#include <charconv>
+
 #include "kee/scene/editor/root.hpp"
 
 namespace kee {

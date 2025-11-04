@@ -31,20 +31,27 @@ timing_tab::timing_tab(const kee::ui::required& reqs) :
         true, std::nullopt,
         ui::rect_roundness(ui::rect_roundness::type::rel_w, 0.05f, std::nullopt)
     )),
+    wip_text(points_bg.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        ui::text_size(ui::text_size::type::rel_h, 0.05f),
+        true, assets.font_semi_bold, "WORK IN PROGRESS", false
+    )),
     timing_slider(add_child<kee::ui::rect>(std::nullopt,
         raylib::Color(40, 40, 40),
         pos(pos::type::rel, 0.55f),
         pos(pos::type::rel, 0.4f),
         dims(
             dim(dim::type::rel, 0.4f),
-            dim(dim::type::rel, 0.05f)
+            dim(dim::type::rel, 0.03f)
         ),
         false, std::nullopt,
         ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.5f, std::nullopt)
     )),
     bpm_offset_frame(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.725f),
-        pos(pos::type::rel, 0.75f),
+        pos(pos::type::rel, 0.7f),
         dims(
             dim(dim::type::rel, 0.15f),
             dim(dim::type::rel, 0.1f)
@@ -88,7 +95,7 @@ timing_tab::timing_tab(const kee::ui::required& reqs) :
     for (std::size_t i = 0; i < 4; i++)
         timing_rects.emplace_back(add_child<kee::ui::rect>(std::nullopt,
             raylib::Color(40, 40, 40),
-            pos(pos::type::rel, 0.55f + 0.095f * i),
+            pos(pos::type::rel, 0.55f + 0.11f * i),
             pos(pos::type::rel, 0.2f),
             dims(
                 dim(dim::type::rel, 0.065f),

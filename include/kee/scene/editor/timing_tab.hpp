@@ -17,6 +17,7 @@ public:
 private:
     kee::ui::handle<kee::ui::base> points_frame;
     kee::ui::handle<kee::ui::rect> points_bg;
+    kee::ui::handle<kee::ui::text> wip_text;
 
     std::vector<kee::ui::handle<kee::ui::rect>> timing_rects;
     kee::ui::handle<kee::ui::rect> timing_slider;
