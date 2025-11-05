@@ -1394,6 +1394,8 @@ bool compose_tab::is_key_lock_enabled() const
     return compose_info.is_key_locked;
 }
 
+/* TODO: move this to root i think */
+
 float compose_tab::get_beat() const
 {
     return (compose_info.music_time - music_start_offset) * music_bpm / 60.0f;

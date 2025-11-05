@@ -104,6 +104,30 @@ timing_tab::timing_tab(const kee::ui::required& reqs) :
             false, std::nullopt,
             ui::rect_roundness(ui::rect_roundness::type::rel_w, 0.05f, std::nullopt)
         ));
+
+    bpm_textbox.ref.on_string_input = [&](std::string_view new_str) -> bool
+    {
+        float text_float;
+
+        auto [ptr, ec] = std::from_chars(new_str.data(), new_str.data() + new_str.size(), text_float);
+        if (ec != std::errc() || ptr != new_str.data() + new_str.size())
+            return false;
+
+        /* TODO: complete */
+        return true;
+    };
+
+    offset_textbox.ref.on_string_input = [&](std::string_view new_str) -> bool
+    {
+        float text_float;
+
+        auto [ptr, ec] = std::from_chars(new_str.data(), new_str.data() + new_str.size(), text_float);
+        if (ec != std::errc() || ptr != new_str.data() + new_str.size())
+            return false;
+
+        /* TODO: complete */
+        return true;
+    };
 }
 
 } // namespace editor
