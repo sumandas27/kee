@@ -1,10 +1,14 @@
 #include "kee/scene/editor/timing_tab.hpp"
 
+#include "kee/scene/editor/root.hpp"
+
 namespace kee {
 namespace scene {
 namespace editor {
 
-timing_tab::timing_tab(const kee::ui::required& reqs) :
+/* TODO: make 40, 40, 40 color const var */
+
+timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem) :
     kee::ui::base(reqs,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.04f),
@@ -14,6 +18,7 @@ timing_tab::timing_tab(const kee::ui::required& reqs) :
         ),
         false
     ),
+    root_elem(root_elem),
     points_frame(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
@@ -47,6 +52,26 @@ timing_tab::timing_tab(const kee::ui::required& reqs) :
             dim(dim::type::rel, 0.03f)
         ),
         false, std::nullopt,
+        ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.5f, std::nullopt)
+    )),
+    timing_ball_frame(timing_slider.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        dims(
+            dim(dim::type::abs, 0),
+            dim(dim::type::rel, 1)
+        ),
+        true
+    )),
+    timing_ball(timing_ball_frame.ref.add_child<kee::ui::rect>(1,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.5f),
+        dims(
+            dim(dim::type::aspect, 1),
+            dim(dim::type::rel, 0.75f)
+        ),
+        true, std::nullopt,
         ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.5f, std::nullopt)
     )),
     bpm_offset_frame(add_child<kee::ui::base>(std::nullopt,
@@ -91,6 +116,22 @@ timing_tab::timing_tab(const kee::ui::required& reqs) :
         false, *this
     ))
 { 
+    const raylib::Rectangle timing_slider_rect = timing_slider.ref.get_raw_rect();
+    std::get<kee::dims>(timing_ball_frame.ref.dimensions).w.val = timing_slider_rect.width - timing_slider_rect.height;
+
+    for (std::size_t i = 0; i <= 4; i++)
+        timing_slider_ticks.emplace_back(timing_ball_frame.ref.add_child<kee::ui::rect>(0,
+            raylib::Color::DarkGray(),
+            pos(pos::type::rel, i / 4.0f),
+            pos(pos::type::rel, 0.5f),
+            dims(
+                dim(dim::type::aspect, 1),
+                dim(dim::type::rel, 0.4f)
+            ),
+            true, std::nullopt,
+            ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.5f, std::nullopt)
+        ));
+
     timing_rects.reserve(4);
     for (std::size_t i = 0; i < 4; i++)
         timing_rects.emplace_back(add_child<kee::ui::rect>(std::nullopt,
@@ -128,6 +169,39 @@ timing_tab::timing_tab(const kee::ui::required& reqs) :
         /* TODO: complete */
         return true;
     };
+}
+
+void timing_tab::update_element([[maybe_unused]] float dt)
+{
+    const float beat = root_elem.get_beat();
+    if (beat >= 0.0f)
+    {
+        const std::size_t color_idx = static_cast<std::size_t>(beat) % 4;
+        const float interpolation = beat - std::floor(beat);
+
+        for (std::size_t i = 0; i < timing_rects.size(); i++)
+        {
+            raylib::Color rect_color;
+            if (i == color_idx)
+            {
+                const kee::color kee_color = kee::color(40, 40, 40, 255) * interpolation + kee::color::green() * (1.0f - interpolation);
+                rect_color = kee_color.to_color();
+            }
+            else
+                rect_color = raylib::Color(40, 40, 40);
+
+            timing_rects[i].ref.set_opt_color(rect_color);
+        }
+
+        timing_ball.ref.x.val = (color_idx % 2 == 0) ? interpolation : 1.0f - interpolation;
+    }
+    else
+    {
+        for (kee::ui::handle<kee::ui::rect>& timing_rect : timing_rects)
+            timing_rect.ref.set_opt_color(raylib::Color(40, 40, 40));
+
+        timing_ball.ref.x.val = 0;
+    }
 }
 
 } // namespace editor

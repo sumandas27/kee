@@ -16,6 +16,9 @@ public:
 
     void set_error(std::string_view error_str, bool from_file_dialog);
 
+    float get_beat() const;
+    void set_beat(float new_beat);
+
 private:
     static constexpr std::array<float, 6> playback_speeds = { 0.25f, 0.5f, 0.75f, 1.0f, 1.5f, 2.0f };
     static constexpr float error_transition_time = 0.5f;
@@ -24,6 +27,9 @@ private:
 
     bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
     void update_element(float dt) override;
+
+    const float music_start_offset;
+    const float music_bpm;
 
     kee::image_texture exit_png;
     kee::image_texture error_png;

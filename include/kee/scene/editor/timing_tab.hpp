@@ -9,18 +9,27 @@ namespace kee {
 namespace scene {
 namespace editor {
 
+class root;
+
 class timing_tab : public kee::ui::base
 {
 public:
-    timing_tab(const kee::ui::required& reqs);
+    timing_tab(const kee::ui::required& reqs, root& root_elem);
 
 private:
+    void update_element(float dt) override;
+
+    root& root_elem;
+
     kee::ui::handle<kee::ui::base> points_frame;
     kee::ui::handle<kee::ui::rect> points_bg;
     kee::ui::handle<kee::ui::text> wip_text;
 
     std::vector<kee::ui::handle<kee::ui::rect>> timing_rects;
     kee::ui::handle<kee::ui::rect> timing_slider;
+    kee::ui::handle<kee::ui::base> timing_ball_frame;
+    std::vector<kee::ui::handle<kee::ui::rect>> timing_slider_ticks;
+    kee::ui::handle<kee::ui::rect> timing_ball;
 
     kee::ui::handle<kee::ui::base> bpm_offset_frame;
     kee::ui::handle<kee::ui::text> bpm_text;

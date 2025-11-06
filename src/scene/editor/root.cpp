@@ -6,11 +6,13 @@ namespace editor {
 
 root::root(const kee::scene::window& window, kee::game& game, kee::global_assets& assets) :
     kee::scene::base(window, game, assets),
+    music_start_offset(0.5f),
+    music_bpm(100.0f),
     exit_png("assets/img/exit.png"),
     error_png("assets/img/error.png"),
     pause_png("assets/img/pause.png"),
     arrow_png("assets/img/arrow.png"),
-    active_tab_elem(add_child<timing_tab>(std::nullopt)),
+    active_tab_elem(add_child<timing_tab>(std::nullopt, *this)),
     active_tab(root::tabs::timing),
     tab_active_rect_rel_x(add_transition<float>(static_cast<float>(active_tab) / magic_enum::enum_count<root::tabs>())),
     exit_button_rect_alpha(add_transition<float>(0.0f)),
@@ -230,7 +232,7 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
     music("assets/daft-punk-something-about-us/daft-punk-something-about-us.mp3"),
     music_time(0.0f),
     error_timer(0.0f),
-    compose_info(music, arrow_png, music_time)
+    compose_info(music, arrow_png)
 {
     std::visit([](const auto& elem) {
         elem.ref.take_keyboard_capture();
@@ -306,13 +308,13 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
                 this->active_tab_elem.emplace<kee::ui::handle<setup_tab>>(add_child<setup_tab>(std::nullopt, *this));
                 break;
             case root::tabs::compose:
-                this->active_tab_elem.emplace<kee::ui::handle<compose_tab>>(add_child<compose_tab>(std::nullopt, compose_info));
+                this->active_tab_elem.emplace<kee::ui::handle<compose_tab>>(add_child<compose_tab>(std::nullopt, *this, compose_info));
                 break;
             case root::tabs::decoration:
                 this->active_tab_elem.emplace<kee::ui::handle<decoration_tab>>(add_child<decoration_tab>(std::nullopt));
                 break;
             case root::tabs::timing:
-                this->active_tab_elem.emplace<kee::ui::handle<timing_tab>>(add_child<timing_tab>(std::nullopt));
+                this->active_tab_elem.emplace<kee::ui::handle<timing_tab>>(add_child<timing_tab>(std::nullopt, *this));
                 break;
             }
 
@@ -471,6 +473,17 @@ void root::set_error(std::string_view error_str, bool from_file_dialog)
     error_skips_before_start = from_file_dialog ? 2 : 0;
 }
 
+float root::get_beat() const
+{
+    return (music_time - music_start_offset) * music_bpm / 60.0f;
+}
+
+void root::set_beat(float new_beat)
+{
+    const float music_time_raw = music_start_offset + new_beat * 60.0f / music_bpm;
+    music_time = std::clamp(music_time_raw, 0.0f, music.GetTimeLength());
+}
+
 bool root::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods)
 {
     if (keycode != KeyboardKey::KEY_SPACE || mods.test(kee::mods::ctrl))
@@ -498,8 +511,8 @@ void root::update_element(float dt)
     std::get<kee::dims>(pause_play_img.ref.dimensions).h.val = pause_play_scale.get();
     pause_play_img.ref.set_opt_color(pause_play_color.get().to_color());
 
-    const unsigned int music_length = static_cast<unsigned int>(compose_info.music.GetTimeLength());
-    const unsigned int music_time_int = static_cast<unsigned int>(compose_info.music_time);
+    const unsigned int music_length = static_cast<unsigned int>(music.GetTimeLength());
+    const unsigned int music_time_int = static_cast<unsigned int>(music_time);
     const std::string music_time_str = std::format("{}:{:02} / {}:{:02}", music_time_int / 60, music_time_int % 60, music_length / 60, music_length % 60);
     music_time_text.ref.set_string(music_time_str);
 

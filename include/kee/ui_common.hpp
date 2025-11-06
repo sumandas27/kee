@@ -161,6 +161,7 @@ class color
 public:
     /* TODO: why are these functions */
     static constexpr kee::color dark_orange();
+    static constexpr kee::color green();
     static constexpr kee::color red();
     static constexpr kee::color white();
 
@@ -185,6 +186,11 @@ private:
 constexpr kee::color color::dark_orange()
 {
     return kee::color(255, 140, 0, 255);
+}
+
+constexpr kee::color color::green()
+{
+    return kee::color(0, 255, 0, 255);
 }
 
 constexpr kee::color color::red()

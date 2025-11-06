@@ -3,6 +3,8 @@
 #include <chrono>
 #include <ranges>
 
+#include "kee/scene/editor/root.hpp"
+
 namespace kee {
 namespace scene {
 namespace editor {
@@ -123,6 +125,7 @@ compose_tab_event::compose_tab_event(const std::vector<hit_obj_metadata>& added,
 compose_tab_key::compose_tab_key(
     const kee::ui::required& reqs, 
     compose_tab& compose_tab_scene,
+    root& root_elem,
     std::map<float, editor_hit_object>& hit_objects,
     int key_id
 ) :
@@ -154,6 +157,7 @@ compose_tab_key::compose_tab_key(
     )),
     is_selected(false),
     compose_tab_scene(compose_tab_scene),
+    root_elem(root_elem),
     key_id(key_id)
 {
     on_event = [&](ui::button::event button_event, magic_enum::containers::bitset<kee::mods> mods)
@@ -170,7 +174,7 @@ compose_tab_key::compose_tab_key(
             this->compose_tab_scene.unselect();
             this->compose_tab_scene.select(this->key_id);
 
-            this->compose_tab_scene.obj_editor.ref.new_hit_object = new_hit_obj_data(this->key_id, 0, this->compose_tab_scene.get_beat(), this->compose_tab_scene.get_beat(), false);
+            this->compose_tab_scene.obj_editor.ref.new_hit_object = new_hit_obj_data(this->key_id, 0, this->root_elem.get_beat(), this->root_elem.get_beat(), false);
             break;
         }
         case ui::button::event::on_leave:
@@ -204,14 +208,14 @@ void compose_tab_key::update_element([[maybe_unused]] float dt)
     hit_obj_rects.clear();
     for (const auto& [beat, object] : hit_objects)
     {
-        if (beat + object.duration < compose_tab_scene.get_beat() - compose_tab::beat_lock_threshold)
+        if (beat + object.duration < root_elem.get_beat() - compose_tab::beat_lock_threshold)
             continue;
 
-        if (beat > compose_tab_scene.get_beat() + compose_tab_scene.approach_beats)
+        if (beat > root_elem.get_beat() + compose_tab_scene.approach_beats)
             break;
 
-        const float start_progress = std::max((beat - compose_tab_scene.get_beat()) / (2 * compose_tab_scene.approach_beats), 0.0f);
-        const float end_progress = std::max((beat + object.duration - compose_tab_scene.get_beat()) / (2 * compose_tab_scene.approach_beats), 0.0f);
+        const float start_progress = std::max((beat - root_elem.get_beat()) / (2 * compose_tab_scene.approach_beats), 0.0f);
+        const float end_progress = std::max((beat + object.duration - root_elem.get_beat()) / (2 * compose_tab_scene.approach_beats), 0.0f);
         hit_obj_rects.push_back(make_temp_child<kee::ui::rect>(
             raylib::Color::Blank(),
             pos(pos::type::rel, 0.5),
@@ -309,13 +313,12 @@ hit_obj_node::hit_obj_node(
     new_obj(new_obj)
 { }
 
-/* TODO: change da ui numbers */
-
 object_editor::object_editor(
     const kee::ui::required& reqs,
     const std::vector<int>& selected_key_ids,
     std::unordered_map<int, kee::ui::handle<compose_tab_key>>& keys,
-    compose_tab& compose_tab_scene
+    compose_tab& compose_tab_scene,
+    root& root_elem
 ) :
     kee::ui::rect(reqs,
         raylib::Color(15, 15, 15, 255),
@@ -339,6 +342,7 @@ object_editor::object_editor(
     selected_key_ids(selected_key_ids),
     keys(keys),
     compose_tab_scene(compose_tab_scene),
+    root_elem(root_elem),
     beat_hover_l(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
@@ -403,7 +407,7 @@ void object_editor::reset_render_hit_objs()
     {
         auto& [beat, object] = *it;
         
-        hit_obj_ui render_ui = make_temp_child<hit_obj_ui>(beat, object.duration, compose_tab_scene.get_beat(), object_editor::beat_width, i, keys_to_render.size());
+        hit_obj_ui render_ui = make_temp_child<hit_obj_ui>(beat, object.duration, root_elem.get_beat(), object_editor::beat_width, i, keys_to_render.size());
         obj_render_info.emplace(hit_obj_ui_key(keys.at(keys_to_render[i]).ref.hit_objects, it), std::move(render_ui));
     }
 
@@ -475,7 +479,7 @@ void object_editor::attempt_add_hit_obj()
         const auto new_key_it = std::ranges::find(keys_to_render, new_hit_object.value().key);
         const std::size_t new_key_idx = std::ranges::distance(keys_to_render.begin(), new_key_it);
 
-        hit_obj_ui render_ui = make_temp_child<hit_obj_ui>(new_beat, new_duration, compose_tab_scene.get_beat(), object_editor::beat_width, new_key_idx, keys_to_render.size());
+        hit_obj_ui render_ui = make_temp_child<hit_obj_ui>(new_beat, new_duration, root_elem.get_beat(), object_editor::beat_width, new_key_idx, keys_to_render.size());
         render_ui.select();
         
         obj_render_info.emplace(hit_obj_ui_key(hit_objects, new_it), std::move(render_ui));
@@ -497,7 +501,7 @@ void object_editor::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[ma
     const raylib::Rectangle obj_editor_raw_rect = get_raw_rect();
     const float mouse_in_rect_percent = (mouse_pos.x - obj_editor_raw_rect.x) / obj_editor_raw_rect.width;
     const float mouse_beat_diff = (mouse_in_rect_percent - 0.5f) * beat_width * 2;
-    mouse_beat = compose_tab_scene.get_beat() + mouse_beat_diff;
+    mouse_beat = root_elem.get_beat() + mouse_beat_diff;
 
     if (beat_hover_l.ref.get_raw_rect().CheckCollision(mouse_pos))
         beat_drag_multiplier = -1;
@@ -521,7 +525,7 @@ void object_editor::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[ma
         if (selection_end_rel_y > 1)
             selection_end_rel_y = 1;
 
-        box_selection.rect.x.val = (selection_start_beat - (compose_tab_scene.get_beat() - beat_width)) / (2 * beat_width);
+        box_selection.rect.x.val = (selection_start_beat - (root_elem.get_beat() - beat_width)) / (2 * beat_width);
         box_selection.rect.y.val = selection_start_rel_y;
 
         auto& [w, h] = std::get<kee::dims>(box_selection.rect.dimensions);
@@ -538,7 +542,7 @@ void object_editor::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[ma
                 current_beat = std::round(current_beat * compose_tab_scene.get_ticks_per_beat()) / compose_tab_scene.get_ticks_per_beat();
         }
         else
-            current_beat = compose_tab_scene.get_beat();
+            current_beat = root_elem.get_beat();
 
         new_hit_object.value().current_beat = current_beat;
     }
@@ -729,18 +733,18 @@ void object_editor::update_element([[maybe_unused]] float dt)
     for (auto& map_elem : obj_render_info)
     {
         hit_obj_position update = hit_obj_update_info(map_elem, beat_drag_diff);
-        map_elem.second.update_pos_x(update.beat, update.duration, compose_tab_scene.get_beat(), beat_width);
+        map_elem.second.update_pos_x(update.beat, update.duration, root_elem.get_beat(), beat_width);
     }
 
-    const int beat_start_tick = static_cast<int>(std::floor(compose_tab_scene.get_beat() - beat_width) * compose_tab_scene.get_ticks_per_beat());
-    const int beat_end_tick = static_cast<int>(std::ceil(compose_tab_scene.get_beat() + beat_width) * compose_tab_scene.get_ticks_per_beat());
+    const int beat_start_tick = static_cast<int>(std::floor(root_elem.get_beat() - beat_width) * compose_tab_scene.get_ticks_per_beat());
+    const int beat_end_tick = static_cast<int>(std::ceil(root_elem.get_beat() + beat_width) * compose_tab_scene.get_ticks_per_beat());
     
     beat_render_rects.clear();
     whole_beat_texts.clear();
     for (int beat_tick = beat_start_tick; beat_tick <= beat_end_tick; beat_tick++)
     {
         const float beat_render = static_cast<float>(beat_tick) / compose_tab_scene.get_ticks_per_beat();
-        const float render_rel_x = (beat_render - (compose_tab_scene.get_beat() - beat_width)) / (2 * beat_width);
+        const float render_rel_x = (beat_render - (root_elem.get_beat() - beat_width)) / (2 * beat_width);
 
         const bool is_whole_beat = beat_tick % compose_tab_scene.get_ticks_per_beat() == 0;
         const float render_rel_w = is_whole_beat ? 0.005f : 0.003f;
@@ -777,12 +781,12 @@ void object_editor::update_element([[maybe_unused]] float dt)
         const float beg_beat = std::min(new_hit_object.value().click_beat, new_hit_object.value().current_beat);
         const float end_beat = std::max(new_hit_object.value().click_beat, new_hit_object.value().current_beat);
         
-        new_hit_obj_render.emplace(make_temp_child<hit_obj_ui>(beg_beat, end_beat - beg_beat, compose_tab_scene.get_beat(), beat_width, new_hit_object.value().key_idx, get_keys_to_render().size()));
+        new_hit_obj_render.emplace(make_temp_child<hit_obj_ui>(beg_beat, end_beat - beg_beat, root_elem.get_beat(), beat_width, new_hit_object.value().key_idx, get_keys_to_render().size()));
         new_hit_obj_render.value().select();
     }
 
     const float beat_delta = beat_drag_multiplier * beat_drag_speed * dt;
-    compose_tab_scene.set_beat(compose_tab_scene.get_beat() + beat_delta);
+    root_elem.set_beat(root_elem.get_beat() + beat_delta);
 }
 
 void object_editor::render_element() const
@@ -1003,10 +1007,9 @@ const std::unordered_map<int, int> compose_tab::key_to_prio = []
     return res;
 }();
 
-compose_tab_info::compose_tab_info(const raylib::Music& music, const kee::image_texture& arrow_png, float& music_time) :
+compose_tab_info::compose_tab_info(const raylib::Music& music, const kee::image_texture& arrow_png) :
     music(music),
     arrow_png(arrow_png),
-    music_time(music_time),
     hit_objs(compose_tab_info::init_hit_objs()),
     is_beat_snap(true),
     is_key_locked(true),  
@@ -1028,7 +1031,7 @@ std::unordered_map<int, std::map<float, editor_hit_object>> compose_tab_info::in
     return res;
 }
 
-compose_tab::compose_tab(const kee::ui::required& reqs, compose_tab_info& compose_info) :
+compose_tab::compose_tab(const kee::ui::required& reqs, root& root_elem, compose_tab_info& compose_info) :
     kee::ui::base(reqs,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.04f),
@@ -1039,10 +1042,9 @@ compose_tab::compose_tab(const kee::ui::required& reqs, compose_tab_info& compos
         false
     ),
     approach_beats(2.0f),
+    root_elem(root_elem),
     compose_info(compose_info),
-    music_start_offset(0.5f),
-    obj_editor(add_child<object_editor>(std::nullopt, selected_key_ids, keys, *this)),
-    music_bpm(100.0f),
+    obj_editor(add_child<object_editor>(std::nullopt, selected_key_ids, keys, *this, root_elem)),
     beat_snap_button_color(add_transition<kee::color>(kee::color::white())),
     beat_snap_button_outline(add_transition<float>(compose_info.is_beat_snap ? 0.6f : 0.2f)),
     key_lock_button_color(add_transition<kee::color>(kee::color::white())),
@@ -1368,7 +1370,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, compose_tab_info& compos
             true
         ));
 
-        keys.emplace(id, key_holders.back().ref.add_child<compose_tab_key>(std::nullopt, *this, compose_info.hit_objs[id], id));
+        keys.emplace(id, key_holders.back().ref.add_child<compose_tab_key>(std::nullopt, *this, root_elem, compose_info.hit_objs[id], id));
     }
 
     unselect();
@@ -1392,19 +1394,6 @@ bool compose_tab::is_beat_snap_enabled() const
 bool compose_tab::is_key_lock_enabled() const
 {
     return compose_info.is_key_locked;
-}
-
-/* TODO: move this to root i think */
-
-float compose_tab::get_beat() const
-{
-    return (compose_info.music_time - music_start_offset) * music_bpm / 60.0f;
-}
-
-void compose_tab::set_beat(float new_beat)
-{
-    const float music_time_raw = music_start_offset + new_beat * 60.0f / music_bpm;
-    compose_info.music_time = std::clamp(music_time_raw, 0.0f, compose_info.music.GetTimeLength());
 }
 
 void compose_tab::unselect()
@@ -1499,7 +1488,7 @@ bool compose_tab::on_element_key_down(int keycode, magic_enum::containers::bitse
         if (!mods.test(kee::mods::ctrl))
             return false;
 
-        const float paste_beat = get_beat();
+        const float paste_beat = root_elem.get_beat();
         bool is_paste_valid = true;
 
         for (const hit_obj_metadata& metadata : clipboard)
@@ -1534,7 +1523,7 @@ bool compose_tab::on_element_key_down(int keycode, magic_enum::containers::bitse
                 const auto new_key_it = std::ranges::find(keys_to_render, metadata.key);
                 const std::size_t new_key_idx = std::ranges::distance(keys_to_render.begin(), new_key_it);
 
-                hit_obj_ui render_ui = obj_editor.ref.make_temp_child<hit_obj_ui>(new_beat, metadata.position.duration, get_beat(), object_editor::beat_width, new_key_idx, keys_to_render.size());                
+                hit_obj_ui render_ui = obj_editor.ref.make_temp_child<hit_obj_ui>(new_beat, metadata.position.duration, root_elem.get_beat(), object_editor::beat_width, new_key_idx, keys_to_render.size());                
                 render_ui.select();
                 
                 obj_editor.ref.obj_render_info.emplace(hit_obj_ui_key(hit_objects, it), std::move(render_ui));
@@ -1586,7 +1575,7 @@ bool compose_tab::on_element_mouse_scroll(float mouse_scroll)
     if (std::abs(mouse_wheel_move) < 1.0f)
         return false;
 
-    float new_beat = get_beat();
+    float new_beat = root_elem.get_beat();
     float beat_steps = 0;
 
     if (mouse_wheel_move <= -1.0f)
@@ -1594,8 +1583,8 @@ bool compose_tab::on_element_mouse_scroll(float mouse_scroll)
         beat_steps = -std::ceil(mouse_wheel_move);
         mouse_wheel_move += beat_steps;
 
-        const float beat_floor = std::floorf(get_beat() * get_ticks_per_beat()) / get_ticks_per_beat();
-        new_beat = (std::abs(beat_floor - get_beat()) < compose_tab::beat_lock_threshold) 
+        const float beat_floor = std::floorf(root_elem.get_beat() * get_ticks_per_beat()) / get_ticks_per_beat();
+        new_beat = (std::abs(beat_floor - root_elem.get_beat()) < compose_tab::beat_lock_threshold) 
             ? beat_floor - (1.0f / get_ticks_per_beat()) * beat_steps 
             : beat_floor - (1.0f / get_ticks_per_beat()) * (beat_steps - 1);
     }
@@ -1604,13 +1593,13 @@ bool compose_tab::on_element_mouse_scroll(float mouse_scroll)
         beat_steps = std::floor(mouse_wheel_move);
         mouse_wheel_move -= beat_steps;
 
-        const float beat_ceil = std::ceilf(get_beat() * get_ticks_per_beat()) / get_ticks_per_beat();
-        new_beat = (std::abs(beat_ceil - get_beat()) < compose_tab::beat_lock_threshold) 
+        const float beat_ceil = std::ceilf(root_elem.get_beat() * get_ticks_per_beat()) / get_ticks_per_beat();
+        new_beat = (std::abs(beat_ceil - root_elem.get_beat()) < compose_tab::beat_lock_threshold) 
             ? beat_ceil + (1.0f / get_ticks_per_beat()) * beat_steps 
             : beat_ceil + (1.0f / get_ticks_per_beat()) * (beat_steps - 1);
     }
 
-    set_beat(new_beat);
+    root_elem.set_beat(new_beat);
     return true;
 }
 
