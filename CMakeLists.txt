@@ -12,6 +12,7 @@ file(GLOB_RECURSE KEE_SRC CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cp
 add_executable(${PROJECT_NAME} ${KEE_SRC})
 
 # /W4 /permissive-  - Enable all compile-time warnings.
+# TODO: add back gcc wall warnings
 if (MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W4 /permissive-)
     set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")

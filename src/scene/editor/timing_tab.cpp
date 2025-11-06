@@ -7,8 +7,14 @@ namespace scene {
 namespace editor {
 
 /* TODO: make 40, 40, 40 color const var */
+/* TODO: play metronome wavs next */
 
-timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem) :
+timing_tab_info::timing_tab_info() :
+    metronome_hi("assets/sfx/metronome_hi.wav"),
+    metronome_lo("assets/sfx/metronome_lo.wav")
+{ }
+
+timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem, timing_tab_info& timing_info) :
     kee::ui::base(reqs,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.04f),
@@ -19,6 +25,7 @@ timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem) :
         false
     ),
     root_elem(root_elem),
+    timing_info(timing_info),
     points_frame(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),

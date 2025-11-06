@@ -12,7 +12,7 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
     error_png("assets/img/error.png"),
     pause_png("assets/img/pause.png"),
     arrow_png("assets/img/arrow.png"),
-    active_tab_elem(add_child<timing_tab>(std::nullopt, *this)),
+    active_tab_elem(add_child<timing_tab>(std::nullopt, *this, timing_info)),
     active_tab(root::tabs::timing),
     tab_active_rect_rel_x(add_transition<float>(static_cast<float>(active_tab) / magic_enum::enum_count<root::tabs>())),
     exit_button_rect_alpha(add_transition<float>(0.0f)),
@@ -314,7 +314,7 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
                 this->active_tab_elem.emplace<kee::ui::handle<decoration_tab>>(add_child<decoration_tab>(std::nullopt));
                 break;
             case root::tabs::timing:
-                this->active_tab_elem.emplace<kee::ui::handle<timing_tab>>(add_child<timing_tab>(std::nullopt, *this));
+                this->active_tab_elem.emplace<kee::ui::handle<timing_tab>>(add_child<timing_tab>(std::nullopt, *this, timing_info));
                 break;
             }
 

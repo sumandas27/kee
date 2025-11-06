@@ -97,6 +97,7 @@ private:
     float error_timer;
 
     compose_tab_info compose_info;
+    timing_tab_info timing_info;
 };
 
 enum class root::tabs
