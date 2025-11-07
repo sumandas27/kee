@@ -36,6 +36,11 @@ void transition_base::update(float dt)
     }
 }
 
+const kee::color color::dark_orange = kee::color(255, 140, 0);
+const kee::color color::green = kee::color(0, 255, 0);
+const kee::color color::red = kee::color(255, 0, 0);
+const kee::color color::white = kee::color(255, 255, 255);
+
 raylib::Color color::to_color() const
 {
     return raylib::Color(

@@ -5,8 +5,8 @@ namespace ui {
 
 dropdown::dropdown(
     const kee::ui::required& reqs,
-    kee::pos x,
-    kee::pos y,
+    const kee::pos& x,
+    const kee::pos& y,
     const std::variant<kee::dims, kee::border>& dimensions,
     bool centered,
     std::vector<std::string>&& options,
@@ -15,7 +15,7 @@ dropdown::dropdown(
     kee::ui::base(reqs, x, y, dimensions, centered),
     on_select([]([[maybe_unused]] std::size_t idx){}),
     num_options(options.size()),
-    dropdown_outline_color(add_transition<kee::color>(kee::color::white())),
+    dropdown_outline_color(add_transition<kee::color>(kee::color::white)),
     dropdown_img_rotation(add_transition<float>(90.0f)),
     options_height(add_transition<float>(0.0f)),
     options_curr_rect_y(add_transition<float>((start_idx + 1.0f) / (options.size() + 1.0f))),
@@ -53,7 +53,7 @@ dropdown::dropdown(
         text_size(text_size::type::rel_h, 1),
         false, assets.font_regular, options[start_idx], false
     )),
-    dropdown_button_frame(make_temp_child<kee::ui::base>(
+    dropdown_img_frame(make_temp_child<kee::ui::base>(
         pos(pos::type::end, 0),
         pos(pos::type::beg, 0),
         dims(
@@ -62,18 +62,12 @@ dropdown::dropdown(
         ),
         false
     )),
-    dropdown_img_frame(dropdown_button_frame.make_temp_child<kee::ui::base>(
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.5f),
-        border(border::type::rel_w, 0.3f),
-        true
-    )),
     dropdown_img(dropdown_img_frame.make_temp_child<kee::ui::image>(
         assets.play_png,
         raylib::Color::White(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
-        border(border::type::rel_h, 0),
+        border(border::type::rel_w, 0.3f),
         true, false, false, 90.0f
     )),
     options_rect(make_temp_child<kee::ui::rect>(
@@ -128,7 +122,7 @@ dropdown::dropdown(
             switch (button_event)
             {
             case button::event::on_hot:
-                this->options_button_texts[idx].set_opt_color(kee::color::dark_orange().to_color());
+                this->options_button_texts[idx].set_opt_color(kee::color::dark_orange.to_color());
                 break;
             case button::event::on_leave:
                 this->options_button_texts[idx].set_opt_color(raylib::Color::White());
@@ -166,10 +160,10 @@ dropdown::dropdown(
         switch (button_event)
         {
         case button::event::on_hot:
-            this->dropdown_outline_color.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
+            this->dropdown_outline_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
             break;
         case button::event::on_leave:
-            this->dropdown_outline_color.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
+            this->dropdown_outline_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
             break;
         default:
             break;

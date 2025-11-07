@@ -6,8 +6,8 @@ namespace ui {
 triangle::triangle(
     const kee::ui::required& reqs, 
     const std::optional<raylib::Color>& color, 
-    kee::pos x,
-    kee::pos y,
+    const kee::pos& x,
+    const kee::pos& y,
     const std::variant<kee::dims, kee::border>& dims,
     bool centered,
     const raylib::Vector2& p0,

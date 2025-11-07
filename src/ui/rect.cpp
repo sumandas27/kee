@@ -18,8 +18,8 @@ rect_roundness::rect_roundness(rect_roundness::type rect_roundness_type, float v
 rect::rect(
     const kee::ui::required& reqs, 
     const std::optional<raylib::Color>& color, 
-    kee::pos x, 
-    kee::pos y, 
+    const kee::pos& x, 
+    const kee::pos& y, 
     const std::variant<kee::dims, kee::border>& dims,
     bool centered, 
     std::optional<kee::ui::rect_outline> border,

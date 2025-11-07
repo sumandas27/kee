@@ -6,7 +6,6 @@ namespace kee {
 namespace scene {
 namespace editor {
 
-/* TODO: make 40, 40, 40 color const var */
 /* TODO: play metronome wavs next */
 
 timing_tab_info::timing_tab_info() :
@@ -51,7 +50,7 @@ timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem, timing_ta
         true, assets.font_semi_bold, "WORK IN PROGRESS", false
     )),
     timing_slider(add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color(40, 40, 40),
+        timing_tab::timing_rect_color.to_color(),
         pos(pos::type::rel, 0.55f),
         pos(pos::type::rel, 0.4f),
         dims(
@@ -142,7 +141,7 @@ timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem, timing_ta
     timing_rects.reserve(4);
     for (std::size_t i = 0; i < 4; i++)
         timing_rects.emplace_back(add_child<kee::ui::rect>(std::nullopt,
-            raylib::Color(40, 40, 40),
+            timing_tab::timing_rect_color.to_color(),
             pos(pos::type::rel, 0.55f + 0.11f * i),
             pos(pos::type::rel, 0.2f),
             dims(
@@ -178,6 +177,8 @@ timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem, timing_ta
     };
 }
 
+const kee::color timing_tab::timing_rect_color = kee::color(40, 40, 40);
+
 void timing_tab::update_element([[maybe_unused]] float dt)
 {
     const float beat = root_elem.get_beat();
@@ -191,11 +192,11 @@ void timing_tab::update_element([[maybe_unused]] float dt)
             raylib::Color rect_color;
             if (i == color_idx)
             {
-                const kee::color kee_color = kee::color(40, 40, 40, 255) * interpolation + kee::color::green() * (1.0f - interpolation);
+                const kee::color kee_color = timing_tab::timing_rect_color * interpolation + kee::color::green * (1.0f - interpolation);
                 rect_color = kee_color.to_color();
             }
             else
-                rect_color = raylib::Color(40, 40, 40);
+                rect_color = timing_tab::timing_rect_color.to_color();
 
             timing_rects[i].ref.set_opt_color(rect_color);
         }
@@ -205,7 +206,7 @@ void timing_tab::update_element([[maybe_unused]] float dt)
     else
     {
         for (kee::ui::handle<kee::ui::rect>& timing_rect : timing_rects)
-            timing_rect.ref.set_opt_color(raylib::Color(40, 40, 40));
+            timing_rect.ref.set_opt_color(timing_tab::timing_rect_color.to_color());
 
         timing_ball.ref.x.val = 0;
     }

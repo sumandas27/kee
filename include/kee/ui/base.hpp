@@ -63,8 +63,8 @@ class base
 public:
     base(
         const kee::ui::required& reqs,
-        kee::pos x,
-        kee::pos y,
+        const kee::pos& x,
+        const kee::pos& y,
         const std::variant<kee::dims, kee::border>& dimensions,
         bool centered
     );
@@ -98,8 +98,7 @@ public:
     /**
      * You the developer are responsible for manually handling events, updating, and rendering temporary
      * children. Unlike regular children, child references to temporary elements are invalidated when moved.
-     * Do not use temporary children event handlers directly! 
-     * TODO: NOT necessarily true, fix event handler description
+     * Be mindful when using temporary children event handlers directly!
      */
     template <std::derived_from<kee::ui::base> T, typename... Args>
     T make_temp_child(Args&&... args);

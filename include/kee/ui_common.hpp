@@ -23,7 +23,6 @@ namespace kee {
 
 class game;
 
-/* TODO: take by const reference everywhere */
 class pos
 {
 public:
@@ -159,13 +158,13 @@ private:
 class color
 {
 public:
-    /* TODO: why are these functions */
-    static constexpr kee::color dark_orange();
-    static constexpr kee::color green();
-    static constexpr kee::color red();
-    static constexpr kee::color white();
+    static const kee::color dark_orange;
+    static const kee::color green;
+    static const kee::color red;
+    static const kee::color white;
 
     constexpr color();
+    constexpr color(float r, float g, float b);
     constexpr color(float r, float g, float b, float a);
 
     raylib::Color to_color() const;
@@ -183,28 +182,15 @@ private:
     float a;
 };
 
-constexpr kee::color color::dark_orange()
-{
-    return kee::color(255, 140, 0, 255);
-}
-
-constexpr kee::color color::green()
-{
-    return kee::color(0, 255, 0, 255);
-}
-
-constexpr kee::color color::red()
-{
-    return kee::color(255, 0, 0, 255);
-}
-
-constexpr kee::color color::white()
-{
-    return kee::color(255, 255, 255, 255);
-}
-
 constexpr color::color() :
     color(0, 0, 0, 0)
+{ }
+
+constexpr color::color(float r, float g, float b) :
+    r(r),
+    g(g),
+    b(b),
+    a(255.0f)
 { }
 
 constexpr color::color(float r, float g, float b, float a) :

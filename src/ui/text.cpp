@@ -11,8 +11,8 @@ text_size::text_size(text_size::type text_size_type, float val) :
 text::text(
     const kee::ui::required& reqs, 
     const std::optional<raylib::Color>& color, 
-    kee::pos p_x, 
-    kee::pos p_y, 
+    const kee::pos& p_x, 
+    const kee::pos& p_y, 
     kee::ui::text_size p_str_size,
     bool centered,
     const raylib::Font& font,

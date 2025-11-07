@@ -26,6 +26,8 @@ public:
     timing_tab(const kee::ui::required& reqs, root& root_elem, timing_tab_info& timing_info);
 
 private:
+    static const kee::color timing_rect_color;
+
     void update_element(float dt) override;
 
     root& root_elem;

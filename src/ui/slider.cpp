@@ -5,8 +5,8 @@ namespace ui {
 
 slider::slider(
     const kee::ui::required& reqs,
-    kee::pos x, 
-    kee::pos y, 
+    const kee::pos& x, 
+    const kee::pos& y, 
     const std::variant<kee::dims, kee::border>& dimensions, 
     bool centered
 ) :
@@ -14,7 +14,7 @@ slider::slider(
     on_event([]([[maybe_unused]] slider::event slider_event){}),
     progress(0.0f),
     slider_state(mouse_state::off),
-    fill_color(add_transition<kee::color>(kee::color::white())),
+    fill_color(add_transition<kee::color>(kee::color::white)),
     thumb_scale(add_transition<float>(1.75f)),
     track(make_temp_child<kee::ui::rect>(
         raylib::Color(255, 255, 255, 40),
@@ -79,12 +79,12 @@ void slider::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[maybe_unu
     }
     else if (!is_mouse_on_slider && slider_state != mouse_state::off)
     {
-        fill_color.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
+        fill_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
         slider_state = mouse_state::off;
     }
     else if (is_mouse_on_slider && slider_state == mouse_state::off)
     {
-        fill_color.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
+        fill_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
         slider_state = mouse_state::hot;
     }
 }
@@ -108,7 +108,7 @@ bool slider::on_element_mouse_up([[maybe_unused]] const raylib::Vector2& mouse_p
 
     on_event(slider::event::on_release);
     thumb_scale.set(std::nullopt, 1.75f, 0.5f, kee::transition_type::exp);
-    fill_color.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
+    fill_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
     
     slider_state = mouse_state::hot;
     return true;

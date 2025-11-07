@@ -16,11 +16,11 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
     active_tab(root::tabs::timing),
     tab_active_rect_rel_x(add_transition<float>(static_cast<float>(active_tab) / magic_enum::enum_count<root::tabs>())),
     exit_button_rect_alpha(add_transition<float>(0.0f)),
-    pause_play_color(add_transition<kee::color>(kee::color::white())),
+    pause_play_color(add_transition<kee::color>(kee::color::white)),
     pause_play_scale(add_transition<float>(1.0f)),
-    playback_l_img_color(add_transition<kee::color>(kee::color::white())),
+    playback_l_img_color(add_transition<kee::color>(kee::color::white)),
     playback_l_img_scale(add_transition<float>(0.7f)),
-    playback_r_img_color(add_transition<kee::color>(kee::color::white())),
+    playback_r_img_color(add_transition<kee::color>(kee::color::white)),
     playback_r_img_scale(add_transition<float>(0.7f)),
     error_rect_rel_x(add_transition<float>(1.0f)),
     error_alpha(add_transition<float>(0)),
@@ -261,7 +261,7 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
 
     for (std::size_t i = 0; i < magic_enum::enum_count<root::tabs>(); i++)
     {
-        tab_button_text_colors.push_back(add_transition<kee::color>(kee::color::white()));
+        tab_button_text_colors.push_back(add_transition<kee::color>(kee::color::white));
 
         tab_buttons.push_back(tab_display_frame.ref.add_child<kee::ui::button>(std::nullopt,
             pos(pos::type::rel, static_cast<float>(i) / magic_enum::enum_count<root::tabs>()),
@@ -278,10 +278,10 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
             switch (button_event)
             {
             case ui::button::event::on_hot:
-                this->tab_button_text_colors[idx].get().set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
+                this->tab_button_text_colors[idx].get().set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
                 break;
             case ui::button::event::on_leave:
-                this->tab_button_text_colors[idx].get().set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
+                this->tab_button_text_colors[idx].get().set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
                 break;
             default:
                 break;
@@ -359,14 +359,14 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
         switch (button_event)
         {
         case ui::button::event::on_hot:
-            pause_play_color.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
+            pause_play_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
             pause_play_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_down_l:
             pause_play_scale.set(std::nullopt, 0.9f, 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_leave:
-            pause_play_color.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
+            pause_play_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
             pause_play_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
             break;
         default:
@@ -398,14 +398,14 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
         switch (button_event)
         {
         case ui::button::event::on_hot:
-            playback_l_img_color.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
+            playback_l_img_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
             playback_l_img_scale.set(std::nullopt, 0.7f, 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_down_l:
             playback_l_img_scale.set(std::nullopt, 0.6f, 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_leave:
-            playback_l_img_color.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
+            playback_l_img_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
             playback_l_img_scale.set(std::nullopt, 0.7f, 0.5f, kee::transition_type::exp);
             break;
         default:
@@ -438,14 +438,14 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
         switch (button_event)
         {
         case ui::button::event::on_hot:
-            playback_r_img_color.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
+            playback_r_img_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
             playback_r_img_scale.set(std::nullopt, 0.7f, 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_down_l:
             playback_r_img_scale.set(std::nullopt, 0.6f, 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_leave:
-            playback_r_img_color.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
+            playback_r_img_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
             playback_r_img_scale.set(std::nullopt, 0.7f, 0.5f, kee::transition_type::exp);
             break;
         default:

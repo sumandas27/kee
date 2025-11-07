@@ -14,8 +14,8 @@ class dropdown final : public kee::ui::base
 public:
     dropdown(
         const kee::ui::required& reqs,
-        kee::pos x,
-        kee::pos y,
+        const kee::pos& x,
+        const kee::pos& y,
         const std::variant<kee::dims, kee::border>& dimensions,
         bool centered,
         std::vector<std::string>&& options,
@@ -43,7 +43,6 @@ private:
     kee::ui::button dropdown_button;
     kee::ui::base dropdown_text_frame;
     kee::ui::text dropdown_text;
-    kee::ui::base dropdown_button_frame; /* TODO: remove button frame */
     kee::ui::base dropdown_img_frame;
     kee::ui::image dropdown_img;
 

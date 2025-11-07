@@ -1045,12 +1045,12 @@ compose_tab::compose_tab(const kee::ui::required& reqs, root& root_elem, compose
     root_elem(root_elem),
     compose_info(compose_info),
     obj_editor(add_child<object_editor>(std::nullopt, selected_key_ids, keys, *this, root_elem)),
-    beat_snap_button_color(add_transition<kee::color>(kee::color::white())),
+    beat_snap_button_color(add_transition<kee::color>(kee::color::white)),
     beat_snap_button_outline(add_transition<float>(compose_info.is_beat_snap ? 0.6f : 0.2f)),
-    key_lock_button_color(add_transition<kee::color>(kee::color::white())),
+    key_lock_button_color(add_transition<kee::color>(kee::color::white)),
     key_lock_button_outline(add_transition<float>(compose_info.is_key_locked ? 0.6f : 0.2f)),
-    tick_l_button_color(add_transition<kee::color>(kee::color::white())),
-    tick_r_button_color(add_transition<kee::color>(kee::color::white())),
+    tick_l_button_color(add_transition<kee::color>(kee::color::white)),
+    tick_r_button_color(add_transition<kee::color>(kee::color::white)),
     tick_l_button_scale(add_transition<float>(1.0f)),
     tick_r_button_scale(add_transition<float>(1.0f)),
     tick_curr_rect_x(add_transition<float>(static_cast<float>(compose_info.tick_freq_idx * 2 + 1) / (compose_tab_info::tick_freq_count * 2))),
@@ -1230,10 +1230,10 @@ compose_tab::compose_tab(const kee::ui::required& reqs, root& root_elem, compose
             switch (button_event)
             {
             case ui::button::event::on_hot:
-                this->tick_frame_text_colors[idx].get().set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
+                this->tick_frame_text_colors[idx].get().set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
                 break;
             case ui::button::event::on_leave:
-                this->tick_frame_text_colors[idx].get().set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
+                this->tick_frame_text_colors[idx].get().set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
                 break;
             default:
                 break;
@@ -1245,7 +1245,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, root& root_elem, compose
             this->set_tick_freq_idx(idx);
         };
 
-        tick_frame_text_colors.push_back(add_transition<kee::color>(kee::color::white()));
+        tick_frame_text_colors.push_back(add_transition<kee::color>(kee::color::white));
     }
 
     tick_l_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -1253,14 +1253,14 @@ compose_tab::compose_tab(const kee::ui::required& reqs, root& root_elem, compose
         switch (button_event)
         {
         case ui::button::event::on_hot:
-            this->tick_l_button_color.set(std::nullopt, kee::color::dark_orange(), 0.555f, kee::transition_type::exp);
+            this->tick_l_button_color.set(std::nullopt, kee::color::dark_orange, 0.555f, kee::transition_type::exp);
             this->tick_l_button_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_down_l:
             this->tick_l_button_scale.set(std::nullopt, 0.9f, 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_leave:
-            this->tick_l_button_color.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
+            this->tick_l_button_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
             this->tick_l_button_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
             break;
         default:
@@ -1279,14 +1279,14 @@ compose_tab::compose_tab(const kee::ui::required& reqs, root& root_elem, compose
         switch (button_event)
         {
         case ui::button::event::on_hot:
-            this->tick_r_button_color.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
+            this->tick_r_button_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
             this->tick_r_button_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_down_l:
             this->tick_r_button_scale.set(std::nullopt, 0.9f, 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_leave:
-            this->tick_r_button_color.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
+            this->tick_r_button_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
             this->tick_r_button_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
             break;
         default:
@@ -1319,10 +1319,10 @@ compose_tab::compose_tab(const kee::ui::required& reqs, root& root_elem, compose
         switch (button_event)
         {
         case ui::button::event::on_hot:
-            this->beat_snap_button_color.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
+            this->beat_snap_button_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_leave:
-            this->beat_snap_button_color.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
+            this->beat_snap_button_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
             break;
         default:
             break;
@@ -1348,10 +1348,10 @@ compose_tab::compose_tab(const kee::ui::required& reqs, root& root_elem, compose
         switch (button_event)
         {
         case ui::button::event::on_hot:
-            this->key_lock_button_color.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
+            this->key_lock_button_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_leave:
-            this->key_lock_button_color.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
+            this->key_lock_button_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
             break;
         default:
             break;

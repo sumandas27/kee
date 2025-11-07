@@ -45,8 +45,8 @@ multiselect::multiselect(textbox& parent, const cursor_idx& beg, const cursor_id
 
 textbox::textbox(
     const kee::ui::required& reqs,
-    kee::pos x,
-    kee::pos y,
+    const kee::pos& x,
+    const kee::pos& y,
     const std::variant<kee::dims, kee::border>& dimensions,
     bool centered,
     boost::optional<kee::ui::base&> keyboard_owner
@@ -54,7 +54,7 @@ textbox::textbox(
     kee::ui::base(reqs, x, y, dimensions, centered),
     on_string_input([]([[maybe_unused]] std::string_view new_str){ return true; }),
     keyboard_owner(keyboard_owner),
-    textbox_outline_color(add_transition<kee::color>(kee::color::white())),
+    textbox_outline_color(add_transition<kee::color>(kee::color::white)),
     textbox_rect(make_temp_child<kee::ui::rect>(
         raylib::Color(50, 50, 50),
         pos(pos::type::beg, 0),
@@ -156,7 +156,7 @@ bool textbox::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
                     ui.char_idx++;
                     ui.ui.x.val = this->char_idx_to_pos_x(ui.char_idx);
 
-                    ui.ui.set_opt_color(kee::color::dark_orange().to_color());
+                    ui.ui.set_opt_color(kee::color::dark_orange.to_color());
                     ui.blink_timer = cursor::blink_time;
                 }
             }
@@ -191,7 +191,7 @@ bool textbox::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
                 {
                     ui.char_idx--;
                     ui.ui.x.val = this->char_idx_to_pos_x(ui.char_idx);
-                    ui.ui.set_opt_color(kee::color::dark_orange().to_color());
+                    ui.ui.set_opt_color(kee::color::dark_orange.to_color());
                     ui.blink_timer = cursor::blink_time;
                 }
             }
@@ -237,7 +237,7 @@ bool textbox::on_element_char_press(char c)
 
             ui.char_idx++;
             ui.ui.x.val = this->char_idx_to_pos_x(ui.char_idx);
-            ui.ui.set_opt_color(kee::color::dark_orange().to_color());
+            ui.ui.set_opt_color(kee::color::dark_orange.to_color());
             ui.blink_timer = cursor::blink_time;
         }
         else if constexpr (std::is_same_v<T, multiselect>)
@@ -323,14 +323,14 @@ void textbox::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[maybe_un
     }
     else if (is_mouse_on_textbox && textbox_state == mouse_state::off)
     {
-        textbox_outline_color.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
+        textbox_outline_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
         textbox_state = mouse_state::hot;
     }
     else if (!is_mouse_on_textbox && textbox_state != mouse_state::off)
     {
         textbox_state = mouse_state::off;
         if (!has_render_priority)
-            textbox_outline_color.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
+            textbox_outline_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
     }
 }
 
@@ -345,12 +345,12 @@ bool textbox::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mo
         {
             if (!on_string_input(textbox_text.get_string()))
             {
-                textbox_outline_color.set(kee::color::red(), kee::color::white(), 1.0f, kee::transition_type::lin);
+                textbox_outline_color.set(kee::color::red, kee::color::white, 1.0f, kee::transition_type::lin);
                 textbox_text.set_string(old_str);
             }
             else
             {
-                textbox_outline_color.set(kee::color::white());
+                textbox_outline_color.set(kee::color::white);
                 old_str = textbox_text.get_string();
             }
 

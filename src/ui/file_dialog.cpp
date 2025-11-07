@@ -10,8 +10,8 @@ file_dialog_filter::file_dialog_filter(std::string_view name, std::string_view s
 
 file_dialog::file_dialog(
     const kee::ui::required& reqs,
-    kee::pos x,
-    kee::pos y,
+    const kee::pos& x,
+    const kee::pos& y,
     const std::variant<kee::dims, kee::border>& dimensions,
     bool centered,
     std::vector<file_dialog_filter> filters
@@ -19,7 +19,7 @@ file_dialog::file_dialog(
     kee::ui::base(reqs, x, y, dimensions, centered),
     on_success([]([[maybe_unused]] std::filesystem::path selected_file){}),
     on_filter_mismatch([](){}),
-    fd_outline_color(add_transition<kee::color>(kee::color::white())),
+    fd_outline_color(add_transition<kee::color>(kee::color::white)),
     fd_rect(make_temp_child<kee::ui::rect>(
         raylib::Color(50, 50, 50),
         pos(pos::type::beg, 0),
@@ -69,10 +69,10 @@ file_dialog::file_dialog(
         switch (button_event)
         {
         case button::event::on_hot:
-            this->fd_outline_color.set(std::nullopt, kee::color::dark_orange(), 0.5f, kee::transition_type::exp);
+            this->fd_outline_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
             break;
         case button::event::on_leave:
-            this->fd_outline_color.set(std::nullopt, kee::color::white(), 0.5f, kee::transition_type::exp);
+            this->fd_outline_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
             break;
         default:
             break;

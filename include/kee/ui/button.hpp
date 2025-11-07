@@ -12,8 +12,8 @@ public:
 
     button(
         const kee::ui::required& reqs, 
-        kee::pos x, 
-        kee::pos y, 
+        const kee::pos& x, 
+        const kee::pos& y, 
         const std::variant<kee::dims, kee::border>& dimensions, 
         bool centered
     );
