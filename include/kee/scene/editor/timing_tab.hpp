@@ -14,7 +14,10 @@ class root;
 class timing_tab_info
 {
 public:
-    timing_tab_info();
+    timing_tab_info(const raylib::Music& music, const std::optional<float>& prev_beat);
+
+    const raylib::Music& music;
+    const std::optional<float>& prev_beat;
 
     raylib::Sound metronome_hi;
     raylib::Sound metronome_lo;

@@ -469,6 +469,10 @@ void object_editor::attempt_add_hit_obj()
     {
         if (!new_hit_object.value().from_compose_tab)
             compose_tab_scene.unselect();
+        else
+            for (auto& [key, val] : obj_render_info)
+                if (val.is_selected())
+                    val.unselect();
 
         const auto new_it = hit_objects.emplace(new_beat, editor_hit_object(new_hit_object.value().key, new_duration)).first;
         std::vector<hit_obj_metadata> new_obj_added;
@@ -1007,15 +1011,19 @@ const std::unordered_map<int, int> compose_tab::key_to_prio = []
     return res;
 }();
 
-compose_tab_info::compose_tab_info(const raylib::Music& music, const kee::image_texture& arrow_png) :
+compose_tab_info::compose_tab_info(const raylib::Music& music, const kee::image_texture& arrow_png, const std::optional<float>& prev_beat) :
     music(music),
     arrow_png(arrow_png),
+    prev_beat(prev_beat),
+    hitsound("assets/sfx/hitsound.wav"),
     hit_objs(compose_tab_info::init_hit_objs()),
     is_beat_snap(true),
     is_key_locked(true),  
     event_history_idx(0),
     tick_freq_idx(3)
-{ }
+{ 
+    hitsound.SetVolume(0.01f);
+}
 
 std::unordered_map<int, std::map<float, editor_hit_object>> compose_tab_info::init_hit_objs()
 {
@@ -1605,6 +1613,23 @@ bool compose_tab::on_element_mouse_scroll(float mouse_scroll)
 
 void compose_tab::update_element([[maybe_unused]] float dt)
 {
+    if (compose_info.music.IsPlaying() && compose_info.prev_beat.has_value())
+    {
+        const float curr_beat = root_elem.get_beat();
+        for (const auto& [_, key_hit_objs] : compose_info.hit_objs)
+        {
+            auto it = key_hit_objs.upper_bound(curr_beat);
+            if (it == key_hit_objs.begin())
+                continue;
+
+            it--;
+            if (compose_info.prev_beat.value() < it->first && it->first <= curr_beat)
+                compose_info.hitsound.Play();
+            if (it->second.duration > 0.0f && compose_info.prev_beat.value() < it->first + it->second.duration && it->first + it->second.duration <= curr_beat)
+                compose_info.hitsound.Play();
+        }
+    }
+
     beat_snap_button_rect.ref.border.value().opt_color.value() = beat_snap_button_color.get().to_color();
     beat_snap_button_rect.ref.border.value().val = beat_snap_button_outline.get();
 

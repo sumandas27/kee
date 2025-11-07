@@ -92,6 +92,7 @@ private:
 
     raylib::Music music;
     float music_time;
+    std::optional<float> prev_beat;
 
     std::optional<int> error_skips_before_start;
     float error_timer;

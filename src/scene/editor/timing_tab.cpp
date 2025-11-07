@@ -8,10 +8,15 @@ namespace editor {
 
 /* TODO: play metronome wavs next */
 
-timing_tab_info::timing_tab_info() :
+timing_tab_info::timing_tab_info(const raylib::Music& music, const std::optional<float>& prev_beat) :
+    music(music),
+    prev_beat(prev_beat),
     metronome_hi("assets/sfx/metronome_hi.wav"),
     metronome_lo("assets/sfx/metronome_lo.wav")
-{ }
+{ 
+    metronome_hi.SetVolume(0.2f);
+    metronome_lo.SetVolume(0.2f);
+}
 
 timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem, timing_tab_info& timing_info) :
     kee::ui::base(reqs,
@@ -181,6 +186,18 @@ const kee::color timing_tab::timing_rect_color = kee::color(40, 40, 40);
 
 void timing_tab::update_element([[maybe_unused]] float dt)
 {
+    if (timing_info.music.IsPlaying() && timing_info.prev_beat.has_value())
+    {
+        const int first = static_cast<int>(std::floor(timing_info.prev_beat.value())) + 1;
+        const int last = static_cast<int>(std::floor(root_elem.get_beat()));
+
+        for (int i = first; i <= last; i++)
+            if (i % 4 == 0)
+                timing_info.metronome_hi.Play();
+            else
+                timing_info.metronome_lo.Play();
+    }
+
     const float beat = root_elem.get_beat();
     if (beat >= 0.0f)
     {

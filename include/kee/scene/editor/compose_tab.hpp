@@ -294,10 +294,13 @@ public:
     static constexpr std::size_t tick_freq_count = 8;
     static constexpr std::array<int, tick_freq_count> tick_freqs = { 1, 2, 3, 4, 6, 8, 12, 16 };
 
-    compose_tab_info(const raylib::Music& music, const kee::image_texture& arrow_png);
+    compose_tab_info(const raylib::Music& music, const kee::image_texture& arrow_png, const std::optional<float>& prev_beat);
 
-    const raylib::Music& music;   
+    const raylib::Music& music;  
     const kee::image_texture& arrow_png;
+    const std::optional<float>& prev_beat;
+
+    raylib::Sound hitsound;
 
     std::unordered_map<int, std::map<float, editor_hit_object>> hit_objs;
 

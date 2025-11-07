@@ -6,7 +6,7 @@ namespace editor {
 
 root::root(const kee::scene::window& window, kee::game& game, kee::global_assets& assets) :
     kee::scene::base(window, game, assets),
-    music_start_offset(0.5f),
+    music_start_offset(0.43f),
     music_bpm(100.0f),
     exit_png("assets/img/exit.png"),
     error_png("assets/img/error.png"),
@@ -232,7 +232,8 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
     music("assets/daft-punk-something-about-us/daft-punk-something-about-us.mp3"),
     music_time(0.0f),
     error_timer(0.0f),
-    compose_info(music, arrow_png)
+    compose_info(music, arrow_png, prev_beat),
+    timing_info(music, prev_beat)
 {
     std::visit([](const auto& elem) {
         elem.ref.take_keyboard_capture();
@@ -385,7 +386,7 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
         {
             this->music.Seek(music_slider.ref.progress * this->music.GetTimeLength());
             this->music.Resume();
-            this->pause_play_img.ref.set_image(pause_png);            
+            this->pause_play_img.ref.set_image(pause_png);
         }
     };
 
@@ -497,10 +498,16 @@ void root::update_element(float dt)
 {
     music.Update();
 
+    prev_beat.reset();
     if (!music_slider.ref.is_down())
     {
         if (music.IsPlaying())
+        {
+            const float last_frame_beat = get_beat();
             music_time = music.GetTimePlayed();
+            if (last_frame_beat < get_beat())
+                prev_beat = last_frame_beat;
+        }
 
         music_slider.ref.progress = music_time / music.GetTimeLength();
     }
