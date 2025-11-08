@@ -503,10 +503,11 @@ void root::update_element(float dt)
     {
         if (music.IsPlaying())
         {
-            const float last_frame_beat = get_beat();
             music_time = music.GetTimePlayed();
-            if (last_frame_beat < get_beat())
-                prev_beat = last_frame_beat;
+            if (last_frame_beat.has_value() && last_frame_beat.value() < get_beat())
+                prev_beat = last_frame_beat.value();
+
+            last_frame_beat = get_beat();
         }
 
         music_slider.ref.progress = music_time / music.GetTimeLength();

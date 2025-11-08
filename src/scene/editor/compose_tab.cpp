@@ -1031,11 +1031,9 @@ std::unordered_map<int, std::map<float, editor_hit_object>> compose_tab_info::in
     for (const auto& [id, rel_pos] : kee::key_ui_data)
         res[id];
 
-    res.at(KeyboardKey::KEY_Q).emplace(0.0f, editor_hit_object(KeyboardKey::KEY_Q, 2.0f));
-    res.at(KeyboardKey::KEY_W).emplace(0.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
-    res.at(KeyboardKey::KEY_W).emplace(4.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
-    res.at(KeyboardKey::KEY_W).emplace(8.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
-    res.at(KeyboardKey::KEY_W).emplace(12.0f, editor_hit_object(KeyboardKey::KEY_W, 0.0f));
+    for (float beat = 0; beat <= 20.0f; beat += 0.5f)
+        res.at(KeyboardKey::KEY_Q).emplace(beat, editor_hit_object(KeyboardKey::KEY_Q, 0.0f));
+
     return res;
 }
 
