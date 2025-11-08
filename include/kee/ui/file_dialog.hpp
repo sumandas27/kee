@@ -30,7 +30,7 @@ public:
         std::vector<file_dialog_filter> filters
     );
 
-    std::function<void(std::filesystem::path)> on_success;
+    std::function<void(const std::filesystem::path&)> on_success;
     std::function<void()> on_filter_mismatch;
 
 private:

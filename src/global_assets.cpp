@@ -26,6 +26,7 @@ global_assets::global_assets() :
     sdf_triangle_loc_p0(shader_sdf_triangle.GetLocation("p0")),
     sdf_triangle_loc_p1(shader_sdf_triangle.GetLocation("p1")),
     sdf_triangle_loc_p2(shader_sdf_triangle.GetLocation("p2")),
+    pause_png("assets/img/pause.png"),
     play_png("assets/img/play.png"),
     directory_png("assets/img/directory.png")
 {

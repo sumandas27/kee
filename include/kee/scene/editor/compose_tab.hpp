@@ -15,7 +15,7 @@ namespace kee {
 namespace scene {
 namespace editor {
 
-class root;
+class song_ui;
 class compose_tab;
 
 /**
@@ -107,7 +107,7 @@ public:
     compose_tab_key(
         const kee::ui::required& reqs, 
         compose_tab& compose_tab_scene,
-        root& root_elem,
+        song_ui& song_ui_elem,
         std::map<float, editor_hit_object>& hit_objects,
         int key_id
     );
@@ -125,7 +125,7 @@ private:
     void render_element() const override;
 
     compose_tab& compose_tab_scene;
-    root& root_elem;
+    song_ui& song_ui_elem;
 
     const int key_id;
 };
@@ -232,7 +232,7 @@ public:
         const std::vector<int>& selected_key_ids,
         std::unordered_map<int, kee::ui::handle<compose_tab_key>>& keys,
         compose_tab& compose_tab_scene,
-        root& root_elem
+        song_ui& song_ui_elem
     );
 
     void reset_render_hit_objs();
@@ -266,7 +266,7 @@ private:
 
     std::unordered_map<int, kee::ui::handle<compose_tab_key>>& keys;
     compose_tab& compose_tab_scene;
-    root& root_elem;
+    song_ui& song_ui_elem;
 
     std::vector<kee::ui::rect> beat_render_rects;
     std::vector<kee::ui::text> whole_beat_texts;
@@ -294,11 +294,9 @@ public:
     static constexpr std::size_t tick_freq_count = 8;
     static constexpr std::array<int, tick_freq_count> tick_freqs = { 1, 2, 3, 4, 6, 8, 12, 16 };
 
-    compose_tab_info(const raylib::Music& music, const kee::image_texture& arrow_png, const std::optional<float>& prev_beat);
+    compose_tab_info(const kee::image_texture& arrow_png);
 
-    const raylib::Music& music;  
     const kee::image_texture& arrow_png;
-    const std::optional<float>& prev_beat;
 
     raylib::Sound hitsound;
 
@@ -324,7 +322,7 @@ public:
     static const std::vector<int> prio_to_key;
     static const std::unordered_map<int, int> key_to_prio;
 
-    compose_tab(const kee::ui::required& reqs, root& root_elem, compose_tab_info& compose_info);
+    compose_tab(const kee::ui::required& reqs, song_ui& song_ui_elem, compose_tab_info& compose_info);
 
     int get_ticks_per_beat() const;
     bool is_music_playing() const;
@@ -349,7 +347,7 @@ private:
 
     void set_tick_freq_idx(std::size_t new_tick_freq_idx);
 
-    root& root_elem;
+    song_ui& song_ui_elem;
     compose_tab_info& compose_info;
 
     kee::transition<kee::color>& beat_snap_button_color;

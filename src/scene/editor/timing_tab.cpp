@@ -8,9 +8,7 @@ namespace editor {
 
 /* TODO: play metronome wavs next */
 
-timing_tab_info::timing_tab_info(const raylib::Music& music, const std::optional<float>& prev_beat) :
-    music(music),
-    prev_beat(prev_beat),
+timing_tab_info::timing_tab_info() :
     metronome_hi("assets/sfx/metronome_hi.wav"),
     metronome_lo("assets/sfx/metronome_lo.wav")
 { 
@@ -18,7 +16,7 @@ timing_tab_info::timing_tab_info(const raylib::Music& music, const std::optional
     metronome_lo.SetVolume(0.2f);
 }
 
-timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem, timing_tab_info& timing_info) :
+timing_tab::timing_tab(const kee::ui::required& reqs, song_ui& song_ui_elem, timing_tab_info& timing_info) :
     kee::ui::base(reqs,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.04f),
@@ -28,7 +26,7 @@ timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem, timing_ta
         ),
         false
     ),
-    root_elem(root_elem),
+    song_ui_elem(song_ui_elem),
     timing_info(timing_info),
     points_frame(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0),
@@ -186,10 +184,10 @@ const kee::color timing_tab::timing_rect_color = kee::color(40, 40, 40);
 
 void timing_tab::update_element([[maybe_unused]] float dt)
 {
-    if (timing_info.music.IsPlaying() && timing_info.prev_beat.has_value())
+    if (song_ui_elem.get_music().IsPlaying() && song_ui_elem.get_prev_beat().has_value())
     {
-        const int first = static_cast<int>(std::floor(timing_info.prev_beat.value())) + 1;
-        const int last = static_cast<int>(std::floor(root_elem.get_beat()));
+        const int first = static_cast<int>(std::floor(song_ui_elem.get_prev_beat().value())) + 1;
+        const int last = static_cast<int>(std::floor(song_ui_elem.get_beat()));
 
         for (int i = first; i <= last; i++)
             if (i % 4 == 0)
@@ -198,7 +196,7 @@ void timing_tab::update_element([[maybe_unused]] float dt)
                 timing_info.metronome_lo.Play();
     }
 
-    const float beat = root_elem.get_beat();
+    const float beat = song_ui_elem.get_beat();
     if (beat >= 0.0f)
     {
         const std::size_t color_idx = static_cast<std::size_t>(beat) % 4;

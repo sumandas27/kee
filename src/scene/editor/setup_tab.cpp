@@ -136,7 +136,12 @@ setup_tab::setup_tab(const kee::ui::required& reqs, kee::scene::editor::root& ed
         ),
         false, *this
     ))
-{ 
+{
+    audio_file_dialog.ref.on_success = [&](const std::filesystem::path& song_path)
+    {
+        this->editor_scene.set_song(song_path);
+    };
+
     audio_file_dialog.ref.on_filter_mismatch = [&]()
     {
         this->editor_scene.set_error("Not a valid audio file format!", true);
