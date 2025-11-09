@@ -63,7 +63,8 @@ public:
         const kee::pos& y,
         const std::variant<kee::dims, kee::border>& dimensions,
         bool centered,
-        boost::optional<kee::ui::base&> keyboard_owner
+        boost::optional<kee::ui::base&> keyboard_owner,
+        std::string_view initial_str
     );
 
     /**

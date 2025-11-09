@@ -10,13 +10,23 @@ namespace editor {
 
 class root;
 
+class setup_tab_info
+{
+public:
+    setup_tab_info();
+
+    std::string song_artist;
+    std::string song_name;
+};
+
 class setup_tab : public kee::ui::base
 {
 public:
-    setup_tab(const kee::ui::required& reqs, kee::scene::editor::root& editor_scene);
+    setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_info& setup_info);
 
 private:
-    kee::scene::editor::root& editor_scene;
+    root& root_elem;
+    setup_tab_info& setup_info;
 
     kee::ui::handle<kee::ui::rect> metadata_bg;
     kee::ui::handle<kee::ui::text> metadata_label;

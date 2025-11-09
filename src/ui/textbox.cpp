@@ -49,7 +49,8 @@ textbox::textbox(
     const kee::pos& y,
     const std::variant<kee::dims, kee::border>& dimensions,
     bool centered,
-    boost::optional<kee::ui::base&> keyboard_owner
+    boost::optional<kee::ui::base&> keyboard_owner,
+    std::string_view initial_str
 ) :
     kee::ui::base(reqs, x, y, dimensions, centered),
     on_string_input([]([[maybe_unused]] std::string_view new_str){ return true; }),
@@ -78,7 +79,7 @@ textbox::textbox(
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         text_size(text_size::type::rel_h, 1),
-        false, assets.font_regular, std::string(), false
+        false, assets.font_regular, initial_str, false
     )),
     textbox_state(mouse_state::off),
     has_render_priority(false)
@@ -88,6 +89,11 @@ bool textbox::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
 {
     switch (keycode)
     {
+    case KeyboardKey::KEY_SPACE:
+        /**
+         * Consumed by textbox character input.
+         */
+        return true;
     case KeyboardKey::KEY_BACKSPACE: {
         if (!selection_ui.has_value())
             return false;

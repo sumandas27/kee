@@ -106,7 +106,7 @@ timing_tab::timing_tab(const kee::ui::required& reqs, song_ui& song_ui_elem, tim
             dim(dim::type::rel, 0.5f),
             dim(dim::type::rel, 0.4f)
         ),
-        false, *this
+        false, *this, ""
     )),
     offset_text(bpm_offset_frame.ref.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
@@ -122,7 +122,7 @@ timing_tab::timing_tab(const kee::ui::required& reqs, song_ui& song_ui_elem, tim
             dim(dim::type::rel, 0.5f),
             dim(dim::type::rel, 0.4f)
         ),
-        false, *this
+        false, *this, ""
     ))
 { 
     const raylib::Rectangle timing_slider_rect = timing_slider.ref.get_raw_rect();

@@ -32,19 +32,6 @@ file_dialog::file_dialog(
         rect_outline(rect_outline::type::rel_h, 0.07f, fd_outline_color.get().to_color()),
         rect_roundness(rect_roundness::type::rel_h, 0.15f, std::nullopt)
     )),
-    fd_text_frame(make_temp_child<kee::ui::base>(
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.5f),
-        border(border::type::rel_h, 0.15f),
-        true
-    )),
-    fd_text(fd_text_frame.make_temp_child<kee::ui::text>(
-        raylib::Color::White(),
-        pos(pos::type::beg, 0),
-        pos(pos::type::beg, 0),
-        text_size(text_size::type::rel_h, 1),
-        false, assets.font_regular, "No file selected", false
-    )),
     fd_button(make_temp_child<kee::ui::button>(
         pos(pos::type::end, 0),
         pos(pos::type::beg, 0),
@@ -62,8 +49,33 @@ file_dialog::file_dialog(
         border(border::type::rel_w, 0.2f),
         true, false, false, 0.0f
     )),
+    fd_text_area(make_temp_child<kee::ui::base>(
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::abs, 0),
+            dim(dim::type::rel, 1)
+        ),
+        false
+    )),
+    fd_text_frame(fd_text_area.make_temp_child<kee::ui::base>(
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_h, 0.15f),
+        true
+    )),
+    fd_text(fd_text_frame.make_temp_child<kee::ui::text>(
+        raylib::Color::White(),
+        pos(pos::type::beg, 0),
+        pos(pos::type::beg, 0),
+        text_size(text_size::type::rel_h, 1),
+        false, assets.font_regular, "No file selected", false
+    )),
     filters(filters)
-{ 
+{
+    const raylib::Rectangle fd_raw_rect = get_raw_rect();
+    std::get<kee::dims>(fd_text_area.dimensions).w.val = fd_raw_rect.width - fd_raw_rect.height;
+
     fd_button.on_event = [&](button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
         switch (button_event)
@@ -102,7 +114,10 @@ file_dialog::file_dialog(
             );
 
             if (filter_match)
+            {
                 this->on_success(selected_path);
+                this->fd_text.set_string(selected_path.filename().string());
+            }
             else
                 this->on_filter_mismatch();
 
@@ -141,8 +156,22 @@ void file_dialog::update_element([[maybe_unused]] float dt)
 void file_dialog::render_element() const
 {
     fd_rect.render();
-    fd_text.render();
     fd_image.render();
+
+    /**
+     * `raylib-cpp` does not support `Begin/EndScissorMode`.
+     */
+    const raylib::Rectangle text_frame_rect = fd_text_frame.get_raw_rect();
+    BeginScissorMode(
+        static_cast<int>(text_frame_rect.x),
+        static_cast<int>(text_frame_rect.y),
+        static_cast<int>(text_frame_rect.width),
+        static_cast<int>(text_frame_rect.height)
+    );
+
+    fd_text.render();
+
+    EndScissorMode();
 }
 
 } // namespace ui

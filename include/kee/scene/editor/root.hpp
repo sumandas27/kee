@@ -87,6 +87,10 @@ private:
     kee::image_texture error_png;
     kee::image_texture arrow_png;
 
+    setup_tab_info setup_info;
+    compose_tab_info compose_info;
+    timing_tab_info timing_info;
+
     std::variant<
         kee::ui::handle<setup_tab>,
         kee::ui::handle<compose_tab>,
@@ -125,9 +129,6 @@ private:
 
     std::optional<int> error_skips_before_start;
     float error_timer;
-
-    compose_tab_info compose_info;
-    timing_tab_info timing_info;
 };
 
 enum class root::tabs

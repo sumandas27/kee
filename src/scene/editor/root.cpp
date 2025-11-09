@@ -325,7 +325,8 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
     exit_png("assets/img/exit.png"),
     error_png("assets/img/error.png"),
     arrow_png("assets/img/arrow.png"),
-    active_tab_elem(add_child<setup_tab>(std::nullopt, *this)),
+    compose_info(arrow_png),
+    active_tab_elem(add_child<setup_tab>(std::nullopt, *this, setup_info)),
     active_tab(root::tabs::setup),
     tab_active_rect_rel_x(add_transition<float>(static_cast<float>(active_tab) / magic_enum::enum_count<root::tabs>())),
     exit_button_rect_alpha(add_transition<float>(0.0f)),
@@ -443,8 +444,7 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
         ui::text_size(ui::text_size::type::rel_h, 0.4f),
         false, assets.font_semi_bold, std::string(), false
     )),
-    error_timer(0.0f),
-    compose_info(arrow_png)
+    error_timer(0.0f)
 {
     std::visit([](const auto& elem) {
         elem.ref.take_keyboard_capture();
@@ -507,7 +507,7 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
                 return;
 
             const bool requires_song_ui = (tab_enum == root::tabs::compose || tab_enum == root::tabs::timing);
-            if (requires_song_ui & !std::holds_alternative<kee::ui::handle<song_ui>>(this->playback_ui))
+            if (requires_song_ui && !std::holds_alternative<kee::ui::handle<song_ui>>(this->playback_ui))
             {
                 this->set_error("Select a song first!", false);
                 return;
@@ -524,7 +524,7 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
             switch (tab_enum)
             {
             case root::tabs::setup:
-                this->active_tab_elem.emplace<kee::ui::handle<setup_tab>>(add_child<setup_tab>(std::nullopt, *this));
+                this->active_tab_elem.emplace<kee::ui::handle<setup_tab>>(add_child<setup_tab>(std::nullopt, *this, setup_info));
                 break;
             case root::tabs::compose: {
                 song_ui& song_ui_elem = std::get<kee::ui::handle<song_ui>>(this->playback_ui).ref;

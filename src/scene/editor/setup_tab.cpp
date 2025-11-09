@@ -6,7 +6,9 @@ namespace kee {
 namespace scene {
 namespace editor {
 
-setup_tab::setup_tab(const kee::ui::required& reqs, kee::scene::editor::root& editor_scene) :
+setup_tab_info::setup_tab_info() { }
+
+setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_info& setup_info) :
     kee::ui::base(reqs,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.04f),
@@ -16,7 +18,8 @@ setup_tab::setup_tab(const kee::ui::required& reqs, kee::scene::editor::root& ed
         ),
         false
     ),
-    editor_scene(editor_scene),
+    root_elem(root_elem),
+    setup_info(setup_info),
     metadata_bg(add_child<kee::ui::rect>(std::nullopt,
         raylib::Color(20, 20, 20),
         pos(pos::type::rel, 4.0f / 30.0f),
@@ -68,7 +71,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, kee::scene::editor::root& ed
             dim(dim::type::rel, 0.45f),
             dim(dim::type::rel, 0.03f)
         ),
-        false, *this
+        false, *this, setup_info.song_artist
     )),
     song_name_text(metadata_bg.ref.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
@@ -84,7 +87,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, kee::scene::editor::root& ed
             dim(dim::type::rel, 0.45f),
             dim(dim::type::rel, 0.03f)
         ),
-        false, *this
+        false, *this, setup_info.song_name
     )),
     difficulty_bg(add_child<kee::ui::rect>(std::nullopt,
         raylib::Color(20, 20, 20),
@@ -118,7 +121,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, kee::scene::editor::root& ed
             dim(dim::type::rel, 0.25f),
             dim(dim::type::rel, 0.03f)
         ),
-        false, *this
+        false, *this, ""
     )),
     forgiveness_text(difficulty_bg.ref.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
@@ -134,17 +137,29 @@ setup_tab::setup_tab(const kee::ui::required& reqs, kee::scene::editor::root& ed
             dim(dim::type::rel, 0.25f),
             dim(dim::type::rel, 0.03f)
         ),
-        false, *this
+        false, *this, ""
     ))
 {
     audio_file_dialog.ref.on_success = [&](const std::filesystem::path& song_path)
     {
-        this->editor_scene.set_song(song_path);
+        this->root_elem.set_song(song_path);
     };
 
     audio_file_dialog.ref.on_filter_mismatch = [&]()
     {
-        this->editor_scene.set_error("Not a valid audio file format!", true);
+        this->root_elem.set_error("Not a valid audio file format!", true);
+    };
+
+    artist_textbox.ref.on_string_input = [&](std::string_view new_str) -> bool
+    {
+        this->setup_info.song_artist = new_str;
+        return true;
+    };
+
+    song_name_textbox.ref.on_string_input = [&](std::string_view new_str) -> bool
+    {
+        this->setup_info.song_name = new_str;
+        return true;
     };
 
     approach_textbox.ref.on_string_input = [&](std::string_view new_str) -> bool

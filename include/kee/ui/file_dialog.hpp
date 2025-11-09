@@ -44,12 +44,12 @@ private:
     kee::transition<kee::color>& fd_outline_color;
 
     kee::ui::rect fd_rect;
-    
-    kee::ui::base fd_text_frame;
-    kee::ui::text fd_text;
-
     kee::ui::button fd_button;
     kee::ui::image fd_image;
+
+    kee::ui::base fd_text_area;
+    kee::ui::base fd_text_frame;
+    kee::ui::text fd_text;
 
     std::vector<file_dialog_filter> filters;
 };
