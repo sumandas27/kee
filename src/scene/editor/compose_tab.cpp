@@ -1029,13 +1029,10 @@ std::unordered_map<int, std::map<float, editor_hit_object>> compose_tab_info::in
     for (const auto& [id, rel_pos] : kee::key_ui_data)
         res[id];
 
-    for (float beat = 0; beat <= 20.0f; beat += 0.5f)
-        res.at(KeyboardKey::KEY_Q).emplace(beat, editor_hit_object(KeyboardKey::KEY_Q, 0.0f));
-
     return res;
 }
 
-compose_tab::compose_tab(const kee::ui::required& reqs, song_ui& song_ui_elem, compose_tab_info& compose_info) :
+compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_beats, song_ui& song_ui_elem, compose_tab_info& compose_info) :
     kee::ui::base(reqs,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.04f),
@@ -1045,10 +1042,10 @@ compose_tab::compose_tab(const kee::ui::required& reqs, song_ui& song_ui_elem, c
         ),
         false
     ),
-    approach_beats(2.0f),
+    approach_beats(approach_beats),
+    obj_editor(add_child<object_editor>(std::nullopt, selected_key_ids, keys, *this, song_ui_elem)),
     song_ui_elem(song_ui_elem),
     compose_info(compose_info),
-    obj_editor(add_child<object_editor>(std::nullopt, selected_key_ids, keys, *this, song_ui_elem)),
     beat_snap_button_color(add_transition<kee::color>(kee::color::white)),
     beat_snap_button_outline(add_transition<float>(compose_info.is_beat_snap ? 0.6f : 0.2f)),
     key_lock_button_color(add_transition<kee::color>(kee::color::white)),

@@ -6,9 +6,11 @@ namespace kee {
 namespace scene {
 namespace editor {
 
-setup_tab_info::setup_tab_info() { }
+setup_tab_info::setup_tab_info() :
+    beat_forgiveness(0.25f)
+{ }
 
-setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_info& setup_info) :
+setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_info& setup_info, float& approach_beats) :
     kee::ui::base(reqs,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.04f),
@@ -20,6 +22,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     ),
     root_elem(root_elem),
     setup_info(setup_info),
+    approach_beats(approach_beats),
     metadata_bg(add_child<kee::ui::rect>(std::nullopt,
         raylib::Color(20, 20, 20),
         pos(pos::type::rel, 4.0f / 30.0f),
@@ -121,7 +124,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
             dim(dim::type::rel, 0.25f),
             dim(dim::type::rel, 0.03f)
         ),
-        false, *this, ""
+        false, *this, std::format("{:.2f}", approach_beats)
     )),
     forgiveness_text(difficulty_bg.ref.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
@@ -137,7 +140,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
             dim(dim::type::rel, 0.25f),
             dim(dim::type::rel, 0.03f)
         ),
-        false, *this, ""
+        false, *this, std::format("{:.2f}", setup_info.beat_forgiveness)
     ))
 {
     audio_file_dialog.ref.on_success = [&](const std::filesystem::path& song_path)
@@ -170,7 +173,13 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         if (ec != std::errc() || ptr != new_str.data() + new_str.size())
             return false;
 
-        /* TODO: complete */
+        if (text_float < 0.25f || text_float > 16.0f)
+        {
+            this->root_elem.set_error("Approach beats range: 0.25 to 16", false);
+            return false;
+        }
+
+        this->approach_beats = text_float;
         return true;
     };
 
@@ -182,7 +191,13 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         if (ec != std::errc() || ptr != new_str.data() + new_str.size())
             return false;
 
-        /* TODO: complete */
+        if (text_float < 0.01f || text_float > 1.0f)
+        {
+            this->root_elem.set_error("Beat forgiveness range: 0.01 to 1", false);
+            return false;
+        }
+
+        this->setup_info.beat_forgiveness = text_float;
         return true;
     };
 }

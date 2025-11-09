@@ -26,6 +26,12 @@ public:
 
     void pause_play_click(magic_enum::containers::bitset<kee::mods> mods);
 
+    /**
+     * TODO: when file writing is implemented, change this to bpm 100 offset 0.43
+     */
+    float music_bpm;
+    float music_start_offset;
+
 private:
     void update_element(float dt) override;
 
@@ -39,9 +45,6 @@ private:
     kee::transition<float>& playback_l_img_scale;
     kee::transition<kee::color>& playback_r_img_color;
     kee::transition<float>& playback_r_img_scale;
-
-    const float music_start_offset;
-    const float music_bpm;
 
     kee::ui::handle<kee::ui::slider> music_slider;
     kee::ui::handle<kee::ui::button> pause_play;
@@ -86,6 +89,8 @@ private:
     kee::image_texture exit_png;
     kee::image_texture error_png;
     kee::image_texture arrow_png;
+
+    float approach_beats;
 
     setup_tab_info setup_info;
     compose_tab_info compose_info;

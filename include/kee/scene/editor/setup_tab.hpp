@@ -17,16 +17,19 @@ public:
 
     std::string song_artist;
     std::string song_name;
+
+    float beat_forgiveness;
 };
 
 class setup_tab : public kee::ui::base
 {
 public:
-    setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_info& setup_info);
+    setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_info& setup_info, float& approach_beats);
 
 private:
     root& root_elem;
     setup_tab_info& setup_info;
+    float& approach_beats;
 
     kee::ui::handle<kee::ui::rect> metadata_bg;
     kee::ui::handle<kee::ui::text> metadata_label;

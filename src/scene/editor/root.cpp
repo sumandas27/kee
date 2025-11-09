@@ -15,6 +15,8 @@ song_ui::song_ui(
         border(border::type::abs, 0),
         true
     ),
+    music_bpm(60.0f),
+    music_start_offset(0),
     arrow_png(arrow_png),
     pause_play_color(add_transition<kee::color>(kee::color::white)),
     pause_play_scale(add_transition<float>(1.0f)),
@@ -22,8 +24,6 @@ song_ui::song_ui(
     playback_l_img_scale(add_transition<float>(0.7f)),
     playback_r_img_color(add_transition<kee::color>(kee::color::white)),
     playback_r_img_scale(add_transition<float>(0.7f)),
-    music_start_offset(0.43f),
-    music_bpm(100.0f),
     music_slider(add_child<kee::ui::slider>(std::nullopt,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
@@ -325,8 +325,9 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
     exit_png("assets/img/exit.png"),
     error_png("assets/img/error.png"),
     arrow_png("assets/img/arrow.png"),
+    approach_beats(2.0f),
     compose_info(arrow_png),
-    active_tab_elem(add_child<setup_tab>(std::nullopt, *this, setup_info)),
+    active_tab_elem(add_child<setup_tab>(std::nullopt, *this, setup_info, approach_beats)),
     active_tab(root::tabs::setup),
     tab_active_rect_rel_x(add_transition<float>(static_cast<float>(active_tab) / magic_enum::enum_count<root::tabs>())),
     exit_button_rect_alpha(add_transition<float>(0.0f)),
@@ -524,11 +525,11 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
             switch (tab_enum)
             {
             case root::tabs::setup:
-                this->active_tab_elem.emplace<kee::ui::handle<setup_tab>>(add_child<setup_tab>(std::nullopt, *this, setup_info));
+                this->active_tab_elem.emplace<kee::ui::handle<setup_tab>>(add_child<setup_tab>(std::nullopt, *this, setup_info, approach_beats));
                 break;
             case root::tabs::compose: {
                 song_ui& song_ui_elem = std::get<kee::ui::handle<song_ui>>(this->playback_ui).ref;
-                this->active_tab_elem.emplace<kee::ui::handle<compose_tab>>(add_child<compose_tab>(std::nullopt, song_ui_elem, compose_info));
+                this->active_tab_elem.emplace<kee::ui::handle<compose_tab>>(add_child<compose_tab>(std::nullopt, approach_beats, song_ui_elem, compose_info));
                 break;
             }
             case root::tabs::decoration:
@@ -536,7 +537,7 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
                 break;
             case root::tabs::timing: {
                 song_ui& song_ui_elem = std::get<kee::ui::handle<song_ui>>(this->playback_ui).ref;
-                this->active_tab_elem.emplace<kee::ui::handle<timing_tab>>(add_child<timing_tab>(std::nullopt, song_ui_elem, timing_info));
+                this->active_tab_elem.emplace<kee::ui::handle<timing_tab>>(add_child<timing_tab>(std::nullopt, *this, song_ui_elem, timing_info));
                 break;
             }}
 

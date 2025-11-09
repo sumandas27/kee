@@ -127,7 +127,7 @@ void beatmap_key::update_element([[maybe_unused]] float dt)
     beatmap_hit_object& front = hit_objects.front();
     if (front.duration == 0.0f || (!front.hold_press_complete && !front.hold_is_held))
     {
-        if (beatmap_scene.get_beat() - front.beat > beatmap_scene.input_tolerance)
+        if (beatmap_scene.get_beat() - front.beat > beatmap_scene.beat_forgiveness)
         {
             combo_lose();
             if (front.duration == 0.0f)
@@ -143,7 +143,7 @@ void beatmap_key::update_element([[maybe_unused]] float dt)
             ? std::make_optional(front.hold_next_combo.value() + 1.0f)
             : std::nullopt;
     }
-    else if (beatmap_scene.get_beat() - (front.beat + front.duration) > beatmap_scene.input_tolerance)
+    else if (beatmap_scene.get_beat() - (front.beat + front.duration) > beatmap_scene.beat_forgiveness)
     {
         if (front.hold_is_held)
             combo_lose();
@@ -213,7 +213,7 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
         ),
         true
     )),
-    input_tolerance(0.25f),
+    beat_forgiveness(0.25f),
     approach_beats(2.0f),
     load_time(2.0f),
     max_combo_time(0.25f),
@@ -286,13 +286,13 @@ bool beatmap::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
         return true;
 
     beatmap_hit_object& front = keys.at(keycode).ref.front();
-    const bool is_active = (get_beat() >= front.beat - input_tolerance);
+    const bool is_active = (get_beat() >= front.beat - beat_forgiveness);
     const bool is_hold_held = (front.duration != 0.0f && front.hold_is_held);
     if (!is_active || is_hold_held)
         return true;
 
     bool gain_tap_combo = false;
-    const bool is_in_tap_range = (std::abs(front.beat - get_beat()) <= input_tolerance);
+    const bool is_in_tap_range = (std::abs(front.beat - get_beat()) <= beat_forgiveness);
     const bool is_hold_press_complete = (front.duration != 0.0f && front.hold_press_complete);
     if (is_in_tap_range && !is_hold_press_complete)
     {
@@ -330,7 +330,7 @@ bool beatmap::on_element_key_up(int keycode, [[maybe_unused]] magic_enum::contai
     if (front.duration == 0.0f || !front.hold_is_held)
         return true;
     
-    if (get_beat() < front.beat + front.duration - input_tolerance)
+    if (get_beat() < front.beat + front.duration - beat_forgiveness)
     {
         keys.at(keycode).ref.combo_lose();
         front.hold_is_held = false;

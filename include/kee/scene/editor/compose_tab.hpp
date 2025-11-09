@@ -322,7 +322,7 @@ public:
     static const std::vector<int> prio_to_key;
     static const std::unordered_map<int, int> key_to_prio;
 
-    compose_tab(const kee::ui::required& reqs, song_ui& song_ui_elem, compose_tab_info& compose_info);
+    compose_tab(const kee::ui::required& reqs, const float& approach_beats, song_ui& song_ui_elem, compose_tab_info& compose_info);
 
     int get_ticks_per_beat() const;
     bool is_music_playing() const;
@@ -335,7 +335,7 @@ public:
     void add_event(const compose_tab_event& e);
     void process_event(const compose_tab_event& e);
 
-    const float approach_beats;
+    const float& approach_beats;
 
     kee::ui::handle<object_editor> obj_editor;
 

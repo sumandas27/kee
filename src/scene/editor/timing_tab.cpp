@@ -16,7 +16,7 @@ timing_tab_info::timing_tab_info() :
     metronome_lo.SetVolume(0.2f);
 }
 
-timing_tab::timing_tab(const kee::ui::required& reqs, song_ui& song_ui_elem, timing_tab_info& timing_info) :
+timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem, song_ui& song_ui_elem, timing_tab_info& timing_info) :
     kee::ui::base(reqs,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.04f),
@@ -26,6 +26,7 @@ timing_tab::timing_tab(const kee::ui::required& reqs, song_ui& song_ui_elem, tim
         ),
         false
     ),
+    root_elem(root_elem),
     song_ui_elem(song_ui_elem),
     timing_info(timing_info),
     points_frame(add_child<kee::ui::base>(std::nullopt,
@@ -106,7 +107,7 @@ timing_tab::timing_tab(const kee::ui::required& reqs, song_ui& song_ui_elem, tim
             dim(dim::type::rel, 0.5f),
             dim(dim::type::rel, 0.4f)
         ),
-        false, *this, ""
+        false, *this, std::format("{:.2f}", song_ui_elem.music_bpm)
     )),
     offset_text(bpm_offset_frame.ref.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
@@ -122,7 +123,7 @@ timing_tab::timing_tab(const kee::ui::required& reqs, song_ui& song_ui_elem, tim
             dim(dim::type::rel, 0.5f),
             dim(dim::type::rel, 0.4f)
         ),
-        false, *this, ""
+        false, *this, std::format("{:.2f}", song_ui_elem.music_start_offset)
     ))
 { 
     const raylib::Rectangle timing_slider_rect = timing_slider.ref.get_raw_rect();
@@ -163,7 +164,13 @@ timing_tab::timing_tab(const kee::ui::required& reqs, song_ui& song_ui_elem, tim
         if (ec != std::errc() || ptr != new_str.data() + new_str.size())
             return false;
 
-        /* TODO: complete */
+        if (text_float < 1 || text_float > 1000)
+        {
+            this->root_elem.set_error("BPM range: 1 to 1000", false);
+            return false;
+        }
+
+        this->song_ui_elem.music_bpm = text_float;
         return true;
     };
 
@@ -175,7 +182,13 @@ timing_tab::timing_tab(const kee::ui::required& reqs, song_ui& song_ui_elem, tim
         if (ec != std::errc() || ptr != new_str.data() + new_str.size())
             return false;
 
-        /* TODO: complete */
+        if (text_float < -10)
+        {
+            this->root_elem.set_error("Offset must be greater than -10 seconds.", false);
+            return false;
+        }
+
+        this->song_ui_elem.music_start_offset = text_float;
         return true;
     };
 }

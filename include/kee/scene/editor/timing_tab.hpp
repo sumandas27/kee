@@ -9,6 +9,7 @@ namespace kee {
 namespace scene {
 namespace editor {
 
+class root;
 class song_ui;
 
 class timing_tab_info
@@ -23,13 +24,14 @@ public:
 class timing_tab : public kee::ui::base
 {
 public:
-    timing_tab(const kee::ui::required& reqs, song_ui& song_ui_elem, timing_tab_info& timing_info);
+    timing_tab(const kee::ui::required& reqs, root& root_elem, song_ui& song_ui_elem, timing_tab_info& timing_info);
 
 private:
     static const kee::color timing_rect_color;
 
     void update_element(float dt) override;
 
+    root& root_elem;
     song_ui& song_ui_elem;
     timing_tab_info& timing_info;
 

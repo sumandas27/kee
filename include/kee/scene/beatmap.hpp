@@ -69,7 +69,7 @@ public:
     void combo_increment_no_sound();
     void combo_lose();
 
-    const float input_tolerance;
+    const float beat_forgiveness;
     const float approach_beats;
 
 private:
