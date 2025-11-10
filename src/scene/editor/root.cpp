@@ -1,8 +1,174 @@
 #include "kee/scene/editor/root.hpp"
 
+#include "kee/game.hpp"
+
 namespace kee {
 namespace scene {
 namespace editor {
+
+confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, float menu_width) :
+    kee::ui::base(reqs,
+        pos(pos::type::end, 0),
+        pos(pos::type::beg, 0),
+        dims(
+            dim(dim::type::abs, 0),
+            dim(dim::type::rel, 1)
+        ),
+        false
+    ),
+    menu_width(menu_width),
+    base_w(add_transition<float>(0)),
+    confirm_button_text_color(add_transition<kee::color>(kee::color::white)),
+    go_back_button_text_color(add_transition<kee::color>(kee::color::white)),
+    confirm_button(add_child<kee::ui::button>(-1,
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 0.5f),
+            dim(dim::type::rel, 1)
+        ),
+        false
+    )),
+    confirm_button_bg(confirm_button.ref.add_child<kee::ui::rect>(std::nullopt,
+        raylib::Color(200, 0, 0),
+        pos(pos::type::rel, 0.5),
+        pos(pos::type::rel, 0.5),
+        border(border::type::abs, 0),
+        true, std::nullopt, std::nullopt
+    )),
+    confirm_button_text(confirm_button_bg.ref.make_temp_child<kee::ui::text>(
+        confirm_button_text_color.get().to_color(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        ui::text_size(ui::text_size::type::rel_h, 0.75f),
+        true, assets.font_semi_bold, "CONFIRM", false
+    )),
+    go_back_button(add_child<kee::ui::button>(-1,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 0.5f),
+            dim(dim::type::rel, 1)
+        ),
+        false
+    )),
+    go_back_button_bg(go_back_button.ref.add_child<kee::ui::rect>(std::nullopt,
+        raylib::Color::DarkGreen(),
+        pos(pos::type::rel, 0.5),
+        pos(pos::type::rel, 0.5),
+        border(border::type::abs, 0),
+        true, std::nullopt, std::nullopt
+    )),
+    go_back_button_text(go_back_button_bg.ref.make_temp_child<kee::ui::text>(
+        go_back_button_text_color.get().to_color(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        ui::text_size(ui::text_size::type::rel_h, 0.75f),
+        true, assets.font_semi_bold, "GO BACK", false
+    ))
+{
+    take_render_priority();
+    base_w.set(get_raw_rect().height, menu_width, confirm_exit_ui::transition_time, kee::transition_type::exp);
+
+    confirm_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            this->confirm_button_text_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            this->confirm_button_text_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    confirm_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        if (!this->destroy_timer.has_value())
+            this->game_ref.queue_game_exit();
+    };
+
+    go_back_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            this->go_back_button_text_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            this->go_back_button_text_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    go_back_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        if (!this->destroy_timer.has_value())
+            this->queue_for_destruction();
+    };
+}
+
+bool confirm_exit_ui::should_destruct() const
+{
+    return destroy_timer.has_value() && destroy_timer.value() <= 0;
+}
+
+bool confirm_exit_ui::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+{
+    if (is_mouse_l && !destroy_timer.has_value() && !get_raw_rect().CheckCollision(mouse_pos))
+        queue_for_destruction();
+
+    return false;
+}
+
+void confirm_exit_ui::update_element(float dt)
+{
+    if (destroy_timer.has_value())
+        destroy_timer.value() -= dt;
+
+    std::get<kee::dims>(dimensions).w.val = base_w.get();
+    confirm_button_text.set_opt_color(confirm_button_text_color.get().to_color());
+    go_back_button_text.set_opt_color(go_back_button_text_color.get().to_color());
+}
+
+void confirm_exit_ui::render_element() const
+{
+    const raylib::Rectangle confirm_button_rect = confirm_button.ref.get_raw_rect();
+    const raylib::Rectangle go_back_button_rect = go_back_button.ref.get_raw_rect();
+
+    BeginScissorMode(
+        static_cast<int>(confirm_button_rect.x),
+        static_cast<int>(confirm_button_rect.y),
+        static_cast<int>(confirm_button_rect.width),
+        static_cast<int>(confirm_button_rect.height)
+    );
+    confirm_button_text.render();
+    EndScissorMode();
+
+    BeginScissorMode(
+        static_cast<int>(go_back_button_rect.x),
+        static_cast<int>(go_back_button_rect.y),
+        static_cast<int>(go_back_button_rect.width),
+        static_cast<int>(go_back_button_rect.height)
+    );
+    go_back_button_text.render();
+    EndScissorMode();
+}
+
+void confirm_exit_ui::queue_for_destruction()
+{
+    if (destroy_timer.has_value())
+        return;
+
+    release_render_priority();
+    destroy_timer = confirm_exit_ui::transition_time;
+    base_w.set(std::nullopt, 0, confirm_exit_ui::transition_time, kee::transition_type::exp);
+}
 
 song_ui::song_ui(
     const kee::ui::required& reqs, 
@@ -126,7 +292,7 @@ song_ui::song_ui(
     )),
     music(music_path.string()),
     music_time(0.0f)
-{ 
+{
     music_slider.ref.on_event = [&, music_is_playing = music.IsPlaying()](ui::slider::event slider_event) mutable
     {
         switch (slider_event)
@@ -469,6 +635,11 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
         }
     };
 
+    exit_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        this->confirm_exit.emplace(this->exit_button.ref.add_child<confirm_exit_ui>(2, this->tab_rect.ref.get_raw_rect().width));
+    };
+
     tab_buttons.reserve(magic_enum::enum_count<root::tabs>());
     tab_button_text.reserve(magic_enum::enum_count<root::tabs>());
 
@@ -618,6 +789,9 @@ void root::update_element(float dt)
 
     tab_active_rect.ref.x.val = tab_active_rect_rel_x.get();
     exit_button_rect.ref.set_opt_color(raylib::Color(255, 0, 0, static_cast<unsigned char>(exit_button_rect_alpha.get())));
+
+    if (confirm_exit.has_value() && confirm_exit.value().ref.should_destruct())
+        confirm_exit.reset();
 
     const unsigned char error_a = static_cast<unsigned char>(error_alpha.get());
     error_rect.ref.set_opt_color(raylib::Color(80, 80, 80, error_a));

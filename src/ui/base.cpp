@@ -18,9 +18,9 @@ base::base(
     y(y),
     dimensions(dimensions),
     centered(centered),
+    game_ref(reqs.game_ref),
     assets(reqs.assets),
     parent(reqs.parent),
-    game_ref(reqs.game_ref),
     children(std::make_unique<std::multimap<int, std::unique_ptr<kee::ui::base>>>()),
     has_render_priority(false)
 { 
@@ -32,9 +32,9 @@ base::base(base&& other) noexcept :
     y(std::move(other.y)),
     dimensions(std::move(other.dimensions)),
     centered(other.centered),
+    game_ref(other.game_ref),
     assets(other.assets),
     parent(other.parent),
-    game_ref(other.game_ref),
     children(std::move(other.children)),
     transitions(std::move(other.transitions)),
     color(std::move(other.color)),
@@ -260,9 +260,9 @@ void base::release_keyboard_capture()
 }
 
 base::base(const kee::ui::required& reqs) :
+    game_ref(reqs.game_ref),
     assets(reqs.assets),
     parent(reqs.parent),
-    game_ref(reqs.game_ref),
     children(std::make_unique<std::multimap<int, std::unique_ptr<kee::ui::base>>>()),
     has_render_priority(false)
 { }

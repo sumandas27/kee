@@ -12,6 +12,8 @@ public:
 
     void main_loop();
 
+    void queue_game_exit();
+
     boost::optional<kee::ui::base&> element_keyboard_capture;
 
 private:
@@ -23,6 +25,8 @@ private:
 
     boost::optional<kee::ui::base&> render_priority;
     std::unique_ptr<kee::scene::base> curr_scene;
+    
+    bool game_should_exit;
 };
 
 } // namespace kee

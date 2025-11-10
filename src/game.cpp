@@ -5,12 +5,13 @@
 namespace kee {
 
 game::game() :
-    curr_scene(std::make_unique<kee::scene::editor::root>(window, *this, assets))
+    curr_scene(std::make_unique<kee::scene::editor::root>(window, *this, assets)),
+    game_should_exit(false)
 { }
 
 void game::main_loop()
 {
-    while (!window.impl.ShouldClose())
+    while (!window.impl.ShouldClose() && !game_should_exit)
     {
         magic_enum::containers::bitset<kee::mods> mods;
         if (raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_LEFT_CONTROL) || raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_RIGHT_CONTROL))
@@ -55,6 +56,11 @@ void game::main_loop()
         curr_scene->render();
         window.impl.EndDrawing();
     }
+}
+
+void game::queue_game_exit()
+{
+    game_should_exit = true;
 }
 
 } // namespace kee

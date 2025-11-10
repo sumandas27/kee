@@ -133,6 +133,8 @@ public:
     std::variant<kee::dims, kee::border> dimensions;
     bool centered;
 
+    kee::game& game_ref;
+
 protected:
     /**
      * Scene subclasses do *NOT* specify a `parent`, non-scene subclasses do.
@@ -157,7 +159,6 @@ private:
     raylib::Vector2 get_dims(const raylib::Rectangle& parent_raw_rect) const;
 
     boost::optional<kee::ui::base&> parent;
-    kee::game& game_ref;
 
     /**
      * Outer `unique_ptr` so handle references aren't invalidated on moves.

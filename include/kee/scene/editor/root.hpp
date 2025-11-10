@@ -9,6 +9,40 @@ namespace kee {
 namespace scene {
 namespace editor {
 
+class confirm_exit_ui : public kee::ui::base
+{
+public:
+    confirm_exit_ui(const kee::ui::required& reqs, float menu_width);
+
+    bool should_destruct() const;
+
+private:
+    static constexpr float transition_time = 0.5f;
+
+    bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods) override;
+    
+    void update_element(float dt) override;
+    void render_element() const override;
+
+    void queue_for_destruction();
+
+    const float menu_width;
+
+    kee::transition<float>& base_w;
+    kee::transition<kee::color>& confirm_button_text_color;
+    kee::transition<kee::color>& go_back_button_text_color;
+
+    kee::ui::handle<kee::ui::button> confirm_button;
+    kee::ui::handle<kee::ui::rect> confirm_button_bg;
+    kee::ui::text confirm_button_text;
+
+    kee::ui::handle<kee::ui::button> go_back_button;
+    kee::ui::handle<kee::ui::rect> go_back_button_bg;
+    kee::ui::text go_back_button_text;
+
+    std::optional<float> destroy_timer;
+};
+
 class song_ui : public kee::ui::base
 {
 public:
@@ -119,6 +153,7 @@ private:
     kee::ui::handle<kee::ui::button> exit_button;
     kee::ui::handle<kee::ui::rect> exit_button_rect;
     kee::ui::handle<kee::ui::image> exit_button_image;
+    std::optional<kee::ui::handle<confirm_exit_ui>> confirm_exit;
 
     kee::ui::handle<kee::ui::rect> playback_bg;
     kee::ui::handle<kee::ui::base> playback_ui_frame;
