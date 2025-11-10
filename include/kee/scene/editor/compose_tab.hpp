@@ -95,8 +95,13 @@ public:
 class compose_tab_event
 {
 public:
-    compose_tab_event(const std::vector<hit_obj_metadata>& added, const std::vector<hit_obj_metadata>& removed);
+    compose_tab_event(
+        const std::vector<int>& selected_key_ids, 
+        const std::vector<hit_obj_metadata>& added, 
+        const std::vector<hit_obj_metadata>& removed
+    );
 
+    std::vector<int> selected_key_ids;
     std::vector<hit_obj_metadata> added;
     std::vector<hit_obj_metadata> removed;
 };
@@ -192,30 +197,23 @@ public:
 
     hit_obj_metadata get_metadata() const;
 
-    std::map<float, editor_hit_object>::node_type extract();
     void delete_from_map();
 
-    bool operator<(const hit_obj_ui_key& other) const;
-
 private:
+    friend class hit_obj_ui_cmp;
+
     boost::optional<std::map<float, editor_hit_object>&> map;
     std::map<float, editor_hit_object>::iterator it;
 };
 
-class hit_obj_node
+class hit_obj_ui_cmp
 {
 public:
-    hit_obj_node(
-        std::map<hit_obj_ui_key, hit_obj_ui>::node_type&& node_render_param,
-        const hit_obj_metadata& old_obj,
-        const hit_obj_metadata& new_obj
-    );
+    using is_transparent = void;
 
-    std::map<hit_obj_ui_key, hit_obj_ui>::node_type node_render;
-    std::map<float, editor_hit_object>::node_type node_obj;
-
-    hit_obj_metadata old_obj;
-    hit_obj_metadata new_obj;
+    bool operator()(const hit_obj_ui_key& l, const hit_obj_ui_key& r) const;
+    bool operator()(const hit_obj_ui_key& l, const hit_obj_metadata& r) const;
+    bool operator()(const hit_obj_metadata& l, const hit_obj_ui_key& r) const;
 };
 
 class object_editor final : public kee::ui::rect
@@ -242,7 +240,7 @@ public:
     const std::vector<int>& get_keys_to_render() const;
 
     kee::ui::handle<kee::ui::base> obj_renderer;
-    std::map<hit_obj_ui_key, hit_obj_ui> obj_render_info;
+    std::map<hit_obj_ui_key, hit_obj_ui, hit_obj_ui_cmp> obj_render_info;
 
     std::optional<new_hit_obj_data> new_hit_object;
 
@@ -333,7 +331,7 @@ public:
     void select(int id);
 
     void add_event(const compose_tab_event& e);
-    void process_event(const compose_tab_event& e);
+    bool process_event(const compose_tab_event& e);
 
     const float& approach_beats;
 

@@ -1,3 +1,6 @@
+/* TODO: fix beat snapping */
+/* TODO: fix rendering */
+
 #include "kee/scene/editor/compose_tab.hpp"
 
 #include <chrono>
@@ -117,7 +120,12 @@ new_hit_obj_data::new_hit_obj_data(int key, std::size_t key_idx, float click_bea
     from_compose_tab(from_compose_tab)
 { }
 
-compose_tab_event::compose_tab_event(const std::vector<hit_obj_metadata>& added, const std::vector<hit_obj_metadata>& removed) :
+compose_tab_event::compose_tab_event(
+    const std::vector<int>& selected_key_ids, 
+    const std::vector<hit_obj_metadata>& added, 
+    const std::vector<hit_obj_metadata>& removed
+) :
+    selected_key_ids(selected_key_ids),
     added(added),
     removed(removed)
 { }
@@ -275,16 +283,6 @@ hit_obj_metadata hit_obj_ui_key::get_metadata() const
     return hit_obj_metadata(it->second.key, it->first, it->second.duration);
 }
 
-std::map<float, editor_hit_object>::node_type hit_obj_ui_key::extract()
-{
-    if (!map.has_value())
-        throw std::runtime_error("extract: is already extracted");
-
-    auto res = map.value().extract(it);
-    map.reset();
-    return res;
-}
-
 void hit_obj_ui_key::delete_from_map()
 {
     if (!map.has_value())
@@ -294,24 +292,26 @@ void hit_obj_ui_key::delete_from_map()
     map.reset();
 }
 
-
-bool hit_obj_ui_key::operator<(const hit_obj_ui_key& other) const
+bool hit_obj_ui_cmp::operator()(const hit_obj_ui_key& l, const hit_obj_ui_key& r) const
 {
-    return (it->second.key != other.it->second.key)
-        ? compose_tab::key_to_prio.at(it->second.key) < compose_tab::key_to_prio.at(other.it->second.key)
-        : it->first < other.it->first;
+    return (l.it->second.key != r.it->second.key)
+        ? compose_tab::key_to_prio.at(l.it->second.key) < compose_tab::key_to_prio.at(r.it->second.key)
+        : l.it->first < r.it->first;
 }
 
-hit_obj_node::hit_obj_node(
-    std::map<hit_obj_ui_key, hit_obj_ui>::node_type&& node_render_param,
-    const hit_obj_metadata& old_obj,
-    const hit_obj_metadata& new_obj
-) :
-    node_render(std::move(node_render_param)),
-    node_obj(node_render.key().extract()),
-    old_obj(old_obj),
-    new_obj(new_obj)
-{ }
+bool hit_obj_ui_cmp::operator()(const hit_obj_ui_key& l, const hit_obj_metadata& r) const
+{
+    return (l.it->second.key != r.key)
+        ? compose_tab::key_to_prio.at(l.it->second.key) < compose_tab::key_to_prio.at(r.key)
+        : l.it->first < r.position.beat;
+}
+
+bool hit_obj_ui_cmp::operator()(const hit_obj_metadata& l, const hit_obj_ui_key& r) const
+{
+    return (r.it->second.key != l.key)
+        ? compose_tab::key_to_prio.at(r.it->second.key) < compose_tab::key_to_prio.at(l.key)
+        : r.it->first < l.position.beat;
+}
 
 object_editor::object_editor(
     const kee::ui::required& reqs,
@@ -436,21 +436,11 @@ bool object_editor::delete_selected_hit_objs()
         return false;
 
     std::vector<hit_obj_metadata> deleted_objs;
-    for (auto it = obj_render_info.begin(); it != obj_render_info.end();)
-        if (it->second.is_selected())
-        {
-            const hit_obj_metadata metadata = it->first.get_metadata(); 
-            deleted_objs.push_back(metadata);
+    for (const auto& [key, ui] : obj_render_info)
+        if (ui.is_selected())
+            deleted_objs.push_back(key.get_metadata());
 
-            auto next = std::next(it);
-            auto node = obj_render_info.extract(it);
-            node.key().delete_from_map();
-            it = next;
-        }
-        else
-            it++;
-
-    compose_tab_scene.add_event(compose_tab_event(std::vector<hit_obj_metadata>(), deleted_objs));
+    compose_tab_scene.add_event(compose_tab_event(selected_key_ids, std::vector<hit_obj_metadata>(), deleted_objs));
     return true;
 }
 
@@ -459,35 +449,12 @@ void object_editor::attempt_add_hit_obj()
     const float new_beat = std::min(new_hit_object.value().click_beat, new_hit_object.value().current_beat);
     const float new_duration = std::max(new_hit_object.value().click_beat, new_hit_object.value().current_beat) - new_beat;
 
-    std::map<float, editor_hit_object>& hit_objects = keys.at(new_hit_object.value().key).ref.hit_objects;
-    const auto next_it = hit_objects.lower_bound(new_beat);
-    const bool is_new_invalid =
-        (next_it != hit_objects.end() && new_beat + new_duration + compose_tab::beat_lock_threshold >= next_it->first) ||
-        (next_it != hit_objects.begin() && std::prev(next_it)->first + std::prev(next_it)->second.duration + compose_tab::beat_lock_threshold >= new_beat);
-
-    if (!is_new_invalid)
-    {
-        if (!new_hit_object.value().from_compose_tab)
-            compose_tab_scene.unselect();
-        else
-            for (auto& [key, val] : obj_render_info)
-                if (val.is_selected())
-                    val.unselect();
-
-        const auto new_it = hit_objects.emplace(new_beat, editor_hit_object(new_hit_object.value().key, new_duration)).first;
-        std::vector<hit_obj_metadata> new_obj_added;
-        new_obj_added.emplace_back(new_hit_object.value().key, new_beat, new_duration);
-        compose_tab_scene.add_event(compose_tab_event(new_obj_added, std::vector<hit_obj_metadata>()));
-
-        const std::vector<int>& keys_to_render = get_keys_to_render();
-        const auto new_key_it = std::ranges::find(keys_to_render, new_hit_object.value().key);
-        const std::size_t new_key_idx = std::ranges::distance(keys_to_render.begin(), new_key_it);
-
-        hit_obj_ui render_ui = make_temp_child<hit_obj_ui>(new_beat, new_duration, song_ui_elem.get_beat(), object_editor::beat_width, new_key_idx, keys_to_render.size());
-        render_ui.select();
-        
-        obj_render_info.emplace(hit_obj_ui_key(hit_objects, new_it), std::move(render_ui));
-    }
+    if (!new_hit_object.value().from_compose_tab)
+        compose_tab_scene.unselect();
+    
+    std::vector<hit_obj_metadata> new_obj_added;
+    new_obj_added.emplace_back(new_hit_object.value().key, new_beat, new_duration);
+    compose_tab_scene.add_event(compose_tab_event(selected_key_ids, new_obj_added, std::vector<hit_obj_metadata>()));
 
     new_hit_object.reset();
 }
@@ -555,9 +522,10 @@ void object_editor::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[ma
     {
         if (!selection.value().has_moved && mouse_pos != selection.value().mouse_pos_start)
         {
-            if (std::holds_alternative<selection_box_info>(selection.value().variant) && std::abs(std::fmod(selected_reference_beat, 1.0f / compose_tab_scene.get_ticks_per_beat())) > compose_tab_scene.beat_lock_threshold && compose_tab_scene.is_beat_snap_enabled())
+            if (std::holds_alternative<selection_obj_info>(selection.value().variant) && std::abs(std::fmod(selected_reference_beat, 1.0f / compose_tab_scene.get_ticks_per_beat())) > compose_tab_scene.beat_lock_threshold && compose_tab_scene.is_beat_snap_enabled())
                 selected_reference_beat = std::round(selected_reference_beat * compose_tab_scene.get_ticks_per_beat()) / compose_tab_scene.get_ticks_per_beat();
 
+            std::println("{}", selected_reference_beat);
             selection.value().has_moved = true;
         }
 
@@ -614,7 +582,8 @@ bool object_editor::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool
             if (l.second.is_selected() != r.second.is_selected())
                 return r.second.is_selected();
 
-            return l.first < r.first;
+            static const hit_obj_ui_cmp cmp;
+            return cmp(l.first, r.first);
         }
     );
     
@@ -626,7 +595,7 @@ bool object_editor::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool
             if (mods.test(kee::mods::ctrl))
                 is_drag_possible = false;
             else
-                for (auto& [key, val] : obj_render_info)
+                for (auto& [_, val] : obj_render_info)
                     if (val.is_selected())
                         val.unselect();
 
@@ -806,11 +775,11 @@ void object_editor::render_element() const
             whole_beat_text.render();
 
     for (const auto& [_, val] : obj_render_info)
-        if (val.get_raw_rect().CheckCollision(obj_renderer.ref.get_raw_rect()) && !val.is_selected())
+        if (val.get_extended_raw_rect().CheckCollision(obj_renderer.ref.get_raw_rect()) && !val.is_selected())
             val.render();
 
     for (const auto& [_, val] : obj_render_info)
-        if (val.get_raw_rect().CheckCollision(obj_renderer.ref.get_raw_rect()) && val.is_selected())
+        if (val.get_extended_raw_rect().CheckCollision(obj_renderer.ref.get_raw_rect()) && val.is_selected())
             val.render();
 
     if (selection.has_value() && std::holds_alternative<selection_box_info>(selection.value().variant))
@@ -904,20 +873,20 @@ void object_editor::handle_mouse_up(bool is_mouse_l)
 
 void object_editor::attempt_move_op()
 {
-    const std::vector<int>& keys_to_render = selected_key_ids.empty() ? compose_tab::prio_to_key : selected_key_ids;
+    const std::vector<int>& keys_to_render = get_keys_to_render();
 
     std::vector<hit_obj_metadata> hit_objs_added;
     std::vector<hit_obj_metadata> hit_objs_removed;
 
     bool same_check = false;
-    std::vector<hit_obj_node> hit_obj_nodes;
-    for (auto it = obj_render_info.begin(); it != obj_render_info.end();)
+    for (auto it = obj_render_info.begin(); it != obj_render_info.end(); it++)
         if (it->second.is_selected())
         {
             const hit_obj_position new_obj_position = hit_obj_update_info(*it, get_beat_drag_diff());
             const hit_obj_metadata new_obj = hit_obj_metadata(keys_to_render[it->second.get_key_idx()], new_obj_position.beat, new_obj_position.duration);
             const hit_obj_metadata old_obj = it->first.get_metadata();
 
+            hit_objs_added.push_back(new_obj);
             hit_objs_removed.push_back(old_obj);
             if (!same_check)
             {
@@ -926,55 +895,9 @@ void object_editor::attempt_move_op()
 
                 same_check = true;
             }
-
-            auto next = std::next(it);
-            hit_obj_nodes.emplace_back(obj_render_info.extract(it), old_obj, new_obj);
-            it = next;
         }
-        else
-            it++;
 
-    bool is_move_valid = true;
-    for (hit_obj_node& node : hit_obj_nodes)
-    {
-        std::map<float, editor_hit_object>& hit_objects = keys.at(node.new_obj.key).ref.hit_objects;
-        auto next_it = hit_objects.lower_bound(node.new_obj.position.beat);
-        
-        if (next_it != hit_objects.end() && node.new_obj.position.beat + node.new_obj.position.duration + compose_tab::beat_lock_threshold >= next_it->first)
-            is_move_valid = false;
-        else if (next_it != hit_objects.begin() && std::prev(next_it)->first + std::prev(next_it)->second.duration + compose_tab::beat_lock_threshold >= node.new_obj.position.beat)
-            is_move_valid = false;
-
-        if (!is_move_valid)
-            break;
-    }
-
-    selected_reference_beat = std::numeric_limits<float>::max();
-    for (hit_obj_node& node : hit_obj_nodes)
-    {
-        const hit_obj_metadata obj_insert = is_move_valid ? node.new_obj : node.old_obj;
-        if (selected_reference_beat > obj_insert.position.beat)
-            selected_reference_beat = obj_insert.position.beat;
-
-        node.node_obj.key() = obj_insert.position.beat;
-        node.node_obj.mapped().duration = obj_insert.position.duration;
-        node.node_obj.mapped().key = obj_insert.key;
-        auto it = keys.at(obj_insert.key).ref.hit_objects.insert(std::move(node.node_obj)).position;
-        
-        node.node_render.key() = hit_obj_ui_key(keys.at(obj_insert.key).ref.hit_objects, it);
-        if (is_move_valid)
-        {
-            hit_objs_added.push_back(node.new_obj);
-            node.node_render.mapped().start_key_idx = node.node_render.mapped().get_key_idx();
-        }
-        else
-            node.node_render.mapped().set_key_idx(node.node_render.mapped().start_key_idx);
-
-        obj_render_info.insert(std::move(node.node_render));
-    }
-
-    if (is_move_valid)
-        compose_tab_scene.add_event(compose_tab_event(hit_objs_added, hit_objs_removed));
+    compose_tab_scene.add_event(compose_tab_event(selected_key_ids, hit_objs_added, hit_objs_removed));
 }
 
 std::size_t object_editor::get_mouse_key_idx(float mouse_pos_y) const
@@ -1432,20 +1355,65 @@ void compose_tab::select(int id)
 
 void compose_tab::add_event(const compose_tab_event& e)
 {
+    if (!process_event(e))
+        return;
+
     compose_info.event_history.erase(compose_info.event_history.begin(), compose_info.event_history.begin() + compose_info.event_history_idx);
     compose_info.event_history.push_front(e);
     compose_info.event_history_idx = 0;
 }
 
-void compose_tab::process_event(const compose_tab_event& e)
+bool compose_tab::process_event(const compose_tab_event& e)
 {
-    for (const hit_obj_metadata& hit_obj : e.added)
-        keys.at(hit_obj.key).ref.hit_objects.emplace(hit_obj.position.beat, editor_hit_object(hit_obj.key, hit_obj.position.duration));
+    if (selected_key_ids != e.selected_key_ids)
+    {
+        selected_key_ids = e.selected_key_ids; 
+        obj_editor.ref.reset_render_hit_objs();
+    }
+
+    for (auto& [_, ui] : obj_editor.ref.obj_render_info)
+        if (ui.is_selected())
+            ui.unselect();
 
     for (const hit_obj_metadata& hit_obj : e.removed)
-        keys.at(hit_obj.key).ref.hit_objects.erase(hit_obj.position.beat);
+    {
+        auto it = obj_editor.ref.obj_render_info.find(hit_obj);
+        auto node = obj_editor.ref.obj_render_info.extract(it);
+        node.key().delete_from_map();
+    }
 
-    obj_editor.ref.reset_render_hit_objs();
+    bool is_valid = true;
+    for (const hit_obj_metadata& hit_obj : e.added)
+    {
+        std::map<float, editor_hit_object>& hit_objects = compose_info.hit_objs.at(hit_obj.key);
+        auto next_it = hit_objects.lower_bound(hit_obj.position.beat);
+        
+        if (next_it != hit_objects.end() && hit_obj.position.beat + hit_obj.position.duration + compose_tab::beat_lock_threshold >= next_it->first)
+            is_valid = false;
+        else if (next_it != hit_objects.begin() && std::prev(next_it)->first + std::prev(next_it)->second.duration + compose_tab::beat_lock_threshold >= hit_obj.position.beat)
+            is_valid = false;
+
+        if (!is_valid)
+            break;
+    }
+
+    const std::vector<hit_obj_metadata>& to_add = is_valid ? e.added : e.removed;
+    for (const hit_obj_metadata& hit_obj : to_add)
+    {
+        const std::vector<int>& keys_to_render = obj_editor.ref.get_keys_to_render();
+        const auto new_key_it = std::ranges::find(keys_to_render, hit_obj.key);
+        const std::size_t new_key_idx = std::ranges::distance(keys_to_render.begin(), new_key_it);
+
+        hit_obj_ui render_ui = obj_editor.ref.make_temp_child<hit_obj_ui>(hit_obj.position.beat, hit_obj.position.duration, song_ui_elem.get_beat(), object_editor::beat_width, new_key_idx, keys_to_render.size());
+        if (is_valid)
+            render_ui.select();
+
+        std::map<float, editor_hit_object>& hit_objects = keys.at(hit_obj.key).ref.hit_objects;
+        auto new_it = hit_objects.emplace(hit_obj.position.beat, editor_hit_object(hit_obj.key, hit_obj.position.duration)).first;
+        obj_editor.ref.obj_render_info.emplace(hit_obj_ui_key(hit_objects, new_it), std::move(render_ui));
+    }
+
+    return is_valid;
 }
 
 bool compose_tab::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods)
@@ -1489,51 +1457,15 @@ bool compose_tab::on_element_key_down(int keycode, magic_enum::containers::bitse
         if (!mods.test(kee::mods::ctrl))
             return false;
 
+        std::vector<hit_obj_metadata> pasted_objs;
         const float paste_beat = song_ui_elem.get_beat();
-        bool is_paste_valid = true;
-
         for (const hit_obj_metadata& metadata : clipboard)
         {
-            std::map<float, editor_hit_object>& hit_objects = keys.at(metadata.key).ref.hit_objects;
             const float new_beat = paste_beat + metadata.position.beat - clipboard_reference_beat;
-            auto next_it = hit_objects.lower_bound(new_beat);
-            
-            if (next_it != hit_objects.end() && new_beat + metadata.position.duration + compose_tab::beat_lock_threshold >= next_it->first)
-                is_paste_valid = false;
-            else if (next_it != hit_objects.begin() && std::prev(next_it)->first + std::prev(next_it)->second.duration + compose_tab::beat_lock_threshold >= new_beat)
-                is_paste_valid = false;
-
-            if (!is_paste_valid)
-                break;
+            pasted_objs.emplace_back(metadata.key, new_beat, metadata.position.duration);
         }
 
-        if (is_paste_valid)
-        {
-            for (auto& [key, val] : obj_editor.ref.obj_render_info)
-                if (val.is_selected())
-                    val.unselect();
-
-            std::vector<hit_obj_metadata> pasted_objs;
-            for (const hit_obj_metadata& metadata : clipboard)
-            {
-                std::map<float, editor_hit_object>& hit_objects = keys.at(metadata.key).ref.hit_objects;
-                const float new_beat = paste_beat + metadata.position.beat - clipboard_reference_beat;
-
-                const auto it = hit_objects.emplace(new_beat, editor_hit_object(metadata.key, metadata.position.duration)).first;
-                const std::vector<int>& keys_to_render = obj_editor.ref.get_keys_to_render();
-                const auto new_key_it = std::ranges::find(keys_to_render, metadata.key);
-                const std::size_t new_key_idx = std::ranges::distance(keys_to_render.begin(), new_key_it);
-
-                hit_obj_ui render_ui = obj_editor.ref.make_temp_child<hit_obj_ui>(new_beat, metadata.position.duration, song_ui_elem.get_beat(), object_editor::beat_width, new_key_idx, keys_to_render.size());                
-                render_ui.select();
-                
-                obj_editor.ref.obj_render_info.emplace(hit_obj_ui_key(hit_objects, it), std::move(render_ui));
-                pasted_objs.emplace_back(metadata.key, new_beat, metadata.position.duration);
-            }
-
-            add_event(compose_tab_event(pasted_objs, std::vector<hit_obj_metadata>()));
-        }
-
+        add_event(compose_tab_event(selected_key_ids, pasted_objs, std::vector<hit_obj_metadata>()));
         return true;
     }
     case KeyboardKey::KEY_Z:
