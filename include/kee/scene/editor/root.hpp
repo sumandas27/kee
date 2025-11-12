@@ -9,6 +9,16 @@ namespace kee {
 namespace scene {
 namespace editor {
 
+class beatmap_file
+{
+public:
+    beatmap_file(const std::filesystem::path& file_dir);
+
+    std::filesystem::path file_dir;
+
+    bool save_metadata_needed;
+};
+
 class confirm_exit_ui : public kee::ui::base
 {
 public:
@@ -109,11 +119,14 @@ class root final : public kee::scene::base
 public:
     root(const kee::scene::window& window, kee::game& game, kee::global_assets& assets);
 
+    void save_beatmap();
+
     void set_error(std::string_view error_str, bool from_file_dialog);
     void set_song(const std::filesystem::path& song_path);
 
 private:
     static constexpr float error_transition_time = 0.5f;
+    static const std::filesystem::path app_data_dir; /* TODO: temp */
 
     enum class tabs;
 
@@ -169,6 +182,8 @@ private:
 
     std::optional<int> error_skips_before_start;
     float error_timer;
+
+    std::optional<beatmap_file> save_info;
 };
 
 enum class root::tabs

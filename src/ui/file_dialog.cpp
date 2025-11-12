@@ -14,7 +14,8 @@ file_dialog::file_dialog(
     const kee::pos& y,
     const std::variant<kee::dims, kee::border>& dimensions,
     bool centered,
-    std::vector<file_dialog_filter> filters
+    std::vector<file_dialog_filter> filters,
+    std::string_view initial_msg
 ) :
     kee::ui::base(reqs, x, y, dimensions, centered),
     on_success([]([[maybe_unused]] std::filesystem::path selected_file){}),
@@ -69,7 +70,7 @@ file_dialog::file_dialog(
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         text_size(text_size::type::rel_h, 1),
-        false, assets.font_regular, "No file selected", false
+        false, assets.font_regular, initial_msg, false
     )),
     filters(filters)
 {
@@ -93,15 +94,9 @@ file_dialog::file_dialog(
 
     fd_button.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        std::vector<nfdfilteritem_t> nfd_filters(this->filters.size());
-        for (std::size_t i = 0; i < nfd_filters.size(); i++)
-        {
-            nfd_filters[i].name = this->filters[i].name.c_str();
-            nfd_filters[i].spec = this->filters[i].spec.c_str();
-        }
-
         NFD::UniquePath out_path;
-        nfdresult_t open_dialog_res = NFD::OpenDialog(out_path, nfd_filters.data(), 1);
+        nfdresult_t open_dialog_res = NFD::OpenDialog(out_path);
+
         switch (open_dialog_res)
         {
         case NFD_OKAY: {
@@ -115,7 +110,7 @@ file_dialog::file_dialog(
 
             if (filter_match)
             {
-                this->on_success(selected_path);
+                this->on_success(std::filesystem::absolute(selected_path).string());
                 this->fd_text.set_string(selected_path.filename().string());
             }
             else

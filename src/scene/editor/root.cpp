@@ -6,6 +6,11 @@ namespace kee {
 namespace scene {
 namespace editor {
 
+beatmap_file::beatmap_file(const std::filesystem::path& file_dir) :
+    file_dir(file_dir),
+    save_metadata_needed(true)
+{ }
+
 confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, float menu_width) :
     kee::ui::base(reqs,
         pos(pos::type::end, 0),
@@ -21,7 +26,7 @@ confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, float menu_width
     confirm_button_text_color(add_transition<kee::color>(kee::color::white)),
     go_back_button_text_color(add_transition<kee::color>(kee::color::white)),
     confirm_button(add_child<kee::ui::button>(-1,
-        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0),
         dims(
             dim(dim::type::rel, 0.5f),
@@ -44,7 +49,7 @@ confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, float menu_width
         true, assets.font_semi_bold, "CONFIRM", false
     )),
     go_back_button(add_child<kee::ui::button>(-1,
-        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         dims(
             dim(dim::type::rel, 0.5f),
@@ -731,6 +736,31 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
     }
 }
 
+void root::save_beatmap()
+{
+    if (!save_info.has_value())
+        throw std::runtime_error("Saving beatmap when no directory for it exists.");
+
+    if (setup_info.save_song_needed)
+    {
+        std::error_code ec;
+        const std::filesystem::path& src = std::get<std::filesystem::path>(setup_info.song_path_info);
+        const std::filesystem::path dst = save_info.value().file_dir / "song.mp3";
+        
+        std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, ec);
+        if (ec)
+        {
+            set_error(std::format("Error saving song: {}", ec.message()), false);
+            return;
+        }
+
+        setup_info.save_song_needed = false;
+    }
+
+    //if (save_info.value().save_metadata_needed)
+    //    std::println("NEED TO SAVE METADATA");
+}
+
 void root::set_error(std::string_view error_str, bool from_file_dialog)
 {
     error_text.ref.set_string(error_str);
@@ -747,13 +777,54 @@ void root::set_song(const std::filesystem::path& song_path)
     playback_ui.emplace<kee::ui::handle<song_ui>>(playback_ui_frame.ref.add_child<song_ui>(std::nullopt, arrow_png, song_path));
 }
 
+const std::filesystem::path root::app_data_dir = "test_app_data/";
+
 bool root::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods)
 {
-    if (keycode != KeyboardKey::KEY_SPACE || mods.test(kee::mods::ctrl) || !std::holds_alternative<kee::ui::handle<song_ui>>(playback_ui))
-        return false;
+    switch (keycode)
+    {
+    case KeyboardKey::KEY_SPACE:
+        if (mods.test(kee::mods::ctrl) || !std::holds_alternative<kee::ui::handle<song_ui>>(playback_ui))
+            return false;
 
-    std::get<kee::ui::handle<song_ui>>(playback_ui).ref.pause_play_click(mods);
-    return true;
+        std::get<kee::ui::handle<song_ui>>(playback_ui).ref.pause_play_click(mods);
+        return true;
+    case KeyboardKey::KEY_S: {
+        if (!mods.test(kee::mods::ctrl))
+            return false;
+
+        if (this->save_info.has_value())
+        {
+            this->save_beatmap();
+            return true;
+        }
+
+        if (!std::holds_alternative<kee::ui::handle<song_ui>>(this->playback_ui))
+        {
+            this->set_error("Choose a song before saving!", false);
+            return true;
+        }
+
+        std::error_code ec;
+        const std::filesystem::path new_path = root::app_data_dir / "local_0";
+        const bool success = std::filesystem::create_directory(new_path, ec);
+
+        if (ec)
+        {
+            this->set_error(std::format("Error saving: {}", ec.message()), false);
+            return true;
+        }
+
+        if (!success)
+            throw std::runtime_error("Directory already exists");
+
+        this->save_info = beatmap_file(new_path);
+        this->save_beatmap();
+        return true;
+    }
+    default:
+        return false;
+    }
 }
 
 void root::update_element(float dt)

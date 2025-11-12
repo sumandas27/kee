@@ -27,7 +27,8 @@ public:
         const kee::pos& y,
         const std::variant<kee::dims, kee::border>& dimensions,
         bool centered,
-        std::vector<file_dialog_filter> filters
+        std::vector<file_dialog_filter> filters,
+        std::string_view initial_msg
     );
 
     std::function<void(const std::filesystem::path&)> on_success;

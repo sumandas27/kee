@@ -7,8 +7,17 @@ namespace scene {
 namespace editor {
 
 setup_tab_info::setup_tab_info() :
+    song_path_info(true),
+    save_song_needed(false),
     beat_forgiveness(0.25f)
 { }
+
+std::string setup_tab_info::get_song_fd_init_msg() const
+{
+    return std::holds_alternative<bool>(song_path_info)
+        ? std::get<bool>(song_path_info) ? "Select a song" : "song.mp3" /* TODO: convert all valid audio formats to mp3 i think */
+        : std::get<std::filesystem::path>(song_path_info).filename().string();
+}
 
 setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_info& setup_info, float& approach_beats) :
     kee::ui::base(reqs,
@@ -58,7 +67,8 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         false,
         std::vector<kee::ui::file_dialog_filter>({
             kee::ui::file_dialog_filter("MP3 File", ".mp3")
-        })
+        }),
+        setup_info.get_song_fd_init_msg()
     )),
     artist_text(metadata_bg.ref.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
@@ -143,9 +153,12 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         false, *this, std::format("{:.2f}", setup_info.beat_forgiveness)
     ))
 {
+    /* TODO: for fd and textbox, if same file or string unchanged, dont do anything */
     audio_file_dialog.ref.on_success = [&](const std::filesystem::path& song_path)
     {
         this->root_elem.set_song(song_path);
+        this->setup_info.song_path_info = song_path;
+        this->setup_info.save_song_needed = true;
     };
 
     audio_file_dialog.ref.on_filter_mismatch = [&]()
