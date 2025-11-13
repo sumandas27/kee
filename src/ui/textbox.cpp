@@ -82,6 +82,7 @@ textbox::textbox(
         false, assets.font_regular, initial_str, false
     )),
     textbox_state(mouse_state::off),
+    old_str(initial_str),
     has_render_priority(false)
 { }
 
@@ -347,27 +348,27 @@ bool textbox::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mo
 
     if (textbox_state != mouse_state::hot)
     {
-        if (has_render_priority)
+        if (!has_render_priority)
+            return false;
+
+        if (textbox_text.get_string() == old_str || on_string_input(textbox_text.get_string()))
         {
-            if (!on_string_input(textbox_text.get_string()))
-            {
-                textbox_outline_color.set(kee::color::red, kee::color::white, 1.0f, kee::transition_type::lin);
-                textbox_text.set_string(old_str);
-            }
-            else
-            {
-                textbox_outline_color.set(kee::color::white);
-                old_str = textbox_text.get_string();
-            }
-
-            selection_ui.reset();
-            release_render_priority();
-            has_render_priority = false;
-
-            release_keyboard_capture();
-            if (keyboard_owner.has_value())
-                keyboard_owner.value().take_keyboard_capture();
+            textbox_outline_color.set(kee::color::white);
+            old_str = textbox_text.get_string();
         }
+        else
+        {
+            textbox_outline_color.set(kee::color::red, kee::color::white, 1.0f, kee::transition_type::lin);
+            textbox_text.set_string(old_str);
+        }
+
+        selection_ui.reset();
+        release_render_priority();
+        has_render_priority = false;
+
+        release_keyboard_capture();
+        if (keyboard_owner.has_value())
+            keyboard_owner.value().take_keyboard_capture();
         
         return false;
     }

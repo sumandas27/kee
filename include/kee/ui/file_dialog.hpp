@@ -28,7 +28,7 @@ public:
         const std::variant<kee::dims, kee::border>& dimensions,
         bool centered,
         std::vector<file_dialog_filter> filters,
-        std::string_view initial_msg
+        std::variant<std::string_view, std::filesystem::path> initial_msg
     );
 
     std::function<void(const std::filesystem::path&)> on_success;
@@ -53,6 +53,7 @@ private:
     kee::ui::text fd_text;
 
     std::vector<file_dialog_filter> filters;
+    std::optional<std::filesystem::path> old_path;
 };
 
 } // namespace ui

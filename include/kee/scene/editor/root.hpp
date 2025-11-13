@@ -122,6 +122,7 @@ public:
     void save_beatmap();
 
     void set_error(std::string_view error_str, bool from_file_dialog);
+    void set_info(std::string_view info_str);
     void set_song(const std::filesystem::path& song_path);
 
 private:
@@ -133,9 +134,10 @@ private:
     bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
     void update_element(float dt) override;
 
-    kee::image_texture exit_png;
-    kee::image_texture error_png;
     kee::image_texture arrow_png;
+    kee::image_texture error_png;
+    kee::image_texture exit_png;
+    kee::image_texture info_png;
 
     float approach_beats;
 
@@ -154,8 +156,8 @@ private:
     std::vector<std::reference_wrapper<kee::transition<kee::color>>> tab_button_text_colors;
     kee::transition<float>& tab_active_rect_rel_x;
     kee::transition<float>& exit_button_rect_alpha;
-    kee::transition<float>& error_rect_rel_x;
-    kee::transition<float>& error_alpha;
+    kee::transition<float>& notif_rect_rel_x;
+    kee::transition<float>& notif_alpha;
 
     kee::ui::handle<kee::ui::rect> tab_rect;
     kee::ui::handle<kee::ui::base> tab_display_frame;
@@ -175,13 +177,13 @@ private:
         kee::ui::handle<kee::ui::text>
     > playback_ui;
 
-    kee::ui::handle<kee::ui::rect> error_rect;
-    kee::ui::handle<kee::ui::base> error_img_frame;
-    kee::ui::handle<kee::ui::image> error_img;
-    kee::ui::handle<kee::ui::text> error_text;
+    kee::ui::handle<kee::ui::rect> notif_rect;
+    kee::ui::handle<kee::ui::base> notif_img_frame;
+    kee::ui::handle<kee::ui::image> notif_img;
+    kee::ui::handle<kee::ui::text> notif_text;
 
-    std::optional<int> error_skips_before_start;
-    float error_timer;
+    std::optional<int> notif_skips_before_start;
+    float notif_timer;
 
     std::optional<beatmap_file> save_info;
 };

@@ -15,7 +15,7 @@ file_dialog::file_dialog(
     const std::variant<kee::dims, kee::border>& dimensions,
     bool centered,
     std::vector<file_dialog_filter> filters,
-    std::string_view initial_msg
+    std::variant<std::string_view, std::filesystem::path> initial_msg
 ) :
     kee::ui::base(reqs, x, y, dimensions, centered),
     on_success([]([[maybe_unused]] std::filesystem::path selected_file){}),
@@ -70,9 +70,16 @@ file_dialog::file_dialog(
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         text_size(text_size::type::rel_h, 1),
-        false, assets.font_regular, initial_msg, false
+        false, assets.font_regular, std::holds_alternative<std::string_view>(initial_msg)
+            ? std::get<std::string_view>(initial_msg)
+            : std::get<std::filesystem::path>(initial_msg).filename().string(), 
+        false
     )),
-    filters(filters)
+    filters(filters),
+    old_path(std::holds_alternative<std::filesystem::path>(initial_msg)
+        ? std::make_optional(std::get<std::filesystem::path>(initial_msg))
+        : std::nullopt
+    )
 {
     const raylib::Rectangle fd_raw_rect = get_raw_rect();
     std::get<kee::dims>(fd_text_area.dimensions).w.val = fd_raw_rect.width - fd_raw_rect.height;
@@ -101,6 +108,9 @@ file_dialog::file_dialog(
         {
         case NFD_OKAY: {
             const std::filesystem::path selected_path(out_path.get());
+            if (old_path.has_value() && std::filesystem::equivalent(old_path.value(), selected_path))
+                return;
+
             const bool filter_match = std::any_of(this->filters.begin(), this->filters.end(), 
                 [&](const file_dialog_filter& fd_filter)
                 {
@@ -112,14 +122,15 @@ file_dialog::file_dialog(
             {
                 this->on_success(std::filesystem::absolute(selected_path).string());
                 this->fd_text.set_string(selected_path.filename().string());
+                this->old_path = selected_path;
             }
             else
                 this->on_filter_mismatch();
 
-            break;
+            return;
         }
         case NFD_CANCEL:
-            break;
+            return;
         case NFD_ERROR:
             const std::string nfd_error_str = std::format("kee::ui::file_dialog on_click_l - NFD Error: {}", NFD::GetError());
             throw std::runtime_error(nfd_error_str);

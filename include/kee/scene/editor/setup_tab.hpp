@@ -15,14 +15,7 @@ class setup_tab_info
 public:
     setup_tab_info();
 
-    std::string get_song_fd_init_msg() const;
-
-    /**
-     * bool                     -   Is this a newly created beatmap?
-     * std::filesystem::path    -   Any previously selected song from the file dialog.
-     */
-    std::variant<bool, std::filesystem::path> song_path_info;
-    bool save_song_needed;
+    std::optional<std::filesystem::path> new_song_path;
 
     std::string song_artist;
     std::string song_name;

@@ -8,7 +8,7 @@ namespace editor {
 
 beatmap_file::beatmap_file(const std::filesystem::path& file_dir) :
     file_dir(file_dir),
-    save_metadata_needed(true)
+    save_metadata_needed(false)
 { }
 
 confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, float menu_width) :
@@ -493,17 +493,18 @@ void song_ui::update_element([[maybe_unused]] float dt)
 
 root::root(const kee::scene::window& window, kee::game& game, kee::global_assets& assets) :
     kee::scene::base(window, game, assets),
-    exit_png("assets/img/exit.png"),
-    error_png("assets/img/error.png"),
     arrow_png("assets/img/arrow.png"),
+    error_png("assets/img/error.png"),
+    exit_png("assets/img/exit.png"),
+    info_png("assets/img/info.png"),
     approach_beats(2.0f),
     compose_info(arrow_png),
     active_tab_elem(add_child<setup_tab>(std::nullopt, *this, setup_info, approach_beats)),
     active_tab(root::tabs::setup),
     tab_active_rect_rel_x(add_transition<float>(static_cast<float>(active_tab) / magic_enum::enum_count<root::tabs>())),
     exit_button_rect_alpha(add_transition<float>(0.0f)),
-    error_rect_rel_x(add_transition<float>(1.0f)),
-    error_alpha(add_transition<float>(0)),
+    notif_rect_rel_x(add_transition<float>(1.0f)),
+    notif_alpha(add_transition<float>(0)),
     tab_rect(add_child<kee::ui::rect>(1,
         raylib::Color(10, 10, 10, 255),
         pos(pos::type::rel, 0),
@@ -580,19 +581,19 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
         false, assets.font_semi_bold, "NO SONG SELECTED", false
     )),
-    error_rect(add_child<kee::ui::rect>(1,
-        raylib::Color(80, 80, 80, static_cast<unsigned char>(error_alpha.get())),
-        pos(pos::type::rel, error_rect_rel_x.get()),
+    notif_rect(add_child<kee::ui::rect>(1,
+        raylib::Color(80, 80, 80, static_cast<unsigned char>(notif_alpha.get())),
+        pos(pos::type::rel, notif_rect_rel_x.get()),
         pos(pos::type::rel, 0.93f),
         dims(
             dim(dim::type::rel, 0.2f),
             dim(dim::type::rel, 0.05f)
         ),
         false,
-        ui::rect_outline(ui::rect_outline::type::rel_h, 0.1f, raylib::Color(255, 0, 0, static_cast<unsigned char>(error_alpha.get()))),
+        ui::rect_outline(ui::rect_outline::type::rel_h, 0.1f, raylib::Color(255, 0, 0, static_cast<unsigned char>(notif_alpha.get()))),
         ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.2f, std::nullopt)
     )),
-    error_img_frame(error_rect.ref.add_child<kee::ui::base>(std::nullopt,
+    notif_img_frame(notif_rect.ref.add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         dims(
@@ -601,22 +602,22 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
         ),
         false
     )),
-    error_img(error_img_frame.ref.add_child<kee::ui::image>(std::nullopt,
+    notif_img(notif_img_frame.ref.add_child<kee::ui::image>(std::nullopt,
         error_png,
-        raylib::Color(255, 0, 0, static_cast<unsigned char>(error_alpha.get())),
+        raylib::Color(255, 0, 0, static_cast<unsigned char>(notif_alpha.get())),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_h, 0.3f),
         true, false, false, 0.0f
     )),
-    error_text(error_rect.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color(255, 255, 255, static_cast<unsigned char>(error_alpha.get())),
+    notif_text(notif_rect.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color(255, 255, 255, static_cast<unsigned char>(notif_alpha.get())),
         pos(pos::type::rel, 0.13f),
         pos(pos::type::rel, 0.3f),
         ui::text_size(ui::text_size::type::rel_h, 0.4f),
         false, assets.font_semi_bold, std::string(), false
     )),
-    error_timer(0.0f)
+    notif_timer(0.0f)
 {
     std::visit([](const auto& elem) {
         elem.ref.take_keyboard_capture();
@@ -741,10 +742,11 @@ void root::save_beatmap()
     if (!save_info.has_value())
         throw std::runtime_error("Saving beatmap when no directory for it exists.");
 
-    if (setup_info.save_song_needed)
+    bool any_saved = false;
+    if (setup_info.new_song_path.has_value())
     {
         std::error_code ec;
-        const std::filesystem::path& src = std::get<std::filesystem::path>(setup_info.song_path_info);
+        const std::filesystem::path& src = setup_info.new_song_path.value();
         const std::filesystem::path dst = save_info.value().file_dir / "song.mp3";
         
         std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, ec);
@@ -754,23 +756,50 @@ void root::save_beatmap()
             return;
         }
 
-        setup_info.save_song_needed = false;
+        setup_info.new_song_path.reset();
+        any_saved = true;
     }
 
-    //if (save_info.value().save_metadata_needed)
-    //    std::println("NEED TO SAVE METADATA");
+    if (save_info.value().save_metadata_needed)
+    {
+        std::println("NEED TO SAVE METADATA");
+        any_saved = true;
+    }
+
+    if (any_saved)
+        set_info("Beatmap saved");
 }
 
 void root::set_error(std::string_view error_str, bool from_file_dialog)
 {
-    error_text.ref.set_string(error_str);
+    const raylib::Color old_notif_color = notif_img.ref.get_opt_color().value();
+    const raylib::Color new_notif_color = raylib::Color(255, 0, 0, old_notif_color.a);
+
+    notif_img.ref.set_image(error_png);
+    notif_img.ref.set_opt_color(new_notif_color);
+    notif_rect.ref.border.value().opt_color = new_notif_color;
+    notif_text.ref.set_string(error_str);
     /**
      * File dialogs hang the program during file selection, making that frame's 
      * `dt` significantly large, messing up transition timings for the error's UI.
      * These frames are skipped before error UI rendering is triggered.
      */
-    error_skips_before_start = from_file_dialog ? 2 : 0;
+    notif_skips_before_start = from_file_dialog ? 2 : 0;
 }
+
+void root::set_info(std::string_view info_str)
+{
+    const raylib::Color old_notif_color = notif_img.ref.get_opt_color().value();
+    const raylib::Color new_notif_color = raylib::Color(144, 213, 255, old_notif_color.a);
+
+    notif_img.ref.set_image(info_png);
+    notif_img.ref.set_opt_color(new_notif_color);
+    notif_rect.ref.border.value().opt_color = new_notif_color;
+    notif_text.ref.set_string(info_str);
+
+    notif_skips_before_start = 0;
+}
+
 
 void root::set_song(const std::filesystem::path& song_path)
 {
@@ -829,47 +858,52 @@ bool root::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::
 
 void root::update_element(float dt)
 {
-    if (error_timer > 0.0f)
+    if (notif_timer > 0.0f)
     {
-        error_timer -= dt;
-        if (error_timer <= 0.0f)
+        notif_timer -= dt;
+        if (notif_timer <= 0.0f)
         {
-            error_alpha.set(255.0f, 0.0f, root::error_transition_time, kee::transition_type::exp);
-            error_rect_rel_x.set(0.79f, 1.0f, root::error_transition_time, kee::transition_type::exp);
+            notif_alpha.set(255.0f, 0.0f, root::error_transition_time, kee::transition_type::exp);
+            notif_rect_rel_x.set(0.79f, 1.0f, root::error_transition_time, kee::transition_type::exp);
 
-            error_timer = 0.0f;
+            notif_timer = 0.0f;
         }
     }
 
-    if (error_skips_before_start.has_value())
+    if (notif_skips_before_start.has_value())
     {
-        if (error_skips_before_start.value() != 0)
-            error_skips_before_start.value()--;
+        if (notif_skips_before_start.value() != 0)
+            notif_skips_before_start.value()--;
         else
         {
-            error_alpha.set(0.0f, 255.0f, root::error_transition_time, kee::transition_type::exp);
-            error_rect_rel_x.set(1.0f, 0.79f, root::error_transition_time, kee::transition_type::exp);
+            notif_alpha.set(0.0f, 255.0f, root::error_transition_time, kee::transition_type::exp);
+            notif_rect_rel_x.set(1.0f, 0.79f, root::error_transition_time, kee::transition_type::exp);
 
-            error_timer = 3.0f + root::error_transition_time;
-            error_skips_before_start.reset();
+            notif_timer = 2.5f;
+            notif_skips_before_start.reset();
         }
     }
 
     for (std::size_t i = 0; i < tab_button_text.size(); i++)
         tab_button_text[i].ref.set_opt_color(tab_button_text_colors[i].get().get().to_color());
 
+    raylib::Color exit_button_rect_color = exit_button_rect.ref.get_opt_color().value();
+    exit_button_rect_color.a = static_cast<unsigned char>(exit_button_rect_alpha.get());
+    exit_button_rect.ref.set_opt_color(exit_button_rect_color);
     tab_active_rect.ref.x.val = tab_active_rect_rel_x.get();
-    exit_button_rect.ref.set_opt_color(raylib::Color(255, 0, 0, static_cast<unsigned char>(exit_button_rect_alpha.get())));
 
     if (confirm_exit.has_value() && confirm_exit.value().ref.should_destruct())
         confirm_exit.reset();
 
-    const unsigned char error_a = static_cast<unsigned char>(error_alpha.get());
-    error_rect.ref.set_opt_color(raylib::Color(80, 80, 80, error_a));
-    error_rect.ref.border.value().opt_color = raylib::Color(255, 0, 0, error_a);
-    error_img.ref.set_opt_color(raylib::Color(255, 0, 0, error_a));
-    error_text.ref.set_opt_color(raylib::Color(255, 255, 255, error_a));
-    error_rect.ref.x.val = error_rect_rel_x.get();
+    const unsigned char error_a = static_cast<unsigned char>(notif_alpha.get());
+    const raylib::Color notif_rect_border_color = notif_rect.ref.border.value().opt_color.value();
+    const raylib::Color notif_img_color = notif_img.ref.get_opt_color().value();
+    
+    notif_rect.ref.set_opt_color(raylib::Color(80, 80, 80, error_a));
+    notif_rect.ref.border.value().opt_color = raylib::Color(notif_rect_border_color.r, notif_rect_border_color.g, notif_rect_border_color.b, error_a);
+    notif_img.ref.set_opt_color(raylib::Color(notif_img_color.r, notif_img_color.g, notif_img_color.b, error_a));
+    notif_text.ref.set_opt_color(raylib::Color(255, 255, 255, error_a));
+    notif_rect.ref.x.val = notif_rect_rel_x.get();
 }
 
 } // namespace editor
