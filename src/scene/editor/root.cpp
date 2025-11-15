@@ -1,5 +1,8 @@
 #include "kee/scene/editor/root.hpp"
 
+#include <fstream>
+#include <boost/json.hpp>
+
 #include "kee/game.hpp"
 
 namespace kee {
@@ -8,7 +11,7 @@ namespace editor {
 
 beatmap_file::beatmap_file(const std::filesystem::path& file_dir) :
     file_dir(file_dir),
-    save_metadata_needed(false)
+    save_metadata_needed(true)
 { }
 
 confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, float menu_width) :
@@ -760,9 +763,49 @@ void root::save_beatmap()
         any_saved = true;
     }
 
-    if (save_info.value().save_metadata_needed)
+    const bool save_hit_objs_needed = (!compose_info.events_since_save.has_value() || compose_info.events_since_save.value() != 0);
+    if (save_info.value().save_metadata_needed || save_hit_objs_needed)
     {
-        std::println("NEED TO SAVE METADATA");
+        boost::json::object output;
+        output["song_artist"] = setup_info.song_artist;
+        output["song_name"] = setup_info.song_name;
+        output["beat_forgiveness"] = setup_info.beat_forgiveness;
+        output["approach_beats"] = approach_beats;
+
+        const song_ui& song_info = std::get<kee::ui::handle<song_ui>>(playback_ui).ref;
+        output["song_bpm"] = song_info.music_bpm;
+        output["song_start_offset"] = song_info.music_start_offset;
+
+        boost::json::object& hit_objects = output["hit_objects"].emplace_object();
+        for (int key : compose_tab::prio_to_key)
+        {
+            boost::json::array key_hit_objs;
+            for (const auto& [beat, hit_obj] : compose_info.hit_objs[key])
+            {
+                boost::json::object json_hit_obj;
+                json_hit_obj["beat"] = beat;
+                json_hit_obj["duration"] = hit_obj.duration;
+
+                key_hit_objs.push_back(json_hit_obj);
+            }
+
+            const std::string key_str = std::string(1, static_cast<char>(key));
+            hit_objects[key_str] = std::move(key_hit_objs);
+        }
+
+        const std::filesystem::path metadata_path = save_info.value().file_dir / "metadata.json";
+        std::ofstream metadata_file = std::ofstream(metadata_path, std::ios::binary | std::ios::trunc);
+        if (!metadata_file)
+        {
+            set_error("Unable to save metadata file!", false);
+            return;
+        }
+
+        const std::string json_serialized = boost::json::serialize(output);
+        metadata_file << json_serialized;
+
+        save_info.value().save_metadata_needed = false;
+        compose_info.events_since_save = 0;
         any_saved = true;
     }
 
@@ -847,7 +890,7 @@ bool root::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::
         if (!success)
             throw std::runtime_error("Directory already exists");
 
-        this->save_info = beatmap_file(new_path);
+        this->save_info.emplace(new_path);
         this->save_beatmap();
         return true;
     }

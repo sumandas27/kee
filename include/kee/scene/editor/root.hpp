@@ -14,7 +14,7 @@ class beatmap_file
 public:
     beatmap_file(const std::filesystem::path& file_dir);
 
-    std::filesystem::path file_dir;
+    const std::filesystem::path file_dir;
 
     bool save_metadata_needed;
 };
@@ -125,6 +125,8 @@ public:
     void set_info(std::string_view info_str);
     void set_song(const std::filesystem::path& song_path);
 
+    std::optional<beatmap_file> save_info;
+
 private:
     static constexpr float error_transition_time = 0.5f;
     static const std::filesystem::path app_data_dir; /* TODO: temp */
@@ -184,8 +186,6 @@ private:
 
     std::optional<int> notif_skips_before_start;
     float notif_timer;
-
-    std::optional<beatmap_file> save_info;
 };
 
 enum class root::tabs

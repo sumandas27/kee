@@ -158,12 +158,18 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     artist_textbox.ref.on_string_input = [&](std::string_view new_str) -> bool
     {
         this->setup_info.song_artist = new_str;
+        if (this->root_elem.save_info.has_value())
+            this->root_elem.save_info.value().save_metadata_needed = true;
+
         return true;
     };
 
     song_name_textbox.ref.on_string_input = [&](std::string_view new_str) -> bool
     {
         this->setup_info.song_name = new_str;
+        if (this->root_elem.save_info.has_value())
+            this->root_elem.save_info.value().save_metadata_needed = true;
+
         return true;
     };
 
@@ -181,7 +187,13 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
             return false;
         }
 
-        this->approach_beats = text_float;
+        if (this->approach_beats != text_float)
+        {
+            this->approach_beats = text_float;
+            if (this->root_elem.save_info.has_value())
+                this->root_elem.save_info.value().save_metadata_needed = true;
+        }
+
         return true;
     };
 
@@ -199,7 +211,13 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
             return false;
         }
 
-        this->setup_info.beat_forgiveness = text_float;
+        if (this->setup_info.beat_forgiveness != text_float)
+        {
+            this->setup_info.beat_forgiveness = text_float;
+            if (this->root_elem.save_info.has_value())
+                this->root_elem.save_info.value().save_metadata_needed = true;
+        }
+
         return true;
     };
 }

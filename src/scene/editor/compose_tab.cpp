@@ -939,7 +939,8 @@ compose_tab_info::compose_tab_info(const kee::image_texture& arrow_png) :
     hitsound("assets/sfx/hitsound.wav"),
     hit_objs(compose_tab_info::init_hit_objs()),
     is_beat_snap(true),
-    is_key_locked(true),  
+    is_key_locked(true),
+    events_since_save(0), 
     event_history_idx(0),
     tick_freq_idx(3)
 { 
@@ -1361,6 +1362,11 @@ void compose_tab::add_event(const compose_tab_event& e)
     compose_info.event_history.erase(compose_info.event_history.begin(), compose_info.event_history.begin() + compose_info.event_history_idx);
     compose_info.event_history.push_front(e);
     compose_info.event_history_idx = 0;
+
+    if (compose_info.events_since_save.has_value() && compose_info.events_since_save.value() >= 0)
+        compose_info.events_since_save.value()++;
+    else
+        compose_info.events_since_save.reset();
 }
 
 bool compose_tab::process_event(const compose_tab_event& e)
@@ -1480,6 +1486,9 @@ bool compose_tab::on_element_key_down(int keycode, magic_enum::containers::bitse
             std::swap(compose_info.event_history[compose_info.event_history_idx - 1].added, compose_info.event_history[compose_info.event_history_idx - 1].removed);
             process_event(compose_info.event_history[compose_info.event_history_idx - 1]);
             compose_info.event_history_idx--;
+
+            if (compose_info.events_since_save.has_value())
+                compose_info.events_since_save.value()++;
         }
         else
         {
@@ -1489,6 +1498,9 @@ bool compose_tab::on_element_key_down(int keycode, magic_enum::containers::bitse
             std::swap(compose_info.event_history[compose_info.event_history_idx].added, compose_info.event_history[compose_info.event_history_idx].removed);
             process_event(compose_info.event_history[compose_info.event_history_idx]);
             compose_info.event_history_idx++;
+
+            if (compose_info.events_since_save.has_value())
+                compose_info.events_since_save.value()--;
         }
         
         return true;

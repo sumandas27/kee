@@ -303,6 +303,7 @@ public:
     bool is_beat_snap;
     bool is_key_locked;
 
+    std::optional<int> events_since_save;
     std::deque<compose_tab_event> event_history;
     std::size_t event_history_idx;
 
