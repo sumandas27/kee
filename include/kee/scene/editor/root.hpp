@@ -59,7 +59,7 @@ public:
     song_ui(
         const kee::ui::required& reqs, 
         const kee::image_texture& arrow_png, 
-        const std::filesystem::path& music_path
+        std::variant<std::filesystem::path, dir_ctor_info> music_info
     );
 
     const raylib::Music& get_music() const;
@@ -114,22 +114,66 @@ private:
     std::optional<float> prev_beat;
 };
 
+/**
+ * These objects will belong in an `std::set`, whose keys store the `beat` of the object.
+ */
+class editor_hit_object
+{
+public:
+    editor_hit_object(int key, float duration);
+
+    int key;
+    float duration;
+};
+
+class dir_ctor_info
+{
+public:
+    dir_ctor_info(const std::filesystem::path& beatmap_dir_name);
+
+    std::filesystem::path beatmap_dir_path;
+    
+    raylib::Music song;
+    std::string song_name;
+    std::string song_artist;
+    float song_bpm;
+    float song_start_offset;
+
+    float approach_beats;
+    float beat_forgiveness;
+
+    boost::json::object keys_json_obj;
+};
+
 class root final : public kee::scene::base
 {
 public:
-    root(const kee::scene::window& window, kee::game& game, kee::global_assets& assets);
+    static const std::filesystem::path app_data_dir; /* TODO: temp */
+
+    root(
+        const kee::scene::window& window, 
+        kee::game& game, 
+        kee::global_assets& assets,
+        const std::optional<std::filesystem::path>& beatmap_dir_name
+    );
 
     void save_beatmap();
 
     void set_error(std::string_view error_str, bool from_file_dialog);
     void set_info(std::string_view info_str);
-    void set_song(const std::filesystem::path& song_path);
+    void set_song(std::filesystem::path song_path);
 
     std::optional<beatmap_file> save_info;
 
 private:
     static constexpr float error_transition_time = 0.5f;
-    static const std::filesystem::path app_data_dir; /* TODO: temp */
+
+    root(
+        const kee::scene::window& window, 
+        kee::game& game, 
+        kee::global_assets& assets,
+        std::optional<dir_ctor_info> dir_info
+    );
 
     enum class tabs;
 

@@ -5,7 +5,7 @@
 namespace kee {
 
 game::game() :
-    curr_scene(std::make_unique<kee::scene::editor::root>(window, *this, assets)),
+    curr_scene(std::make_unique<kee::scene::editor::root>(window, *this, assets, "local_0")),
     game_should_exit(false)
 { }
 

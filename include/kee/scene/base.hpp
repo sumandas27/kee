@@ -1,5 +1,7 @@
 #pragma once
 
+#include <boost/json.hpp>
+
 #include "kee/ui/base.hpp"
 
 namespace kee {

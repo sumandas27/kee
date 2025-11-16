@@ -6,8 +6,11 @@ namespace kee {
 namespace scene {
 namespace editor {
 
-setup_tab_info::setup_tab_info() :
-    beat_forgiveness(0.25f)
+setup_tab_info::setup_tab_info(const std::optional<dir_ctor_info>& dir_info) :
+    from_dir(dir_info.has_value()),
+    song_artist(dir_info.has_value() ? dir_info.value().song_artist : ""),
+    song_name(dir_info.has_value() ? dir_info.value().song_name : ""),
+    beat_forgiveness(dir_info.has_value() ? dir_info.value().beat_forgiveness : 0.25f)
 { }
 
 setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_info& setup_info, float& approach_beats) :
@@ -59,7 +62,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         std::vector<kee::ui::file_dialog_filter>({
             kee::ui::file_dialog_filter("MP3 File", ".mp3")
         }),
-        std::string_view("Select a song")
+        setup_info.from_dir ? std::string_view("song.mp3") : std::string_view("Select a song")
     )),
     artist_text(metadata_bg.ref.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),

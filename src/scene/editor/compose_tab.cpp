@@ -934,26 +934,39 @@ const std::unordered_map<int, int> compose_tab::key_to_prio = []
     return res;
 }();
 
-compose_tab_info::compose_tab_info(const kee::image_texture& arrow_png) :
+compose_tab_info::compose_tab_info(
+    const kee::image_texture& arrow_png,
+    const std::optional<boost::json::object>& keys_json_obj
+) :
     arrow_png(arrow_png),
     hitsound("assets/sfx/hitsound.wav"),
-    hit_objs(compose_tab_info::init_hit_objs()),
     is_beat_snap(true),
     is_key_locked(true),
     events_since_save(0), 
     event_history_idx(0),
     tick_freq_idx(3)
-{ 
-    hitsound.SetVolume(0.01f);
-}
-
-std::unordered_map<int, std::map<float, editor_hit_object>> compose_tab_info::init_hit_objs()
 {
-    std::unordered_map<int, std::map<float, editor_hit_object>> res;
     for (const auto& [id, rel_pos] : kee::key_ui_data)
-        res[id];
+    {
+        hit_objs[id];
 
-    return res;
+        if (keys_json_obj.has_value())
+        {
+            const std::string key_str = std::string(1, static_cast<char>(id));
+            const boost::json::array& key_hit_objs = keys_json_obj.value().at(key_str).as_array();
+            
+            for (const boost::json::value& key_hit_obj : key_hit_objs)
+            {
+                const boost::json::object& key_hit_obj_json = key_hit_obj.as_object();
+                const float beat = static_cast<float>(key_hit_obj_json.at("beat").as_double());
+                const float duration = static_cast<float>(key_hit_obj_json.at("duration").as_double());
+                
+                hit_objs.at(id).emplace(beat, editor_hit_object(id, duration));
+            }
+        }
+    }
+
+    hitsound.SetVolume(0.01f);
 }
 
 compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_beats, song_ui& song_ui_elem, compose_tab_info& compose_info) :

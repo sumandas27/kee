@@ -1,7 +1,6 @@
 #include "kee/scene/editor/root.hpp"
 
 #include <fstream>
-#include <boost/json.hpp>
 
 #include "kee/game.hpp"
 
@@ -181,7 +180,7 @@ void confirm_exit_ui::queue_for_destruction()
 song_ui::song_ui(
     const kee::ui::required& reqs, 
     const kee::image_texture& arrow_png,
-    const std::filesystem::path& music_path
+    std::variant<std::filesystem::path, dir_ctor_info> music_info
 ) :
     kee::ui::base(reqs,
         pos(pos::type::rel, 0.5f),
@@ -189,8 +188,8 @@ song_ui::song_ui(
         border(border::type::abs, 0),
         true
     ),
-    music_bpm(60.0f),
-    music_start_offset(0),
+    music_bpm(std::holds_alternative<dir_ctor_info>(music_info) ? std::get<dir_ctor_info>(music_info).song_bpm : 60.0f),
+    music_start_offset(std::holds_alternative<dir_ctor_info>(music_info) ? std::get<dir_ctor_info>(music_info).song_start_offset : 0),
     arrow_png(arrow_png),
     pause_play_color(add_transition<kee::color>(kee::color::white)),
     pause_play_scale(add_transition<float>(1.0f)),
@@ -298,7 +297,10 @@ song_ui::song_ui(
         border(border::type::rel_h, 0.15f),
         true, true, false, 0.0f
     )),
-    music(music_path.string()),
+    music(std::holds_alternative<dir_ctor_info>(music_info) 
+        ? raylib::Music(std::move(std::get<dir_ctor_info>(music_info).song))
+        : raylib::Music(std::get<std::filesystem::path>(music_info).string())
+    ),
     music_time(0.0f)
 {
     music_slider.ref.on_event = [&, music_is_playing = music.IsPlaying()](ui::slider::event slider_event) mutable
@@ -494,14 +496,222 @@ void song_ui::update_element([[maybe_unused]] float dt)
     playback_r_img.ref.set_opt_color(playback_r_color);
 }
 
-root::root(const kee::scene::window& window, kee::game& game, kee::global_assets& assets) :
+dir_ctor_info::dir_ctor_info(const std::filesystem::path& beatmap_dir_name)
+{
+    const std::filesystem::path json_path = root::app_data_dir / beatmap_dir_name / "metadata.json";
+    std::ifstream json_stream = std::ifstream(json_path);
+    if (!json_stream)
+        throw std::runtime_error("Failed to open `metadata.json`");
+
+    const std::string json_contents = std::string(
+        std::istreambuf_iterator<char>(json_stream),
+        std::istreambuf_iterator<char>()
+    );
+
+    const boost::json::value& json_root = boost::json::parse(json_contents);
+    if (!json_root.is_object())
+        throw std::runtime_error("`metadata.json` root is not an object.");
+
+    const boost::json::object& json_object = json_root.as_object();
+    if (!json_object.contains("song_artist") || !json_object.at("song_artist").is_string())
+        throw std::runtime_error("`metadata.json` has malformed `song_artist` key.");
+
+    if (!json_object.contains("song_name") || !json_object.at("song_name").is_string())
+        throw std::runtime_error("`metadata.json` has malformed `song_name` key.");
+
+    if (!json_object.contains("beat_forgiveness") || !json_object.at("beat_forgiveness").is_double())
+        throw std::runtime_error("`metadata.json` has malformed `beat_forgiveness` key.");
+
+    if (!json_object.contains("approach_beats") || !json_object.at("approach_beats").is_double())
+        throw std::runtime_error("`metadata.json` has malformed `approach_beats` key.");
+
+    if (!json_object.contains("song_bpm") || !json_object.at("song_bpm").is_double())
+        throw std::runtime_error("`metadata.json` has malformed `song_bpm` key.");
+
+    if (!json_object.contains("song_start_offset") || !json_object.at("song_start_offset").is_double())
+        throw std::runtime_error("`metadata.json` has malformed `song_start_offset` key.");
+
+    if (!json_object.contains("hit_objects") || !json_object.at("hit_objects").is_object())
+        throw std::runtime_error("`metadata.json` has malformed `song_start_offset` key.");
+
+    const boost::json::object& hit_objs = json_object.at("hit_objects").as_object();
+    for (int key : compose_tab::prio_to_key)
+    {
+        const std::string key_str = std::string(1, static_cast<char>(key));
+        if (!hit_objs.contains(key_str) || !hit_objs.at(key_str).is_array())
+            throw std::runtime_error(std::format("`metadata.json` key `hit_objects` is missing `{}` key.", key_str));
+    
+        const boost::json::array& key_hit_objs = hit_objs.at(key_str).as_array();
+        for (const boost::json::value& key_hit_obj : key_hit_objs)
+        {
+            if (!key_hit_obj.is_object())
+                throw std::runtime_error("`metadata.json` key hit object is not a JSON object.");
+
+            const boost::json::object& key_hit_obj_json = key_hit_obj.as_object();
+            if (!key_hit_obj_json.contains("beat") || !key_hit_obj_json.at("beat").is_double())
+                throw std::runtime_error("`metadata.json` key hit object malformed `beat` key");
+
+            if (!key_hit_obj_json.contains("duration") || !key_hit_obj_json.at("duration").is_double())
+                throw std::runtime_error("`metadata.json` key hit object malformed `duration` key");
+        }
+    }
+
+    const std::filesystem::path song_path = root::app_data_dir / beatmap_dir_name / "song.mp3";
+    song = raylib::Music(song_path.string());
+
+    beatmap_dir_path = root::app_data_dir / beatmap_dir_name;
+    song_name = json_object.at("song_name").as_string();
+    song_artist = json_object.at("song_artist").as_string();
+    song_bpm = static_cast<float>(json_object.at("song_bpm").as_double());
+    song_start_offset = static_cast<float>(json_object.at("song_start_offset").as_double());
+
+    approach_beats = static_cast<float>(json_object.at("approach_beats").as_double());
+    beat_forgiveness = static_cast<float>(json_object.at("beat_forgiveness").as_double());
+
+    keys_json_obj = hit_objs;
+}
+
+const std::filesystem::path root::app_data_dir = "test_app_data/";
+
+root::root(
+    const kee::scene::window& window, 
+    kee::game& game, 
+    kee::global_assets& assets,
+    const std::optional<std::filesystem::path>& beatmap_dir_name
+) :
+    root(window, game, assets, beatmap_dir_name.has_value() 
+        ? std::make_optional(dir_ctor_info(beatmap_dir_name.value()))
+        : std::nullopt
+    )
+{ }
+
+void root::save_beatmap()
+{
+    if (!save_info.has_value())
+        throw std::runtime_error("Saving beatmap when no directory for it exists.");
+
+    bool any_saved = false;
+    if (setup_info.new_song_path.has_value())
+    {
+        std::error_code ec;
+        const std::filesystem::path& src = setup_info.new_song_path.value();
+        const std::filesystem::path dst = save_info.value().file_dir / "song.mp3";
+        
+        std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, ec);
+        if (ec)
+        {
+            set_error(std::format("Error saving song: {}", ec.message()), false);
+            return;
+        }
+
+        setup_info.new_song_path.reset();
+        any_saved = true;
+    }
+
+    const bool save_hit_objs_needed = (!compose_info.events_since_save.has_value() || compose_info.events_since_save.value() != 0);
+    if (save_info.value().save_metadata_needed || save_hit_objs_needed)
+    {
+        boost::json::object output;
+        output["song_artist"] = setup_info.song_artist;
+        output["song_name"] = setup_info.song_name;
+        output["beat_forgiveness"] = setup_info.beat_forgiveness;
+        output["approach_beats"] = approach_beats;
+
+        const song_ui& song_info = std::get<kee::ui::handle<song_ui>>(playback_ui).ref;
+        output["song_bpm"] = song_info.music_bpm;
+        output["song_start_offset"] = song_info.music_start_offset;
+
+        boost::json::object& hit_objects = output["hit_objects"].emplace_object();
+        for (int key : compose_tab::prio_to_key)
+        {
+            boost::json::array key_hit_objs;
+            for (const auto& [beat, hit_obj] : compose_info.hit_objs[key])
+            {
+                boost::json::object json_hit_obj;
+                json_hit_obj["beat"] = beat;
+                json_hit_obj["duration"] = hit_obj.duration;
+
+                key_hit_objs.push_back(json_hit_obj);
+            }
+
+            const std::string key_str = std::string(1, static_cast<char>(key));
+            hit_objects[key_str] = std::move(key_hit_objs);
+        }
+
+        const std::filesystem::path metadata_path = save_info.value().file_dir / "metadata.json";
+        std::ofstream metadata_file = std::ofstream(metadata_path, std::ios::binary | std::ios::trunc);
+        if (!metadata_file)
+        {
+            set_error("Unable to save metadata file!", false);
+            return;
+        }
+
+        const std::string json_serialized = boost::json::serialize(output);
+        metadata_file << json_serialized;
+
+        save_info.value().save_metadata_needed = false;
+        compose_info.events_since_save = 0;
+        any_saved = true;
+    }
+
+    if (any_saved)
+        set_info("Beatmap saved");
+}
+
+void root::set_error(std::string_view error_str, bool from_file_dialog)
+{
+    const raylib::Color old_notif_color = notif_img.ref.get_opt_color().value();
+    const raylib::Color new_notif_color = raylib::Color(255, 0, 0, old_notif_color.a);
+
+    notif_img.ref.set_image(error_png);
+    notif_img.ref.set_opt_color(new_notif_color);
+    notif_rect.ref.border.value().opt_color = new_notif_color;
+    notif_text.ref.set_string(error_str);
+    /**
+     * File dialogs hang the program during file selection, making that frame's 
+     * `dt` significantly large, messing up transition timings for the error's UI.
+     * These frames are skipped before error UI rendering is triggered.
+     */
+    notif_skips_before_start = from_file_dialog ? 2 : 0;
+}
+
+void root::set_info(std::string_view info_str)
+{
+    const raylib::Color old_notif_color = notif_img.ref.get_opt_color().value();
+    const raylib::Color new_notif_color = raylib::Color(144, 213, 255, old_notif_color.a);
+
+    notif_img.ref.set_image(info_png);
+    notif_img.ref.set_opt_color(new_notif_color);
+    notif_rect.ref.border.value().opt_color = new_notif_color;
+    notif_text.ref.set_string(info_str);
+
+    notif_skips_before_start = 0;
+}
+
+
+void root::set_song(std::filesystem::path song_path)
+{
+    playback_ui.emplace<kee::ui::handle<song_ui>>(playback_ui_frame.ref.add_child<song_ui>(std::nullopt, arrow_png, song_path));
+}
+
+root::root(
+    const kee::scene::window& window, 
+    kee::game& game, 
+    kee::global_assets& assets,
+    std::optional<dir_ctor_info> dir_info
+) :
     kee::scene::base(window, game, assets),
+    save_info(dir_info.has_value() ? std::make_optional(dir_info.value().beatmap_dir_path) : std::nullopt),
     arrow_png("assets/img/arrow.png"),
     error_png("assets/img/error.png"),
     exit_png("assets/img/exit.png"),
     info_png("assets/img/info.png"),
-    approach_beats(2.0f),
-    compose_info(arrow_png),
+    approach_beats(dir_info.has_value() ? dir_info.value().approach_beats : 2.0f),
+    setup_info(dir_info),
+    compose_info(arrow_png, dir_info.has_value() 
+        ? std::make_optional(dir_info.value().keys_json_obj) 
+        : std::nullopt
+    ),
     active_tab_elem(add_child<setup_tab>(std::nullopt, *this, setup_info, approach_beats)),
     active_tab(root::tabs::setup),
     tab_active_rect_rel_x(add_transition<float>(static_cast<float>(active_tab) / magic_enum::enum_count<root::tabs>())),
@@ -577,13 +787,23 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
         border(border::type::rel_h, 0.15f),
         true
     )),
-    playback_ui(playback_ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
-        pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0),
-        ui::text_size(ui::text_size::type::rel_h, 0.5f),
-        false, assets.font_semi_bold, "NO SONG SELECTED", false
-    )),
+    playback_ui(dir_info.has_value() ?
+        std::variant<kee::ui::handle<song_ui>, kee::ui::handle<kee::ui::text>>(
+            playback_ui_frame.ref.add_child<song_ui>(std::nullopt, 
+                arrow_png, 
+                std::move(dir_info.value())
+            )
+        ) :
+        std::variant<kee::ui::handle<song_ui>, kee::ui::handle<kee::ui::text>>(
+            playback_ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
+                raylib::Color::White(),
+                pos(pos::type::rel, 0),
+                pos(pos::type::rel, 0),
+                ui::text_size(ui::text_size::type::rel_h, 0.5f),
+                false, assets.font_semi_bold, "NO SONG SELECTED", false
+            )
+        )
+    ),
     notif_rect(add_child<kee::ui::rect>(1,
         raylib::Color(80, 80, 80, static_cast<unsigned char>(notif_alpha.get())),
         pos(pos::type::rel, notif_rect_rel_x.get()),
@@ -739,117 +959,6 @@ root::root(const kee::scene::window& window, kee::game& game, kee::global_assets
         ));
     }
 }
-
-void root::save_beatmap()
-{
-    if (!save_info.has_value())
-        throw std::runtime_error("Saving beatmap when no directory for it exists.");
-
-    bool any_saved = false;
-    if (setup_info.new_song_path.has_value())
-    {
-        std::error_code ec;
-        const std::filesystem::path& src = setup_info.new_song_path.value();
-        const std::filesystem::path dst = save_info.value().file_dir / "song.mp3";
-        
-        std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, ec);
-        if (ec)
-        {
-            set_error(std::format("Error saving song: {}", ec.message()), false);
-            return;
-        }
-
-        setup_info.new_song_path.reset();
-        any_saved = true;
-    }
-
-    const bool save_hit_objs_needed = (!compose_info.events_since_save.has_value() || compose_info.events_since_save.value() != 0);
-    if (save_info.value().save_metadata_needed || save_hit_objs_needed)
-    {
-        boost::json::object output;
-        output["song_artist"] = setup_info.song_artist;
-        output["song_name"] = setup_info.song_name;
-        output["beat_forgiveness"] = setup_info.beat_forgiveness;
-        output["approach_beats"] = approach_beats;
-
-        const song_ui& song_info = std::get<kee::ui::handle<song_ui>>(playback_ui).ref;
-        output["song_bpm"] = song_info.music_bpm;
-        output["song_start_offset"] = song_info.music_start_offset;
-
-        boost::json::object& hit_objects = output["hit_objects"].emplace_object();
-        for (int key : compose_tab::prio_to_key)
-        {
-            boost::json::array key_hit_objs;
-            for (const auto& [beat, hit_obj] : compose_info.hit_objs[key])
-            {
-                boost::json::object json_hit_obj;
-                json_hit_obj["beat"] = beat;
-                json_hit_obj["duration"] = hit_obj.duration;
-
-                key_hit_objs.push_back(json_hit_obj);
-            }
-
-            const std::string key_str = std::string(1, static_cast<char>(key));
-            hit_objects[key_str] = std::move(key_hit_objs);
-        }
-
-        const std::filesystem::path metadata_path = save_info.value().file_dir / "metadata.json";
-        std::ofstream metadata_file = std::ofstream(metadata_path, std::ios::binary | std::ios::trunc);
-        if (!metadata_file)
-        {
-            set_error("Unable to save metadata file!", false);
-            return;
-        }
-
-        const std::string json_serialized = boost::json::serialize(output);
-        metadata_file << json_serialized;
-
-        save_info.value().save_metadata_needed = false;
-        compose_info.events_since_save = 0;
-        any_saved = true;
-    }
-
-    if (any_saved)
-        set_info("Beatmap saved");
-}
-
-void root::set_error(std::string_view error_str, bool from_file_dialog)
-{
-    const raylib::Color old_notif_color = notif_img.ref.get_opt_color().value();
-    const raylib::Color new_notif_color = raylib::Color(255, 0, 0, old_notif_color.a);
-
-    notif_img.ref.set_image(error_png);
-    notif_img.ref.set_opt_color(new_notif_color);
-    notif_rect.ref.border.value().opt_color = new_notif_color;
-    notif_text.ref.set_string(error_str);
-    /**
-     * File dialogs hang the program during file selection, making that frame's 
-     * `dt` significantly large, messing up transition timings for the error's UI.
-     * These frames are skipped before error UI rendering is triggered.
-     */
-    notif_skips_before_start = from_file_dialog ? 2 : 0;
-}
-
-void root::set_info(std::string_view info_str)
-{
-    const raylib::Color old_notif_color = notif_img.ref.get_opt_color().value();
-    const raylib::Color new_notif_color = raylib::Color(144, 213, 255, old_notif_color.a);
-
-    notif_img.ref.set_image(info_png);
-    notif_img.ref.set_opt_color(new_notif_color);
-    notif_rect.ref.border.value().opt_color = new_notif_color;
-    notif_text.ref.set_string(info_str);
-
-    notif_skips_before_start = 0;
-}
-
-
-void root::set_song(const std::filesystem::path& song_path)
-{
-    playback_ui.emplace<kee::ui::handle<song_ui>>(playback_ui_frame.ref.add_child<song_ui>(std::nullopt, arrow_png, song_path));
-}
-
-const std::filesystem::path root::app_data_dir = "test_app_data/";
 
 bool root::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods)
 {

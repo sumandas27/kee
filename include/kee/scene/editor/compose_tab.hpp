@@ -17,18 +17,7 @@ namespace editor {
 
 class song_ui;
 class compose_tab;
-
-/**
- * These objects will belong in an `std::set`, whose keys store the `beat` of the object.
- */
-class editor_hit_object
-{
-public:
-    editor_hit_object(int key, float duration);
-
-    int key;
-    float duration;
-};
+class editor_hit_object;
 
 class hit_obj_ui final : public kee::ui::rect
 {
@@ -292,7 +281,10 @@ public:
     static constexpr std::size_t tick_freq_count = 8;
     static constexpr std::array<int, tick_freq_count> tick_freqs = { 1, 2, 3, 4, 6, 8, 12, 16 };
 
-    compose_tab_info(const kee::image_texture& arrow_png);
+    compose_tab_info(
+        const kee::image_texture& arrow_png,
+        const std::optional<boost::json::object>& keys_json_obj
+    );
 
     const kee::image_texture& arrow_png;
 
@@ -308,9 +300,6 @@ public:
     std::size_t event_history_idx;
 
     std::size_t tick_freq_idx;
-
-private:
-    static std::unordered_map<int, std::map<float, editor_hit_object>> init_hit_objs();
 };
 
 class compose_tab final : public kee::ui::base
