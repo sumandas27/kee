@@ -9,20 +9,63 @@ namespace kee {
 namespace scene {
 namespace editor {
 
+class root;
+class confirm_exit_ui;
+
 class beatmap_file
 {
 public:
-    beatmap_file(const std::filesystem::path& file_dir);
+    beatmap_file(const std::filesystem::path& file_dir, bool save_metadata_needed);
 
     const std::filesystem::path file_dir;
 
     bool save_metadata_needed;
 };
 
+class confirm_save_ui : public kee::ui::rect
+{
+public:
+    confirm_save_ui(const kee::ui::required& reqs, const kee::image_texture& error_png, root& root_elem, confirm_exit_ui& render_prio_owner);
+    confirm_save_ui(const confirm_save_ui&) = delete;
+    confirm_save_ui(confirm_save_ui&&) = delete;
+    ~confirm_save_ui();
+
+    confirm_save_ui& operator=(const confirm_save_ui&) = delete;
+    confirm_save_ui& operator=(confirm_save_ui&&) = delete;
+
+    bool should_destruct() const;
+
+private:
+    bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods) override;
+
+    void update_element(float dt) override;
+
+    root& root_elem;
+    confirm_exit_ui& render_prio_owner;
+
+    kee::transition<kee::color>& leave_color;
+    kee::transition<kee::color>& save_color;
+
+    kee::ui::handle<kee::ui::base> confirm_save_ui_base;
+
+    kee::ui::handle<kee::ui::image> warning_png;
+    kee::ui::handle<kee::ui::text> confirm_save_text;
+
+    kee::ui::handle<kee::ui::button> leave_button;
+    kee::ui::handle<kee::ui::rect> leave_rect;
+    kee::ui::handle<kee::ui::text> leave_text;
+
+    kee::ui::handle<kee::ui::button> save_button;
+    kee::ui::handle<kee::ui::rect> save_rect;
+    kee::ui::handle<kee::ui::text> save_text;
+
+    bool destruct_flag;
+};
+
 class confirm_exit_ui : public kee::ui::base
 {
 public:
-    confirm_exit_ui(const kee::ui::required& reqs, float menu_width);
+    confirm_exit_ui(const kee::ui::required& reqs, root& root_elem, const kee::image_texture& error_png, float menu_width);
 
     bool should_destruct() const;
 
@@ -36,11 +79,12 @@ private:
 
     void queue_for_destruction();
 
+    const kee::image_texture& error_png;
     const float menu_width;
 
     kee::transition<float>& base_w;
-    kee::transition<kee::color>& confirm_button_text_color;
-    kee::transition<kee::color>& go_back_button_text_color;
+    kee::transition<kee::color>& confirm_button_color;
+    kee::transition<kee::color>& go_back_button_color;
 
     kee::ui::handle<kee::ui::button> confirm_button;
     kee::ui::handle<kee::ui::rect> confirm_button_bg;
@@ -49,6 +93,9 @@ private:
     kee::ui::handle<kee::ui::button> go_back_button;
     kee::ui::handle<kee::ui::rect> go_back_button_bg;
     kee::ui::text go_back_button_text;
+
+    root& root_elem;
+    std::optional<kee::ui::handle<confirm_save_ui>> confirm_save;
 
     std::optional<float> destroy_timer;
 };
@@ -157,6 +204,7 @@ public:
         const std::optional<std::filesystem::path>& beatmap_dir_name
     );
 
+    bool needs_save() const;
     void save_beatmap();
 
     void set_error(std::string_view error_str, bool from_file_dialog);

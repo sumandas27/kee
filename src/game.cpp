@@ -11,7 +11,7 @@ game::game() :
 
 void game::main_loop()
 {
-    while (!window.impl.ShouldClose() && !game_should_exit)
+    while (!game_should_exit)
     {
         magic_enum::containers::bitset<kee::mods> mods;
         if (raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_LEFT_CONTROL) || raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_RIGHT_CONTROL))

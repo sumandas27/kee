@@ -8,12 +8,178 @@ namespace kee {
 namespace scene {
 namespace editor {
 
-beatmap_file::beatmap_file(const std::filesystem::path& file_dir) :
+beatmap_file::beatmap_file(const std::filesystem::path& file_dir, bool save_metadata_needed) :
     file_dir(file_dir),
-    save_metadata_needed(true)
+    save_metadata_needed(save_metadata_needed)
 { }
 
-confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, float menu_width) :
+confirm_save_ui::confirm_save_ui(const kee::ui::required& reqs, const kee::image_texture& error_png, root& root_elem, confirm_exit_ui& render_prio_owner) :
+    kee::ui::rect(reqs,
+        raylib::Color(0, 0, 0, 230),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        kee::border(kee::border::type::rel_h, 0.4f),
+        true,
+        ui::rect_outline(ui::rect_outline::type::rel_h, 0.02f, raylib::Color::Red()),
+        ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.05f, std::nullopt)
+    ),
+    root_elem(root_elem),
+    render_prio_owner(render_prio_owner),
+    leave_color(add_transition<kee::color>(kee::color(230, 41, 55))),
+    save_color(add_transition<kee::color>(kee::color(230, 41, 55))),
+    confirm_save_ui_base(add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        kee::border(kee::border::type::rel_h, 0.15f),
+        true
+    )),
+    warning_png(confirm_save_ui_base.ref.add_child<kee::ui::image>(std::nullopt,
+        error_png,
+        raylib::Color::Red(),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 0.03f),
+            dim(dim::type::aspect, 1)
+        ),
+        false, false, false, 0.0f
+    )),
+    confirm_save_text(confirm_save_ui_base.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0.06f),
+        pos(pos::type::rel, 0),
+        ui::text_size(ui::text_size::type::rel_h, 0.2f),
+        false, assets.font_regular, "You have unsaved changes! Are you sure you want to exit?", false
+    )),
+    leave_button(confirm_save_ui_base.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::rel, 0.0f),
+        pos(pos::type::rel, 0.7f),
+        dims(
+            dim(dim::type::rel, 0.45f),
+            dim(dim::type::rel, 0.3f)
+        ),
+        false
+    )),
+    leave_rect(leave_button.ref.add_child<kee::ui::rect>(std::nullopt,
+        raylib::Color::Blank(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        kee::border(kee::border::type::abs, 0),
+        true,
+        ui::rect_outline(ui::rect_outline::type::rel_h, 0.1f, leave_color.get().to_color()),
+        ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.1f, std::nullopt)
+    )),
+    leave_text(leave_button.ref.add_child<kee::ui::text>(std::nullopt,
+        leave_color.get().to_color(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        ui::text_size(ui::text_size::type::rel_h, 0.6f),
+        true, assets.font_semi_bold, "LEAVE", false
+    )),
+    save_button(confirm_save_ui_base.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::rel, 0.55f),
+        pos(pos::type::rel, 0.7f),
+        dims(
+            dim(dim::type::rel, 0.45f),
+            dim(dim::type::rel, 0.3f)
+        ),
+        false
+    )),
+    save_rect(save_button.ref.add_child<kee::ui::rect>(std::nullopt,
+        raylib::Color::Blank(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        kee::border(kee::border::type::abs, 0),
+        true,
+        ui::rect_outline(ui::rect_outline::type::rel_h, 0.1f, save_color.get().to_color()),
+        ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.1f, std::nullopt)
+    )),
+    save_text(save_button.ref.add_child<kee::ui::text>(std::nullopt,
+        save_color.get().to_color(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        ui::text_size(ui::text_size::type::rel_h, 0.6f),
+        true, assets.font_semi_bold, "SAVE", false
+    )),
+    destruct_flag(false)
+{
+    leave_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            this->leave_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            this->leave_color.set(std::nullopt, kee::color(230, 41, 55), 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    leave_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        this->game_ref.queue_game_exit();
+    };
+
+    save_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            this->save_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            this->save_color.set(std::nullopt, kee::color(230, 41, 55), 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    save_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        this->root_elem.save_beatmap();
+        this->game_ref.queue_game_exit();
+    };
+
+    render_prio_owner.release_render_priority();
+    take_render_priority();
+}
+
+confirm_save_ui::~confirm_save_ui()
+{
+    release_render_priority();
+    render_prio_owner.take_render_priority();
+}
+
+bool confirm_save_ui::should_destruct() const
+{
+    return destruct_flag;
+}
+
+bool confirm_save_ui::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+{
+    if (!is_mouse_l)
+        return false;
+
+    if (!get_raw_rect().CheckCollision(mouse_pos))
+        destruct_flag = true;
+
+    return true;
+}
+
+void confirm_save_ui::update_element([[maybe_unused]] float dt)
+{
+    leave_rect.ref.border.value().opt_color = leave_color.get().to_color();
+    leave_text.ref.set_opt_color(leave_color.get().to_color());
+
+    save_rect.ref.border.value().opt_color = save_color.get().to_color();
+    save_text.ref.set_opt_color(save_color.get().to_color());
+}
+
+confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, root& root_elem, const kee::image_texture& error_png, float menu_width) :
     kee::ui::base(reqs,
         pos(pos::type::end, 0),
         pos(pos::type::beg, 0),
@@ -23,10 +189,11 @@ confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, float menu_width
         ),
         false
     ),
+    error_png(error_png),
     menu_width(menu_width),
     base_w(add_transition<float>(0)),
-    confirm_button_text_color(add_transition<kee::color>(kee::color::white)),
-    go_back_button_text_color(add_transition<kee::color>(kee::color::white)),
+    confirm_button_color(add_transition<kee::color>(kee::color(200, 0, 0))),
+    go_back_button_color(add_transition<kee::color>(kee::color(0, 200, 0))),
     confirm_button(add_child<kee::ui::button>(-1,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0),
@@ -37,14 +204,14 @@ confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, float menu_width
         false
     )),
     confirm_button_bg(confirm_button.ref.add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color(200, 0, 0),
+        confirm_button_color.get().to_color(),
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         border(border::type::abs, 0),
         true, std::nullopt, std::nullopt
     )),
     confirm_button_text(confirm_button_bg.ref.make_temp_child<kee::ui::text>(
-        confirm_button_text_color.get().to_color(),
+        raylib::Color::White(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.75f),
@@ -60,19 +227,20 @@ confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, float menu_width
         false
     )),
     go_back_button_bg(go_back_button.ref.add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color::DarkGreen(),
+        go_back_button_color.get().to_color(),
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         border(border::type::abs, 0),
         true, std::nullopt, std::nullopt
     )),
     go_back_button_text(go_back_button_bg.ref.make_temp_child<kee::ui::text>(
-        go_back_button_text_color.get().to_color(),
+        raylib::Color::White(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.75f),
         true, assets.font_semi_bold, "GO BACK", false
-    ))
+    )),
+    root_elem(root_elem)
 {
     take_render_priority();
     base_w.set(get_raw_rect().height, menu_width, confirm_exit_ui::transition_time, kee::transition_type::exp);
@@ -82,10 +250,10 @@ confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, float menu_width
         switch (button_event)
         {
         case ui::button::event::on_hot:
-            this->confirm_button_text_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
+            this->confirm_button_color.set(std::nullopt, kee::color(150, 0, 0), 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_leave:
-            this->confirm_button_text_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
+            this->confirm_button_color.set(std::nullopt, kee::color(200, 0, 0), 0.5f, kee::transition_type::exp);
             break;
         default:
             break;
@@ -94,7 +262,12 @@ confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, float menu_width
 
     confirm_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        if (!this->destroy_timer.has_value())
+        if (this->destroy_timer.has_value())
+            return;
+
+        if (this->root_elem.needs_save())
+            this->confirm_save.emplace(this->root_elem.add_child<confirm_save_ui>(2, this->error_png, this->root_elem, *this));
+        else
             this->game_ref.queue_game_exit();
     };
 
@@ -103,10 +276,10 @@ confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, float menu_width
         switch (button_event)
         {
         case ui::button::event::on_hot:
-            this->go_back_button_text_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
+            this->go_back_button_color.set(std::nullopt, kee::color(0, 150, 0), 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_leave:
-            this->go_back_button_text_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
+            this->go_back_button_color.set(std::nullopt, kee::color(0, 200, 0), 0.5f, kee::transition_type::exp);
             break;
         default:
             break;
@@ -139,8 +312,11 @@ void confirm_exit_ui::update_element(float dt)
         destroy_timer.value() -= dt;
 
     std::get<kee::dims>(dimensions).w.val = base_w.get();
-    confirm_button_text.set_opt_color(confirm_button_text_color.get().to_color());
-    go_back_button_text.set_opt_color(go_back_button_text_color.get().to_color());
+    confirm_button_bg.ref.set_opt_color(confirm_button_color.get().to_color());
+    go_back_button_bg.ref.set_opt_color(go_back_button_color.get().to_color());
+
+    if (confirm_save.has_value() && confirm_save.value().ref.should_destruct())
+        confirm_save.reset();
 }
 
 void confirm_exit_ui::render_element() const
@@ -585,6 +761,14 @@ root::root(
     )
 { }
 
+bool root::needs_save() const
+{
+    const bool save_hit_objs_needed = (!compose_info.events_since_save.has_value() || compose_info.events_since_save.value() != 0);
+    
+    std::println("{}, {}, {}, {}", save_info.has_value(), save_info.value().save_metadata_needed, setup_info.new_song_path.has_value(), save_hit_objs_needed);
+    return save_info.has_value() && (save_info.value().save_metadata_needed || setup_info.new_song_path.has_value() || save_hit_objs_needed);
+}
+
 void root::save_beatmap()
 {
     if (!save_info.has_value())
@@ -701,7 +885,7 @@ root::root(
     std::optional<dir_ctor_info> dir_info
 ) :
     kee::scene::base(window, game, assets),
-    save_info(dir_info.has_value() ? std::make_optional(dir_info.value().beatmap_dir_path) : std::nullopt),
+    save_info(dir_info.has_value() ? std::make_optional(beatmap_file(dir_info.value().beatmap_dir_path, false)) : std::nullopt),
     arrow_png("assets/img/arrow.png"),
     error_png("assets/img/error.png"),
     exit_png("assets/img/exit.png"),
@@ -866,7 +1050,7 @@ root::root(
 
     exit_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        this->confirm_exit.emplace(this->exit_button.ref.add_child<confirm_exit_ui>(2, this->tab_rect.ref.get_raw_rect().width));
+        this->confirm_exit.emplace(this->exit_button.ref.add_child<confirm_exit_ui>(2, *this, this->error_png, this->tab_rect.ref.get_raw_rect().width));
     };
 
     tab_buttons.reserve(magic_enum::enum_count<root::tabs>());
@@ -999,7 +1183,7 @@ bool root::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::
         if (!success)
             throw std::runtime_error("Directory already exists");
 
-        this->save_info.emplace(new_path);
+        this->save_info.emplace(new_path, true);
         this->save_beatmap();
         return true;
     }
