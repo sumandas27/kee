@@ -18,7 +18,7 @@ beatmap_key::beatmap_key(const kee::ui::required& reqs, kee::scene::beatmap& bea
         pos(pos::type::rel, relative_pos.x),
         pos(pos::type::rel, relative_pos.y),
         dims(
-            dim(dim::type::aspect, key_id == KeyboardKey::KEY_SPACE ? 7.0f : 1.0f),
+            dim(dim::type::aspect, key_id == KeyboardKey::KEY_SPACE ? 8.0f : 1.0f),
             dim(dim::type::rel, 0.25)
         ),
         true
@@ -228,7 +228,7 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         dims(
-            dim(dim::type::aspect, 10),
+            dim(dim::type::aspect, 11),
             dim(dim::type::aspect, 4)
         ),
         true

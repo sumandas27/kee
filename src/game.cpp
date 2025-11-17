@@ -1,5 +1,6 @@
 #include "kee/game.hpp"
 
+#include "kee/scene/editor/root.hpp"
 #include "kee/scene/beatmap.hpp"
 
 namespace kee {

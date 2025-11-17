@@ -1136,7 +1136,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         dims(
-            dim(dim::type::aspect, 10),
+            dim(dim::type::aspect, 11),
             dim(dim::type::aspect, 4)
         ),
         true
@@ -1302,7 +1302,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
             pos(pos::type::rel, rel_pos.x),
             pos(pos::type::rel, rel_pos.y),
             dims(
-                dim(dim::type::aspect, id == KeyboardKey::KEY_SPACE ? 7.0f : 1.0f),
+                dim(dim::type::aspect, id == KeyboardKey::KEY_SPACE ? 8.0f : 1.0f),
                 dim(dim::type::rel, 0.25)
             ),
             true
