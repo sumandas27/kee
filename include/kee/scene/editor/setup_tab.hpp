@@ -8,13 +8,12 @@ namespace kee {
 namespace scene {
 namespace editor {
 
-class dir_ctor_info;
 class root;
 
 class setup_tab_info
 {
 public:
-    setup_tab_info(const std::optional<dir_ctor_info>& dir_info);
+    setup_tab_info(const std::optional<beatmap_dir_info>& dir_info);
 
     std::optional<std::filesystem::path> new_song_path;
 

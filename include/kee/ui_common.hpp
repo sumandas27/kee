@@ -1,8 +1,11 @@
 #pragma once
 
 #include <array>
+#include <fstream>
 #include <optional>
 #include <print>
+
+#include <boost/json.hpp>
 
 /**
  * Disabling MSVC warnings on magic_enum's source code.
@@ -199,6 +202,27 @@ constexpr color::color(float r, float g, float b, float a) :
     b(b),
     a(a)
 { }
+
+class beatmap_dir_info
+{
+public:
+    static const std::filesystem::path app_data_dir; /* TODO: temp */
+
+    beatmap_dir_info(const std::filesystem::path& beatmap_dir_name);
+
+    std::filesystem::path beatmap_dir_path;
+    
+    raylib::Music song;
+    std::string song_name;
+    std::string song_artist;
+    float song_bpm;
+    float song_start_offset;
+
+    float approach_beats;
+    float beat_forgiveness;
+
+    boost::json::object keys_json_obj;
+};
 
 class key_pos_data
 {

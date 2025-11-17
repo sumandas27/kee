@@ -946,7 +946,7 @@ compose_tab_info::compose_tab_info(
     event_history_idx(0),
     tick_freq_idx(3)
 {
-    for (const auto& [id, rel_pos] : kee::key_ui_data)
+    for (const auto& [id, _] : kee::key_ui_data)
     {
         hit_objs[id];
 

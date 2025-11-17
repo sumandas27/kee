@@ -6,7 +6,7 @@ namespace kee {
 namespace scene {
 namespace editor {
 
-setup_tab_info::setup_tab_info(const std::optional<dir_ctor_info>& dir_info) :
+setup_tab_info::setup_tab_info(const std::optional<beatmap_dir_info>& dir_info) :
     from_dir(dir_info.has_value()),
     song_artist(dir_info.has_value() ? dir_info.value().song_artist : ""),
     song_name(dir_info.has_value() ? dir_info.value().song_name : ""),

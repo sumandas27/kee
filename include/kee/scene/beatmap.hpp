@@ -14,7 +14,6 @@ class beatmap;
 class beatmap_hit_object
 {
 public:
-    beatmap_hit_object(float beat);
     beatmap_hit_object(float beat, float duration);
 
     const float beat;
@@ -61,7 +60,7 @@ private:
 class beatmap final : public kee::scene::base
 {
 public:
-    beatmap(const kee::scene::window& window, kee::game& game, kee::global_assets& assets);
+    beatmap(const kee::scene::window& window, kee::game& game, kee::global_assets& assets, const std::filesystem::path& beatmap_dir_name);
 
     float get_beat() const;
 
@@ -73,6 +72,8 @@ public:
     const float approach_beats;
 
 private:
+    beatmap(const kee::scene::window& window, kee::game& game, kee::global_assets& assets, beatmap_dir_info&& beatmap_info);
+
     bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
     bool on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
 

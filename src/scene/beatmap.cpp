@@ -3,20 +3,12 @@
 namespace kee {
 namespace scene {
 
-beatmap_hit_object::beatmap_hit_object(float beat) :
-    beat(beat),
-    duration(0.0f)
-{ }
-
 beatmap_hit_object::beatmap_hit_object(float beat, float duration) :
     beat(beat),
     duration(duration),
     hold_is_held(false),
     hold_press_complete(false)
 { 
-    if (duration == 0.0f)
-        throw std::invalid_argument("A hold hit object must have non-zero hold duration!");
-
     if (std::floor(beat + 1.0f) < beat + duration)
         hold_next_combo = std::floor(beat + 1.0f);
 }
@@ -158,7 +150,35 @@ void beatmap_key::render_element() const
         hit_obj_rect.render();
 }
 
-beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_assets& assets) :
+beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_assets& assets, const std::filesystem::path& beatmap_dir_name) :
+    beatmap(window, game, assets, beatmap_dir_info(beatmap_dir_name))
+{ }
+
+float beatmap::get_beat() const
+{
+    return (game_time - load_time - music_start_offset) * music_bpm / 60.0f;
+}
+
+void beatmap::combo_increment_with_sound()
+{
+    combo_increment_no_sound();
+    hitsound.Play();
+}
+
+void beatmap::combo_increment_no_sound()
+{
+    combo++;
+    combo_gain.set(1.0f, 0.0f, 0.25f, transition_type::lin);
+}
+
+void beatmap::combo_lose()
+{
+    combo = 0;
+    combo_lost_sfx.Play();
+    combo_gain.set(0.0f);
+}
+
+beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_assets& assets, beatmap_dir_info&& beatmap_info) :
     kee::scene::base(window, game, assets),
     combo_gain(add_transition<float>(0.0f)),
     load_rect(add_child<kee::ui::rect>(0,
@@ -213,13 +233,13 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
         ),
         true
     )),
-    beat_forgiveness(0.25f),
-    approach_beats(2.0f),
+    beat_forgiveness(beatmap_info.beat_forgiveness),
+    approach_beats(beatmap_info.approach_beats),
     load_time(2.0f),
     max_combo_time(0.25f),
-    music_start_offset(0.5f),
-    music_bpm(100.0f),
-    music("assets/daft-punk-something-about-us/daft-punk-something-about-us.mp3"),
+    music_start_offset(beatmap_info.song_start_offset),
+    music_bpm(beatmap_info.song_bpm),
+    music(std::move(beatmap_info.song)),
     hitsound("assets/sfx/hitsound.wav"),
     combo_lost_sfx("assets/sfx/combo_lost.wav"),
     combo(0),
@@ -235,12 +255,22 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
     hitsound.SetVolume(0.01f);
     combo_lost_sfx.SetVolume(0.05f);
 
-    /* TODO: replace with some file parser eventually */
-    keys.at(KeyboardKey::KEY_Q).ref.push(beatmap_hit_object(0.0f, 2.0f));
-    //keys.at(KeyboardKey::KEY_W).ref.push(beatmap_hit_object(4.0f));
-    //keys.at(KeyboardKey::KEY_E).ref.push(beatmap_hit_object(8.0f));
-    //keys.at(KeyboardKey::KEY_R).ref.push(beatmap_hit_object(12.0f));
+    for (const auto& [keycode, _] : kee::key_ui_data)
+    {
+        const std::string key_str = std::string(1, static_cast<char>(keycode));
+        const boost::json::array& key_hit_objs = beatmap_info.keys_json_obj.at(key_str).as_array();
+        
+        for (const boost::json::value& key_hit_obj : key_hit_objs)
+        {
+            const boost::json::object& key_hit_obj_json = key_hit_obj.as_object();
+            const float beat = static_cast<float>(key_hit_obj_json.at("beat").as_double());
+            const float duration = static_cast<float>(key_hit_obj_json.at("duration").as_double());
+            
+            keys.at(keycode).ref.push(beatmap_hit_object(beat, duration));
+        }
+    }    
 
+    /* TODO: store end beat in file */
     for (const auto& [keycode, _] : kee::key_ui_data)
     {
         if (keys.at(keycode).ref.get_hit_objects().empty())
@@ -250,30 +280,6 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
         if (end_beat < back.beat + back.duration)
             end_beat = back.beat + back.duration;
     }
-}
-
-float beatmap::get_beat() const
-{
-    return (game_time - load_time - music_start_offset) * music_bpm / 60.0f;
-}
-
-void beatmap::combo_increment_with_sound()
-{
-    combo_increment_no_sound();
-    hitsound.Play();
-}
-
-void beatmap::combo_increment_no_sound()
-{
-    combo++;
-    combo_gain.set(1.0f, 0.0f, 0.25f, transition_type::lin);
-}
-
-void beatmap::combo_lose()
-{
-    combo = 0;
-    combo_lost_sfx.Play();
-    combo_gain.set(0.0f);
 }
 
 bool beatmap::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)

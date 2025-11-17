@@ -106,7 +106,7 @@ public:
     song_ui(
         const kee::ui::required& reqs, 
         const kee::image_texture& arrow_png, 
-        std::variant<std::filesystem::path, dir_ctor_info> music_info
+        std::variant<std::filesystem::path, beatmap_dir_info> music_info
     );
 
     const raylib::Music& get_music() const;
@@ -173,30 +173,9 @@ public:
     float duration;
 };
 
-class dir_ctor_info
-{
-public:
-    dir_ctor_info(const std::filesystem::path& beatmap_dir_name);
-
-    std::filesystem::path beatmap_dir_path;
-    
-    raylib::Music song;
-    std::string song_name;
-    std::string song_artist;
-    float song_bpm;
-    float song_start_offset;
-
-    float approach_beats;
-    float beat_forgiveness;
-
-    boost::json::object keys_json_obj;
-};
-
 class root final : public kee::scene::base
 {
 public:
-    static const std::filesystem::path app_data_dir; /* TODO: temp */
-
     root(
         const kee::scene::window& window, 
         kee::game& game, 
@@ -217,10 +196,10 @@ private:
     static constexpr float error_transition_time = 0.5f;
 
     root(
-        const kee::scene::window& window, 
+        const kee::scene::window& window,
         kee::game& game, 
         kee::global_assets& assets,
-        std::optional<dir_ctor_info> dir_info
+        std::optional<beatmap_dir_info> dir_info
     );
 
     enum class tabs;

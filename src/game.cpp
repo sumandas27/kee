@@ -1,11 +1,11 @@
 #include "kee/game.hpp"
 
-#include "kee/scene/editor/root.hpp"
+#include "kee/scene/beatmap.hpp"
 
 namespace kee {
 
 game::game() :
-    curr_scene(std::make_unique<kee::scene::editor::root>(window, *this, assets, "local_0")),
+    curr_scene(std::make_unique<kee::scene::beatmap>(window, *this, assets, "local_0")),
     game_should_exit(false)
 { }
 

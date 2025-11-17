@@ -1,7 +1,5 @@
 #include "kee/scene/editor/root.hpp"
 
-#include <fstream>
-
 #include "kee/game.hpp"
 
 namespace kee {
@@ -356,7 +354,7 @@ void confirm_exit_ui::queue_for_destruction()
 song_ui::song_ui(
     const kee::ui::required& reqs, 
     const kee::image_texture& arrow_png,
-    std::variant<std::filesystem::path, dir_ctor_info> music_info
+    std::variant<std::filesystem::path, beatmap_dir_info> music_info
 ) :
     kee::ui::base(reqs,
         pos(pos::type::rel, 0.5f),
@@ -364,8 +362,8 @@ song_ui::song_ui(
         border(border::type::abs, 0),
         true
     ),
-    music_bpm(std::holds_alternative<dir_ctor_info>(music_info) ? std::get<dir_ctor_info>(music_info).song_bpm : 60.0f),
-    music_start_offset(std::holds_alternative<dir_ctor_info>(music_info) ? std::get<dir_ctor_info>(music_info).song_start_offset : 0),
+    music_bpm(std::holds_alternative<beatmap_dir_info>(music_info) ? std::get<beatmap_dir_info>(music_info).song_bpm : 60.0f),
+    music_start_offset(std::holds_alternative<beatmap_dir_info>(music_info) ? std::get<beatmap_dir_info>(music_info).song_start_offset : 0),
     arrow_png(arrow_png),
     pause_play_color(add_transition<kee::color>(kee::color::white)),
     pause_play_scale(add_transition<float>(1.0f)),
@@ -473,8 +471,8 @@ song_ui::song_ui(
         border(border::type::rel_h, 0.15f),
         true, true, false, 0.0f
     )),
-    music(std::holds_alternative<dir_ctor_info>(music_info) 
-        ? raylib::Music(std::move(std::get<dir_ctor_info>(music_info).song))
+    music(std::holds_alternative<beatmap_dir_info>(music_info) 
+        ? raylib::Music(std::move(std::get<beatmap_dir_info>(music_info).song))
         : raylib::Music(std::get<std::filesystem::path>(music_info).string())
     ),
     music_time(0.0f)
@@ -672,83 +670,6 @@ void song_ui::update_element([[maybe_unused]] float dt)
     playback_r_img.ref.set_opt_color(playback_r_color);
 }
 
-dir_ctor_info::dir_ctor_info(const std::filesystem::path& beatmap_dir_name)
-{
-    const std::filesystem::path json_path = root::app_data_dir / beatmap_dir_name / "metadata.json";
-    std::ifstream json_stream = std::ifstream(json_path);
-    if (!json_stream)
-        throw std::runtime_error("Failed to open `metadata.json`");
-
-    const std::string json_contents = std::string(
-        std::istreambuf_iterator<char>(json_stream),
-        std::istreambuf_iterator<char>()
-    );
-
-    const boost::json::value& json_root = boost::json::parse(json_contents);
-    if (!json_root.is_object())
-        throw std::runtime_error("`metadata.json` root is not an object.");
-
-    const boost::json::object& json_object = json_root.as_object();
-    if (!json_object.contains("song_artist") || !json_object.at("song_artist").is_string())
-        throw std::runtime_error("`metadata.json` has malformed `song_artist` key.");
-
-    if (!json_object.contains("song_name") || !json_object.at("song_name").is_string())
-        throw std::runtime_error("`metadata.json` has malformed `song_name` key.");
-
-    if (!json_object.contains("beat_forgiveness") || !json_object.at("beat_forgiveness").is_double())
-        throw std::runtime_error("`metadata.json` has malformed `beat_forgiveness` key.");
-
-    if (!json_object.contains("approach_beats") || !json_object.at("approach_beats").is_double())
-        throw std::runtime_error("`metadata.json` has malformed `approach_beats` key.");
-
-    if (!json_object.contains("song_bpm") || !json_object.at("song_bpm").is_double())
-        throw std::runtime_error("`metadata.json` has malformed `song_bpm` key.");
-
-    if (!json_object.contains("song_start_offset") || !json_object.at("song_start_offset").is_double())
-        throw std::runtime_error("`metadata.json` has malformed `song_start_offset` key.");
-
-    if (!json_object.contains("hit_objects") || !json_object.at("hit_objects").is_object())
-        throw std::runtime_error("`metadata.json` has malformed `song_start_offset` key.");
-
-    const boost::json::object& hit_objs = json_object.at("hit_objects").as_object();
-    for (int key : compose_tab::prio_to_key)
-    {
-        const std::string key_str = std::string(1, static_cast<char>(key));
-        if (!hit_objs.contains(key_str) || !hit_objs.at(key_str).is_array())
-            throw std::runtime_error(std::format("`metadata.json` key `hit_objects` is missing `{}` key.", key_str));
-    
-        const boost::json::array& key_hit_objs = hit_objs.at(key_str).as_array();
-        for (const boost::json::value& key_hit_obj : key_hit_objs)
-        {
-            if (!key_hit_obj.is_object())
-                throw std::runtime_error("`metadata.json` key hit object is not a JSON object.");
-
-            const boost::json::object& key_hit_obj_json = key_hit_obj.as_object();
-            if (!key_hit_obj_json.contains("beat") || !key_hit_obj_json.at("beat").is_double())
-                throw std::runtime_error("`metadata.json` key hit object malformed `beat` key");
-
-            if (!key_hit_obj_json.contains("duration") || !key_hit_obj_json.at("duration").is_double())
-                throw std::runtime_error("`metadata.json` key hit object malformed `duration` key");
-        }
-    }
-
-    const std::filesystem::path song_path = root::app_data_dir / beatmap_dir_name / "song.mp3";
-    song = raylib::Music(song_path.string());
-
-    beatmap_dir_path = root::app_data_dir / beatmap_dir_name;
-    song_name = json_object.at("song_name").as_string();
-    song_artist = json_object.at("song_artist").as_string();
-    song_bpm = static_cast<float>(json_object.at("song_bpm").as_double());
-    song_start_offset = static_cast<float>(json_object.at("song_start_offset").as_double());
-
-    approach_beats = static_cast<float>(json_object.at("approach_beats").as_double());
-    beat_forgiveness = static_cast<float>(json_object.at("beat_forgiveness").as_double());
-
-    keys_json_obj = hit_objs;
-}
-
-const std::filesystem::path root::app_data_dir = "test_app_data/";
-
 root::root(
     const kee::scene::window& window, 
     kee::game& game, 
@@ -756,7 +677,7 @@ root::root(
     const std::optional<std::filesystem::path>& beatmap_dir_name
 ) :
     root(window, game, assets, beatmap_dir_name.has_value() 
-        ? std::make_optional(dir_ctor_info(beatmap_dir_name.value()))
+        ? std::make_optional(beatmap_dir_info(beatmap_dir_name.value()))
         : std::nullopt
     )
 { }
@@ -882,7 +803,7 @@ root::root(
     const kee::scene::window& window, 
     kee::game& game, 
     kee::global_assets& assets,
-    std::optional<dir_ctor_info> dir_info
+    std::optional<beatmap_dir_info> dir_info
 ) :
     kee::scene::base(window, game, assets),
     save_info(dir_info.has_value() ? std::make_optional(beatmap_file(dir_info.value().beatmap_dir_path, false)) : std::nullopt),
@@ -1171,7 +1092,7 @@ bool root::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::
         }
 
         std::error_code ec;
-        const std::filesystem::path new_path = root::app_data_dir / "local_0";
+        const std::filesystem::path new_path = beatmap_dir_info::app_data_dir / "local_0";
         const bool success = std::filesystem::create_directory(new_path, ec);
 
         if (ec)
