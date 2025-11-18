@@ -236,7 +236,6 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
     beat_forgiveness(beatmap_info.beat_forgiveness),
     approach_beats(beatmap_info.approach_beats),
     load_time(2.0f),
-    max_combo_time(0.25f),
     music_start_offset(beatmap_info.song_start_offset),
     music_bpm(beatmap_info.song_bpm),
     music(std::move(beatmap_info.song)),
@@ -268,7 +267,7 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
             
             keys.at(keycode).ref.push(beatmap_hit_object(beat, duration));
         }
-    }    
+    }
 
     /* TODO: store end beat in file */
     for (const auto& [keycode, _] : kee::key_ui_data)

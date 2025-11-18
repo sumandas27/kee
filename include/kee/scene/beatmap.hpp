@@ -83,14 +83,15 @@ private:
 
     std::optional<kee::ui::handle<kee::ui::rect>> load_rect;
     kee::ui::handle<kee::ui::rect> progress_rect;
+    //kee::ui::handle<kee::ui::text> accuracy_text;
+    //kee::ui::handle<kee::ui::text> rank_text;
+
     kee::ui::handle<kee::ui::text> combo_text;
     kee::ui::handle<kee::ui::text> combo_text_bg;
     kee::ui::handle<kee::ui::base> window_border;
     kee::ui::handle<kee::ui::base> key_frame;
 
     const float load_time;
-    const float max_combo_time;
-
     const float music_start_offset;
     const float music_bpm;
 
