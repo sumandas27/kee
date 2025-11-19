@@ -71,6 +71,8 @@ public:
     const float beat_forgiveness;
     const float approach_beats;
 
+    unsigned int max_combo;
+
 private:
     beatmap(const kee::scene::window& window, kee::game& game, kee::global_assets& assets, beatmap_dir_info&& beatmap_info);
 
@@ -83,6 +85,8 @@ private:
 
     std::optional<kee::ui::handle<kee::ui::rect>> load_rect;
     kee::ui::handle<kee::ui::rect> progress_rect;
+    //kee::ui::handle<kee::ui::base> performance_bg;
+    //kee::ui::handle<kee::ui::base> performance_frame;
     //kee::ui::handle<kee::ui::text> accuracy_text;
     //kee::ui::handle<kee::ui::text> rank_text;
 
@@ -101,7 +105,10 @@ private:
     raylib::Sound hitsound;
     raylib::Sound combo_lost_sfx;
 
+    unsigned int prev_total_combo;
     unsigned int combo;
+    unsigned int misses;
+
     float combo_time;
     float end_beat;
 

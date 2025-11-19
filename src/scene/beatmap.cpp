@@ -121,16 +121,22 @@ void beatmap_key::update_element([[maybe_unused]] float dt)
     {
         if (beatmap_scene.get_beat() - front.beat > beatmap_scene.beat_forgiveness)
         {
+            beatmap_scene.max_combo++;
             combo_lose();
+
             if (front.duration == 0.0f)
                 pop();
             else
                 front.hold_press_complete = true;
         }
     }
-    else if (front.hold_is_held && front.hold_next_combo.has_value() && beatmap_scene.get_beat() >= front.hold_next_combo.value()) /* get hold intermediate combo */
+    else if (front.hold_next_combo.has_value() && beatmap_scene.get_beat() >= front.hold_next_combo.value()) /* get hold intermediate combo */
     {
-        beatmap_scene.combo_increment_no_sound();
+        if (front.hold_is_held)
+            beatmap_scene.combo_increment_no_sound();
+        else
+            beatmap_scene.max_combo++;
+
         front.hold_next_combo = (front.hold_next_combo.value() + 1.0f < front.beat + front.duration)
             ? std::make_optional(front.hold_next_combo.value() + 1.0f)
             : std::nullopt;
@@ -140,6 +146,7 @@ void beatmap_key::update_element([[maybe_unused]] float dt)
         if (front.hold_is_held)
             combo_lose();
 
+        beatmap_scene.max_combo++;
         pop();
     }
 }
@@ -167,13 +174,17 @@ void beatmap::combo_increment_with_sound()
 
 void beatmap::combo_increment_no_sound()
 {
+    max_combo++;
     combo++;
     combo_gain.set(1.0f, 0.0f, 0.25f, transition_type::lin);
 }
 
 void beatmap::combo_lose()
 {
+    prev_total_combo += combo;
     combo = 0;
+    misses++;
+
     combo_lost_sfx.Play();
     combo_gain.set(0.0f);
 }
@@ -235,13 +246,16 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
     )),
     beat_forgiveness(beatmap_info.beat_forgiveness),
     approach_beats(beatmap_info.approach_beats),
+    max_combo(0),
     load_time(2.0f),
     music_start_offset(beatmap_info.song_start_offset),
     music_bpm(beatmap_info.song_bpm),
     music(std::move(beatmap_info.song)),
     hitsound("assets/sfx/hitsound.wav"),
     combo_lost_sfx("assets/sfx/combo_lost.wav"),
+    prev_total_combo(0),
     combo(0),
+    misses(0),
     combo_time(0.0f),
     end_beat(0.0f),
     game_time(0.0f)
@@ -254,7 +268,12 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
     hitsound.SetVolume(0.01f);
     combo_lost_sfx.SetVolume(0.05f);
 
-    for (const auto& [keycode, _] : kee::key_ui_data)
+    keys.at(KeyboardKey::KEY_Q).ref.push(beatmap_hit_object(0.f, 0.f));
+    keys.at(KeyboardKey::KEY_Q).ref.push(beatmap_hit_object(1.f, 0.f));
+    keys.at(KeyboardKey::KEY_Q).ref.push(beatmap_hit_object(2.f, 0.f));
+    keys.at(KeyboardKey::KEY_Q).ref.push(beatmap_hit_object(3.f, 0.f));
+    keys.at(KeyboardKey::KEY_Q).ref.push(beatmap_hit_object(4.f, 0.f));
+    /*for (const auto& [keycode, _] : kee::key_ui_data)
     {
         const std::string key_str = std::string(1, static_cast<char>(keycode));
         const boost::json::array& key_hit_objs = beatmap_info.keys_json_obj.at(key_str).as_array();
@@ -267,9 +286,8 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
             
             keys.at(keycode).ref.push(beatmap_hit_object(beat, duration));
         }
-    }
+    }*/
 
-    /* TODO: store end beat in file */
     for (const auto& [keycode, _] : kee::key_ui_data)
     {
         if (keys.at(keycode).ref.get_hit_objects().empty())
@@ -308,16 +326,11 @@ bool beatmap::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
             keys.at(keycode).ref.pop();
     }
 
-    if (front.duration == 0.0f)
-        return true;
-
-    front.hold_is_held = true;
-    front.hold_press_complete = true;
-
-    if (!gain_tap_combo)
-        front.hold_next_combo = (std::floor(get_beat() + 1.0f) < front.beat + front.duration)
-            ? std::make_optional(std::floor(get_beat() + 1.0f))
-            : std::nullopt;
+    if (front.duration != 0.0f)
+    {
+        front.hold_is_held = true;
+        front.hold_press_complete = true;
+    }
 
     return true;
 }
@@ -342,6 +355,14 @@ bool beatmap::on_element_key_up(int keycode, [[maybe_unused]] magic_enum::contai
     }
     else
     {
+        const float front_end_beat = front.beat + front.duration;
+        if (front.hold_next_combo.has_value() && front.hold_next_combo.value() < front_end_beat)
+        {
+            const unsigned int combo_increment = static_cast<unsigned int>(std::ceil(front_end_beat) - front.hold_next_combo.value());
+            max_combo += combo_increment;
+            combo += combo_increment;
+        }    
+
         combo_increment_with_sound();
         keys.at(keycode).ref.pop();
     }
@@ -377,6 +398,12 @@ void beatmap::update_element(float dt)
     }
     else
         music.Update();
+
+    const float accuracy = (max_combo != 0)
+        ? static_cast<float>(combo + prev_total_combo) / max_combo
+        : 1.f;
+
+    std::println("ACCURACY {}", accuracy);
 }
 
 } // namespace scene
