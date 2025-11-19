@@ -242,7 +242,7 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         ui::text_size(ui::text_size::type::rel_h, 1),
-        false, assets.font_semi_bold, "100.00", false
+        false, assets.font_semi_bold, "100.00%", false
     )),
     fc_text(performance_frame.ref.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::Gold(),
@@ -413,7 +413,7 @@ void beatmap::update_element(float dt)
         : 100.f;
 
     const float accuracy_trunc = std::floor(accuracy * 100.f) / 100.f;
-    accuracy_text.ref.set_string(std::format("{:.2f}", accuracy_trunc));
+    accuracy_text.ref.set_string(std::format("{:.2f}%", accuracy_trunc));
     if (accuracy == 100.f)
         accuracy_text.ref.set_opt_color(raylib::Color::White());
     else if (accuracy >= 90.f)
