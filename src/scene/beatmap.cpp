@@ -202,7 +202,17 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
         ),
         false, std::nullopt, std::nullopt
     )),
-    progress_rect(add_child<kee::ui::rect>(1,
+    progress_bg(add_child<kee::ui::rect>(1,
+        raylib::Color(20, 20, 20),
+        pos(pos::type::beg, 0),
+        pos(pos::type::beg, 0),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 0.01f)
+        ),
+        false, std::nullopt, std::nullopt
+    )),
+    progress_rect(add_child<kee::ui::rect>(2,
         raylib::Color::White(),
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
@@ -422,7 +432,7 @@ void beatmap::update_element(float dt)
     }
     else if (misses <= 10)
     {
-        const float g_and_b = 255 * (1.f - (misses - 1) / 9.f);
+        const unsigned char g_and_b = static_cast<unsigned char>(255 * (1.f - (misses - 1) / 9.f));
         fc_text.ref.set_string(std::format("{}x", misses));
         fc_text.ref.set_opt_color(raylib::Color(255, g_and_b, g_and_b));
     }
