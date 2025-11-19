@@ -85,10 +85,10 @@ private:
 
     std::optional<kee::ui::handle<kee::ui::rect>> load_rect;
     kee::ui::handle<kee::ui::rect> progress_rect;
-    //kee::ui::handle<kee::ui::base> performance_bg;
-    //kee::ui::handle<kee::ui::base> performance_frame;
-    //kee::ui::handle<kee::ui::text> accuracy_text;
-    //kee::ui::handle<kee::ui::text> rank_text;
+    kee::ui::handle<kee::ui::base> performance_bg;
+    kee::ui::handle<kee::ui::base> performance_frame;
+    kee::ui::handle<kee::ui::text> accuracy_text;
+    kee::ui::handle<kee::ui::text> fc_text;
 
     kee::ui::handle<kee::ui::text> combo_text;
     kee::ui::handle<kee::ui::text> combo_text_bg;

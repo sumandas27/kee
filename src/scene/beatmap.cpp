@@ -208,9 +208,38 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
         pos(pos::type::beg, 0),
         dims(
             dim(dim::type::rel, 0),
-            dim(dim::type::abs, 10)
+            dim(dim::type::rel, 0.01f)
         ),
         false, std::nullopt, std::nullopt
+    )),
+    performance_bg(add_child<kee::ui::base>(1,
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.01f),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 0.1f)
+        ),
+        false
+    )),
+    performance_frame(performance_bg.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_h, 0.25f),
+        true
+    )),
+    accuracy_text(performance_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::beg, 0),
+        pos(pos::type::beg, 0),
+        ui::text_size(ui::text_size::type::rel_h, 1),
+        false, assets.font_semi_bold, "100.00", false
+    )),
+    fc_text(performance_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::Gold(),
+        pos(pos::type::end, 0),
+        pos(pos::type::beg, 0),
+        ui::text_size(ui::text_size::type::rel_h, 1),
+        false, assets.font_semi_bold, "FC", false
     )),
     combo_text(add_child<kee::ui::text>(2,
         raylib::Color::White(),
@@ -268,12 +297,7 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
     hitsound.SetVolume(0.01f);
     combo_lost_sfx.SetVolume(0.05f);
 
-    keys.at(KeyboardKey::KEY_Q).ref.push(beatmap_hit_object(0.f, 0.f));
-    keys.at(KeyboardKey::KEY_Q).ref.push(beatmap_hit_object(1.f, 0.f));
-    keys.at(KeyboardKey::KEY_Q).ref.push(beatmap_hit_object(2.f, 0.f));
-    keys.at(KeyboardKey::KEY_Q).ref.push(beatmap_hit_object(3.f, 0.f));
-    keys.at(KeyboardKey::KEY_Q).ref.push(beatmap_hit_object(4.f, 0.f));
-    /*for (const auto& [keycode, _] : kee::key_ui_data)
+    for (const auto& [keycode, _] : kee::key_ui_data)
     {
         const std::string key_str = std::string(1, static_cast<char>(keycode));
         const boost::json::array& key_hit_objs = beatmap_info.keys_json_obj.at(key_str).as_array();
@@ -286,7 +310,7 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
             
             keys.at(keycode).ref.push(beatmap_hit_object(beat, duration));
         }
-    }*/
+    }
 
     for (const auto& [keycode, _] : kee::key_ui_data)
     {
@@ -374,6 +398,40 @@ void beatmap::update_element(float dt)
 {
     game_time += dt;
 
+    const float accuracy = (max_combo != 0)
+        ? 100.f * static_cast<float>(combo + prev_total_combo) / max_combo
+        : 100.f;
+
+    const float accuracy_trunc = std::floor(accuracy * 100.f) / 100.f;
+    accuracy_text.ref.set_string(std::format("{:.2f}", accuracy_trunc));
+    if (accuracy == 100.f)
+        accuracy_text.ref.set_opt_color(raylib::Color::White());
+    else if (accuracy >= 90.f)
+        accuracy_text.ref.set_opt_color(raylib::Color::Green());
+    else if (accuracy >= 80.f)
+        accuracy_text.ref.set_opt_color(raylib::Color::Blue());
+    else if (accuracy >= 70.f)
+        accuracy_text.ref.set_opt_color(raylib::Color::Violet());
+    else
+        accuracy_text.ref.set_opt_color(raylib::Color::Red());
+
+    if (misses == 0)
+    {
+        fc_text.ref.set_string("FC");
+        fc_text.ref.set_opt_color(raylib::Color::Gold());
+    }
+    else if (misses <= 10)
+    {
+        const float g_and_b = 255 * (1.f - (misses - 1) / 9.f);
+        fc_text.ref.set_string(std::format("{}x", misses));
+        fc_text.ref.set_opt_color(raylib::Color(255, g_and_b, g_and_b));
+    }
+    else
+    {
+        fc_text.ref.set_string(">10x");
+        fc_text.ref.set_opt_color(raylib::Color::Red());
+    }
+
     combo_text.ref.set_string(std::to_string(combo) + "x");
     combo_text.ref.set_scale(1.0f + 0.1f * combo_gain.get());
 
@@ -398,12 +456,6 @@ void beatmap::update_element(float dt)
     }
     else
         music.Update();
-
-    const float accuracy = (max_combo != 0)
-        ? static_cast<float>(combo + prev_total_combo) / max_combo
-        : 1.f;
-
-    std::println("ACCURACY {}", accuracy);
 }
 
 } // namespace scene
