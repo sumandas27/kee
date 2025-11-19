@@ -26,6 +26,7 @@ public:
     const float duration;
 
     bool hold_is_held;
+    bool hold_not_missed;
     bool hold_press_complete;
     std::optional<float> hold_next_combo;
 };
@@ -37,7 +38,7 @@ public:
 
     const std::deque<beatmap_hit_object>& get_hit_objects() const;
 
-    void combo_lose();
+    void combo_lose(bool is_miss);
 
     beatmap_hit_object& front();
     void push(const beatmap_hit_object& object);
@@ -67,9 +68,8 @@ public:
 
     float get_beat() const;
 
-    void combo_increment_with_sound();
-    void combo_increment_no_sound();
-    void combo_lose();
+    void combo_increment(bool play_sfx);
+    void combo_lose(bool is_miss);
 
     const float beat_forgiveness;
     const float approach_beats;
