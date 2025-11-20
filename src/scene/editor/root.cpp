@@ -1075,6 +1075,15 @@ bool root::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::
 
         std::get<kee::ui::handle<song_ui>>(playback_ui).ref.pause_play_click(mods);
         return true;
+    case KeyboardKey::KEY_ESC:
+        if (!confirm_exit.has_value())
+            exit_button.ref.on_click_l(mods);
+        else if (!confirm_exit.value().ref.confirm_save.has_value())
+            confirm_exit.value().ref.confirm_button.ref.on_click_l(mods);
+        else
+            game_ref.queue_game_exit();
+
+        return true;
     case KeyboardKey::KEY_S: {
         if (!mods.test(kee::mods::ctrl))
             return false;
