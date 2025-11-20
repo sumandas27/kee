@@ -61,6 +61,21 @@ private:
     std::deque<beatmap_hit_object> hit_objects;
 };
 
+class pause_menu final : public kee::ui::rect
+{
+public:
+    pause_menu(const kee::ui::required& reqs, bool& pre_music_played_paused, raylib::Music& music);
+
+private:
+    void update_element(float dt) override;
+
+    raylib::Music& music;
+
+    kee::transition<float>& ui_rel_y;
+
+    kee::ui::handle<kee::ui::rect> ui_frame;
+};
+
 class beatmap final : public kee::scene::base
 {
 public:
@@ -100,6 +115,8 @@ private:
     kee::ui::handle<kee::ui::base> window_border;
     kee::ui::handle<kee::ui::base> key_frame;
 
+    std::optional<kee::ui::handle<pause_menu>> pause_menu_ui;
+
     const float load_time;
     const float music_start_offset;
     const float music_bpm;
@@ -117,6 +134,8 @@ private:
     float combo_time;
     float end_beat;
 
+    bool music_played_flag;
+    bool pre_music_played_paused; /* TODO: into optional rename to load_time_paused maybe */
     float game_time;
 };
 

@@ -1,5 +1,7 @@
 #include "kee/scene/beatmap.hpp"
 
+#include "kee/game.hpp"
+
 namespace kee {
 namespace scene {
 
@@ -159,13 +161,54 @@ void beatmap_key::render_element() const
         hit_obj_rect.render();
 }
 
+pause_menu::pause_menu(const kee::ui::required& reqs, bool& pre_music_played_paused, raylib::Music& music) :
+    kee::ui::rect(reqs,
+        raylib::Color(255, 255, 255, 20),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 1)
+        ),
+        true, std::nullopt, std::nullopt
+    ),
+    ui_frame(add_child<kee::ui::rect>(std::nullopt,
+        raylib::Color(30, 30, 30),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, -0.5f),
+        dims(
+            dim(dim::type::rel, 0.5f),
+            dim(dim::type::rel, 1)
+        ),
+        true, std::nullopt, std::nullopt
+    )),
+    music(music),
+    ui_rel_y(add_transition<float>(-0.5f))
+{
+    ui_rel_y.set(std::nullopt, 0.5f, 0.5f, kee::transition_type::exp);
+    if (music.IsPlaying())
+        music.Pause();
+    else
+        pre_music_played_paused = true;
+    /* TODO: take over keyboard input */
+}
+
+void pause_menu::update_element([[maybe_unused]] float dt)
+{
+    ui_frame.ref.y.val = ui_rel_y.get();
+}
+
 beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_assets& assets, const std::filesystem::path& beatmap_dir_name) :
     beatmap(window, game, assets, beatmap_dir_info(beatmap_dir_name))
 { }
 
 float beatmap::get_beat() const
 {
-    return (game_time - load_time - music_start_offset) * music_bpm / 60.0f;
+    const float music_time = music_played_flag
+        ? music.GetTimePlayed()
+        : game_time - load_time;
+
+    return (music_time - music_start_offset) * music_bpm / 60.0f;
 }
 
 void beatmap::combo_increment(bool play_sfx)
@@ -299,6 +342,8 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
     misses(0),
     combo_time(0.0f),
     end_beat(0.0f),
+    music_played_flag(false),
+    pre_music_played_paused(false),
     game_time(0.0f)
 {
     for (const auto& [id, rel_pos] : kee::key_ui_data)
@@ -339,7 +384,15 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
 bool beatmap::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
 {
     if (!keys.contains(keycode))
+    {
+        if (keycode != KeyboardKey::KEY_ESCAPE)
+            return true;
+
+        if (!pause_menu_ui.has_value())
+            pause_menu_ui.emplace(add_child<pause_menu>(10, pre_music_played_paused, music));
+
         return true;
+    }
 
     keys.at(keycode).ref.set_opt_color(raylib::Color::Green());
     if (keys.at(keycode).ref.get_hit_objects().empty())
@@ -412,7 +465,19 @@ bool beatmap::on_element_key_up(int keycode, [[maybe_unused]] magic_enum::contai
 
 void beatmap::update_element(float dt)
 {
-    game_time += dt;
+    if (!pre_music_played_paused)
+        game_time += dt;
+    
+    if (!music_played_flag)
+    {
+        if (game_time >= load_time)
+        {
+            music.Play();
+            music_played_flag = true;
+        }
+    }
+    else
+        music.Update();
 
     const float accuracy = (max_combo != 0)
         ? 100.f * static_cast<float>(combo + prev_total_combo) / max_combo
@@ -464,14 +529,6 @@ void beatmap::update_element(float dt)
         else
             load_rect.reset();
     }
-
-    if (!music.IsPlaying())
-    {
-        if (game_time >= load_time)
-            music.Play();
-    }
-    else
-        music.Update();
 }
 
 } // namespace scene
