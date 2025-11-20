@@ -69,6 +69,9 @@ public:
 
     bool should_destruct() const;
 
+    kee::ui::handle<kee::ui::button> confirm_button;
+    std::optional<kee::ui::handle<confirm_save_ui>> confirm_save;
+
 private:
     static constexpr float transition_time = 0.5f;
 
@@ -86,7 +89,6 @@ private:
     kee::transition<kee::color>& confirm_button_color;
     kee::transition<kee::color>& go_back_button_color;
 
-    kee::ui::handle<kee::ui::button> confirm_button;
     kee::ui::handle<kee::ui::rect> confirm_button_bg;
     kee::ui::text confirm_button_text;
 
@@ -95,7 +97,6 @@ private:
     kee::ui::text go_back_button_text;
 
     root& root_elem;
-    std::optional<kee::ui::handle<confirm_save_ui>> confirm_save;
 
     std::optional<float> destroy_timer;
 };

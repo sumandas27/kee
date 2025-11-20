@@ -187,11 +187,6 @@ confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, root& root_elem,
         ),
         false
     ),
-    error_png(error_png),
-    menu_width(menu_width),
-    base_w(add_transition<float>(0)),
-    confirm_button_color(add_transition<kee::color>(kee::color(200, 0, 0))),
-    go_back_button_color(add_transition<kee::color>(kee::color(0, 200, 0))),
     confirm_button(add_child<kee::ui::button>(-1,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0),
@@ -201,6 +196,11 @@ confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, root& root_elem,
         ),
         false
     )),
+    error_png(error_png),
+    menu_width(menu_width),
+    base_w(add_transition<float>(0)),
+    confirm_button_color(add_transition<kee::color>(kee::color(200, 0, 0))),
+    go_back_button_color(add_transition<kee::color>(kee::color(0, 200, 0))),
     confirm_button_bg(confirm_button.ref.add_child<kee::ui::rect>(std::nullopt,
         confirm_button_color.get().to_color(),
         pos(pos::type::rel, 0.5),
@@ -685,8 +685,6 @@ root::root(
 bool root::needs_save() const
 {
     const bool save_hit_objs_needed = (!compose_info.events_since_save.has_value() || compose_info.events_since_save.value() != 0);
-    
-    std::println("{}, {}, {}, {}", save_info.has_value(), save_info.value().save_metadata_needed, setup_info.new_song_path.has_value(), save_hit_objs_needed);
     return save_info.has_value() && (save_info.value().save_metadata_needed || setup_info.new_song_path.has_value() || save_hit_objs_needed);
 }
 
@@ -1075,7 +1073,7 @@ bool root::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::
 
         std::get<kee::ui::handle<song_ui>>(playback_ui).ref.pause_play_click(mods);
         return true;
-    case KeyboardKey::KEY_ESC:
+    case KeyboardKey::KEY_ESCAPE:
         if (!confirm_exit.has_value())
             exit_button.ref.on_click_l(mods);
         else if (!confirm_exit.value().ref.confirm_save.has_value())
