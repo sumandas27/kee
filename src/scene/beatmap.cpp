@@ -326,15 +326,207 @@ void pause_menu::update_element([[maybe_unused]] float dt)
     exit_rect.ref.set_opt_color(exit_color.get().to_color());
 }
 
-end_screen::end_screen(const kee::ui::required& reqs) :
+end_screen::end_screen(const kee::ui::required& reqs, float accuracy, unsigned int misses, unsigned int combo, unsigned int max_combo, unsigned int highest_combo) :
     kee::ui::rect(reqs,
         raylib::Color(30, 30, 30),
+        pos(pos::type::rel, 1.5f),
+        pos(pos::type::rel, 0.5f),
+        kee::border(kee::border::type::rel_h, 0.08f),
+        true, std::nullopt, std::nullopt
+    ),
+    ui_rel_x(add_transition<float>(1)),
+    exit_text_color(add_transition<kee::color>(kee::color::white)),
+    rank_text(add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::Blank(),
+        pos(pos::type::rel, 0.25f),
+        pos(pos::type::rel, 0.5f),
+        ui::text_size(ui::text_size::type::rel_h, 0.15f),
+        true, assets.font_semi_bold, std::string(), false
+    )),
+    rank_misses_text(add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::Blank(),
+        pos(pos::type::rel, 0.25f),
+        pos(pos::type::rel, 0.575f),
+        ui::text_size(ui::text_size::type::rel_h, 0.05f),
+        true, assets.font_semi_bold, std::string(), false
+    )),
+    ui_frame(add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        kee::border(kee::border::type::rel_h, 0.1f),
+        true
+    )),
+    exit_button(ui_frame.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::end, 0),
+        pos(pos::type::end, 0),
+        dims(
+            dim(dim::type::rel, 0.5f),
+            dim(dim::type::rel, 0.1f)
+        ),
+        false
+    )),
+    exit_rect(exit_button.ref.add_child<kee::ui::rect>(std::nullopt,
+        raylib::Color(60, 60, 60),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        kee::border(kee::border::type::abs, 0),
+        true, std::nullopt, std::nullopt
+    )),
+    exit_text(exit_rect.ref.add_child<kee::ui::text>(std::nullopt,
+        exit_text_color.get().to_color(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        ui::text_size(ui::text_size::type::rel_h, 0.5f),
+        true, assets.font_semi_bold, "EXIT", false
+    )),
+    performance_text(ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0.75f),
+        pos(pos::type::rel, 0.04f),
+        ui::text_size(ui::text_size::type::rel_h, 0.08f),
+        true, assets.font_semi_bold, "PERFORMANCE", false
+    )),
+    label_frame(ui_frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 0),
+            dim(dim::type::rel, 0.8f)
+        ),
+        false
+    )),
+    accuracy_text(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.3f),
+        ui::text_size(ui::text_size::type::rel_h, 0.08f),
+        false, assets.font_semi_bold, "ACCURACY", false
+    )),
+    missed_text(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.45f),
+        ui::text_size(ui::text_size::type::rel_h, 0.08f),
+        false, assets.font_semi_bold, "MISSED", false
+    )),
+    combo_text(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.6f),
+        ui::text_size(ui::text_size::type::rel_h, 0.08f),
+        false, assets.font_semi_bold, "COMBO", false
+    )),
+    highest_combo_text(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.75f),
+        ui::text_size(ui::text_size::type::rel_h, 0.08f),
+        false, assets.font_semi_bold, "HIGHEST COMBO", false
+    )),
+    results_frame(ui_frame.ref.add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 1),
         pos(pos::type::rel, 0),
-        kee::border(kee::border::type::abs, 0),
-        false, std::nullopt, std::nullopt
-    )
-{ }
+        dims(
+            dim(dim::type::rel, 0),
+            dim(dim::type::rel, 0.8f)
+        ),
+        false
+    )),
+    accuracy_result(results_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::end, 0),
+        pos(pos::type::rel, 0.3f),
+        ui::text_size(ui::text_size::type::rel_h, 0.08f),
+        false, assets.font_regular, std::format("{:.2f}", accuracy), false
+    )),
+    missed_result(results_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::end, 0),
+        pos(pos::type::rel, 0.45f),
+        ui::text_size(ui::text_size::type::rel_h, 0.08f),
+        false, assets.font_regular, std::to_string(misses), false
+    )),
+    combo_result(results_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::end, 0),
+        pos(pos::type::rel, 0.6f),
+        ui::text_size(ui::text_size::type::rel_h, 0.08f),
+        false, assets.font_regular, std::format("{}/{}", combo, max_combo), false
+    )),
+    highest_combo_result(results_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::end, 0),
+        pos(pos::type::rel, 0.75f),
+        ui::text_size(ui::text_size::type::rel_h, 0.08f),
+        false, assets.font_regular, std::format("{}x", highest_combo), false
+    ))
+{ 
+    ui_rel_x.set(std::nullopt, 0.5f, 0.5f, kee::transition_type::exp);
+
+    exit_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            this->exit_text_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            this->exit_text_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    exit_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        this->game_ref.queue_game_exit();
+    };
+
+    if (misses == 0)
+    {
+        rank_text.ref.set_opt_color(raylib::Color::Gold());
+        rank_text.ref.set_string("FC");
+    }
+    else
+    {
+        if (misses >= 1 && misses <= 10)
+        {
+            rank_text.ref.y.val = 0.475f;
+            rank_misses_text.ref.set_opt_color(raylib::Color::DarkGray());
+            rank_misses_text.ref.set_string(std::format("({}x)", misses));
+        }
+
+        const unsigned int accuracy_uint = static_cast<unsigned int>(accuracy);
+        rank_text.ref.set_string(std::to_string(accuracy_uint));
+        if (accuracy >= 90.f)
+            rank_text.ref.set_opt_color(raylib::Color::Green());
+        else if (accuracy >= 80.f)
+            rank_text.ref.set_opt_color(raylib::Color::Blue());
+        else if (accuracy >= 70.f)
+            rank_text.ref.set_opt_color(raylib::Color::Violet());
+        else
+            rank_text.ref.set_opt_color(raylib::Color::Red());
+    }
+
+    take_keyboard_capture();
+}
+
+bool end_screen::on_element_key_down([[maybe_unused]] int keycode, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+{
+    return true;
+}
+
+bool end_screen::on_element_key_up([[maybe_unused]] int keycode, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+{
+    return true;
+}
+
+void end_screen::update_element([[maybe_unused]] float dt)
+{
+    x.val = ui_rel_x.get();
+    exit_text.ref.set_opt_color(exit_text_color.get().to_color());
+}
 
 beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_assets& assets, const std::filesystem::path& beatmap_dir_name) :
     beatmap(window, game, assets, beatmap_dir_info(beatmap_dir_name))
@@ -362,6 +554,9 @@ void beatmap::combo_increment(bool play_sfx)
 void beatmap::combo_lose(bool is_miss)
 {
     prev_total_combo += combo;
+    if (prev_highest_combo < combo)
+        prev_highest_combo = combo;
+
     combo = 0;
     combo_gain.set(0.0f);
 
@@ -378,6 +573,7 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
     approach_beats(beatmap_info.approach_beats),
     max_combo(0),
     combo_gain(add_transition<float>(0.0f)),
+    end_fade_out_alpha(add_transition<float>(0.0f)),
     load_rect(add_child<kee::ui::rect>(0,
         raylib::Color(255, 255, 255, 20),
         pos(pos::type::beg, 0),
@@ -476,6 +672,7 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
     hitsound("assets/sfx/hitsound.wav"),
     combo_lost_sfx("assets/sfx/combo_lost.wav"),
     prev_total_combo(0),
+    prev_highest_combo(0),
     combo(0),
     misses(0),
     load_time_paused(false),
@@ -490,7 +687,7 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
     hitsound.SetVolume(0.01f);
     combo_lost_sfx.SetVolume(0.05f);
 
-    keys.at(KeyboardKey::KEY_Q).ref.push(beatmap_hit_object(0.f, 32.f));
+    keys.at(KeyboardKey::KEY_Q).ref.push(beatmap_hit_object(0.f, 4.f));
     /*for (const auto& [keycode, _] : kee::key_ui_data)
     {
         const std::string key_str = std::string(1, static_cast<char>(keycode));
@@ -521,7 +718,7 @@ bool beatmap::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
 {
     if (!keys.contains(keycode))
     {
-        if (keycode != KeyboardKey::KEY_ESCAPE)
+        if (keycode != KeyboardKey::KEY_ESCAPE || time_till_end_screen.has_value())
             return true;
 
         if (!pause_menu_ui.has_value())
@@ -631,11 +828,44 @@ void beatmap::update_element(float dt)
         }
     }
 
+    const unsigned int curr_combo = combo + prev_total_combo;
     float accuracy = 100.0f;
     if (max_combo != 0)
-        accuracy *= static_cast<float>(combo + prev_total_combo) / max_combo;
+        accuracy *= static_cast<float>(curr_combo) / max_combo;
 
     const float accuracy_trunc = std::floor(accuracy * 100.f) / 100.f;
+    if (!time_till_end_screen.has_value())
+    {
+        if (get_beat() >= end_beat)
+        {
+            time_till_end_screen = 2.5f;
+
+            end_fade_out_alpha.set(std::nullopt, 255, 2.5f, kee::transition_type::lin);
+            end_fade_out.emplace(add_child<kee::ui::rect>(9,
+                raylib::Color::Blank(),
+                pos(pos::type::rel, 0.5f),
+                pos(pos::type::rel, 0.5f),
+                kee::border(kee::border::type::abs, 0),
+                true, std::nullopt, std::nullopt
+            ));
+        }
+    }
+    else if (!end_screen_ui.has_value())
+    {
+        time_till_end_screen.value() -= dt;
+        if (time_till_end_screen.value() <= 0)
+        {
+            const unsigned int highest_combo = misses == 0 ? combo : prev_highest_combo;
+            end_screen_ui.emplace(add_child<end_screen>(10, accuracy_trunc, misses, curr_combo, max_combo, highest_combo));
+        }
+    }
+
+    if (end_fade_out.has_value())
+    {
+        const unsigned char a = static_cast<unsigned char>(end_fade_out_alpha.get());
+        end_fade_out.value().ref.set_opt_color(raylib::Color(10, 10, 10, a));
+    }
+
     accuracy_text.ref.set_string(std::format("{:.2f}", accuracy_trunc));
     if (accuracy == 100.f)
         accuracy_text.ref.set_opt_color(raylib::Color::White());

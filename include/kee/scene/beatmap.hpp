@@ -103,7 +103,37 @@ private:
 class end_screen final : public kee::ui::rect
 {
 public:
-    end_screen(const kee::ui::required& reqs);
+    end_screen(const kee::ui::required& reqs, float accuracy, unsigned int misses, unsigned int combo, unsigned int max_combo, unsigned int highest_combo);
+
+private:
+    bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
+    bool on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
+
+    void update_element(float dt);
+
+    kee::transition<float>& ui_rel_x;
+    kee::transition<kee::color>& exit_text_color;
+
+    kee::ui::handle<kee::ui::text> rank_text;
+    kee::ui::handle<kee::ui::text> rank_misses_text;
+
+    kee::ui::handle<kee::ui::base> ui_frame;
+    kee::ui::handle<kee::ui::button> exit_button;
+    kee::ui::handle<kee::ui::rect> exit_rect;
+    kee::ui::handle<kee::ui::text> exit_text;
+    kee::ui::handle<kee::ui::text> performance_text;
+
+    kee::ui::handle<kee::ui::base> label_frame;
+    kee::ui::handle<kee::ui::text> accuracy_text;
+    kee::ui::handle<kee::ui::text> missed_text;
+    kee::ui::handle<kee::ui::text> combo_text;
+    kee::ui::handle<kee::ui::text> highest_combo_text;
+
+    kee::ui::handle<kee::ui::base> results_frame;
+    kee::ui::handle<kee::ui::text> accuracy_result;
+    kee::ui::handle<kee::ui::text> missed_result;
+    kee::ui::handle<kee::ui::text> combo_result;
+    kee::ui::handle<kee::ui::text> highest_combo_result;
 };
 
 class beatmap final : public kee::scene::base
@@ -130,6 +160,7 @@ private:
     void update_element(float dt) override;
 
     kee::transition<float>& combo_gain;
+    kee::transition<float>& end_fade_out_alpha;
 
     std::optional<kee::ui::handle<kee::ui::rect>> load_rect;
     kee::ui::handle<kee::ui::rect> progress_bg;
@@ -146,6 +177,7 @@ private:
     kee::ui::handle<kee::ui::base> key_frame;
 
     std::optional<kee::ui::handle<pause_menu>> pause_menu_ui;
+    std::optional<kee::ui::handle<kee::ui::rect>> end_fade_out;
     std::optional<kee::ui::handle<end_screen>> end_screen_ui;
 
     /* TODO: move to top */
@@ -160,6 +192,7 @@ private:
     raylib::Sound combo_lost_sfx;
 
     unsigned int prev_total_combo;
+    unsigned int prev_highest_combo;
     unsigned int combo;
     unsigned int misses;
 
@@ -167,6 +200,7 @@ private:
     float game_time;
 
     float end_beat;
+    std::optional<float> time_till_end_screen;
 };
 
 } // namespace scene
