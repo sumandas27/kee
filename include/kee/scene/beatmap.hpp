@@ -66,6 +66,14 @@ class pause_menu final : public kee::ui::rect
 {
 public:
     pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_time_paused, raylib::Music& music);
+    pause_menu(const pause_menu&) = delete;
+    pause_menu(pause_menu&&) = delete;
+    ~pause_menu();
+
+    pause_menu& operator=(const pause_menu&) = delete;
+    pause_menu& operator=(pause_menu&&) = delete;
+
+    bool should_destruct() const;
 
 private:
     bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
@@ -73,6 +81,7 @@ private:
 
     void update_element(float dt) override;
 
+    std::optional<bool>& load_time_paused;
     raylib::Music& music;
 
     kee::transition<float>& ui_rel_y;

@@ -172,6 +172,7 @@ pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_
         ),
         true, std::nullopt, std::nullopt
     ),
+    load_time_paused(load_time_paused),
     music(music),
     ui_rel_y(add_transition<float>(-0.5f)),
     go_back_color(add_transition<kee::color>(kee::color(0, 200, 0))),
@@ -259,7 +260,7 @@ pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_
 
     go_back_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        this->destruct_flag = true;
+        this->destruct_flag = true;    
     };
 
     exit_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -282,13 +283,28 @@ pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_
         this->game_ref.queue_game_exit();
     };
 
-    take_keyboard_capture();
-
     ui_rel_y.set(std::nullopt, 0.5f, 0.5f, kee::transition_type::exp);
+
+    take_keyboard_capture();
     if (music.IsPlaying())
         music.Pause();
     else
         load_time_paused = true;
+}
+
+pause_menu::~pause_menu()
+{
+    if (load_time_paused.has_value())
+        load_time_paused = false;
+    else
+        music.Resume();
+
+    release_keyboard_capture();
+}
+
+bool pause_menu::should_destruct() const
+{
+    return destruct_flag;
 }
 
 bool pause_menu::on_element_key_down([[maybe_unused]] int keycode, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -588,9 +604,27 @@ void beatmap::update_element(float dt)
     else
         music.Update();
 
-    const float accuracy = (max_combo != 0)
-        ? 100.f * static_cast<float>(combo + prev_total_combo) / max_combo
-        : 100.f;
+    if (pause_menu_ui.has_value() && pause_menu_ui.value().ref.should_destruct())
+    {
+        pause_menu_ui.reset();
+        for (auto& [keycode, key_ui] : keys)
+        {
+            const bool is_key_ui_down = (key_ui.ref.get_opt_color() == raylib::Color::Green());
+            const bool is_key_really_down = game_ref.is_key_down(keycode);
+            
+            if (is_key_really_down != is_key_ui_down)
+            {
+                if (is_key_really_down)
+                    on_element_key_down(keycode, magic_enum::containers::bitset<kee::mods>());
+                else
+                    on_element_key_up(keycode, magic_enum::containers::bitset<kee::mods>());
+            }
+        }
+    }
+
+    float accuracy = 100.0f;
+    if (max_combo != 0)
+        accuracy *= static_cast<float>(combo + prev_total_combo) / max_combo;
 
     const float accuracy_trunc = std::floor(accuracy * 100.f) / 100.f;
     accuracy_text.ref.set_string(std::format("{:.2f}", accuracy_trunc));

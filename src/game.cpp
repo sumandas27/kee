@@ -58,6 +58,11 @@ void game::main_loop()
     }
 }
 
+bool game::is_key_down(int key) const
+{
+    return raylib::Keyboard::IsKeyDown(key);
+}
+
 void game::queue_game_exit()
 {
     game_should_exit = true;
