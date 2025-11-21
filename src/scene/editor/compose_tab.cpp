@@ -1,6 +1,3 @@
-/* TODO: fix beat snapping */
-/* TODO: fix rendering */
-
 #include "kee/scene/editor/compose_tab.hpp"
 
 #include <chrono>
@@ -929,8 +926,8 @@ const std::vector<int> compose_tab::prio_to_key = []
 const std::unordered_map<int, int> compose_tab::key_to_prio = []
 {
     std::unordered_map<int, int> res;
-    for (int i = 0; i < kee::key_ui_data.size(); i++)
-        res.emplace(kee::key_ui_data[i].raylib_key, i);
+    for (std::size_t i = 0; i < kee::key_ui_data.size(); i++)
+        res.emplace(kee::key_ui_data[i].raylib_key, static_cast<int>(i));
     return res;
 }();
 

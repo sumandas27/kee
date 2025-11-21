@@ -10,7 +10,6 @@
 namespace kee {
 namespace scene {
 
-/* TODO: cap misses at one for holds */
 /* TODO: half beat forgiveness for ts beatmap */
 
 class beatmap;
@@ -58,7 +57,6 @@ private:
     kee::ui::handle<kee::ui::rect> frame_combo_lost;
     kee::ui::handle<kee::ui::text> key_text;
 
-    float combo_lost_time;
     std::deque<beatmap_hit_object> hit_objects;
 };
 
@@ -66,6 +64,14 @@ class pause_menu final : public kee::ui::rect
 {
 public:
     pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_time_paused, raylib::Music& music);
+    pause_menu(const pause_menu&) = delete;
+    pause_menu(pause_menu&&) = delete;
+    ~pause_menu();
+
+    pause_menu& operator=(const pause_menu&) = delete;
+    pause_menu& operator=(pause_menu&&) = delete;
+
+    bool should_destruct() const;
 
 private:
     bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
@@ -73,6 +79,7 @@ private:
 
     void update_element(float dt) override;
 
+    std::optional<bool>& load_time_paused;
     raylib::Music& music;
 
     kee::transition<float>& ui_rel_y;
@@ -156,11 +163,10 @@ private:
     unsigned int combo;
     unsigned int misses;
 
-    float combo_time;
-    float end_beat;
-
     std::optional<bool> load_time_paused;
     float game_time;
+
+    float end_beat;
 };
 
 } // namespace scene

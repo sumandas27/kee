@@ -50,8 +50,7 @@ beatmap_key::beatmap_key(const kee::ui::required& reqs, kee::scene::beatmap& bea
         pos(pos::type::rel, 0.5),
         ui::text_size(ui::text_size::type::rel_h, 0.5 * (1.0f - 2 * kee::key_border_parent_h)),
         true, assets.font_light, std::string(), false
-    )),
-    combo_lost_time(0.0f)
+    ))
 {
     set_opt_color(raylib::Color::White());
 
@@ -172,6 +171,7 @@ pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_
         ),
         true, std::nullopt, std::nullopt
     ),
+    load_time_paused(load_time_paused),
     music(music),
     ui_rel_y(add_transition<float>(-0.5f)),
     go_back_color(add_transition<kee::color>(kee::color(0, 200, 0))),
@@ -259,7 +259,7 @@ pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_
 
     go_back_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        this->destruct_flag = true;
+        this->destruct_flag = true;    
     };
 
     exit_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -282,16 +282,31 @@ pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_
         this->game_ref.queue_game_exit();
     };
 
-    take_keyboard_capture();
-
     ui_rel_y.set(std::nullopt, 0.5f, 0.5f, kee::transition_type::exp);
+
+    take_keyboard_capture();
     if (music.IsPlaying())
         music.Pause();
     else
         load_time_paused = true;
 }
 
-bool pause_menu::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+pause_menu::~pause_menu()
+{
+    if (load_time_paused.has_value())
+        load_time_paused = false;
+    else
+        music.Resume();
+
+    release_keyboard_capture();
+}
+
+bool pause_menu::should_destruct() const
+{
+    return destruct_flag;
+}
+
+bool pause_menu::on_element_key_down([[maybe_unused]] int keycode, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
 {
     if (keycode == KeyboardKey::KEY_ESCAPE)
         game_ref.queue_game_exit();
@@ -312,11 +327,11 @@ void pause_menu::update_element([[maybe_unused]] float dt)
 }
 
 end_screen::end_screen(const kee::ui::required& reqs) :
-    kee::ui::rect(
+    kee::ui::rect(reqs,
         raylib::Color(30, 30, 30),
         pos(pos::type::rel, 1),
         pos(pos::type::rel, 0),
-        border(border::type::abs, 0),
+        kee::border(kee::border::type::abs, 0),
         false, std::nullopt, std::nullopt
     )
 { }
@@ -359,6 +374,9 @@ void beatmap::combo_lose(bool is_miss)
 
 beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_assets& assets, beatmap_dir_info&& beatmap_info) :
     kee::scene::base(window, game, assets),
+    beat_forgiveness(beatmap_info.beat_forgiveness),
+    approach_beats(beatmap_info.approach_beats),
+    max_combo(0),
     combo_gain(add_transition<float>(0.0f)),
     load_rect(add_child<kee::ui::rect>(0,
         raylib::Color(255, 255, 255, 20),
@@ -451,9 +469,6 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
         ),
         true
     )),
-    beat_forgiveness(beatmap_info.beat_forgiveness),
-    approach_beats(beatmap_info.approach_beats),
-    max_combo(0),
     load_time(2.0f),
     music_start_offset(beatmap_info.song_start_offset),
     music_bpm(beatmap_info.song_bpm),
@@ -463,10 +478,9 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
     prev_total_combo(0),
     combo(0),
     misses(0),
-    combo_time(0.0f),
-    end_beat(0.0f),
     load_time_paused(false),
-    game_time(0.0f)
+    game_time(0.0f),
+    end_beat(0.0f)
 {
     for (const auto& [id, rel_pos] : kee::key_ui_data)
         keys.emplace(id, key_frame.ref.add_child<beatmap_key>(std::nullopt, *this, id, rel_pos));
@@ -526,12 +540,10 @@ bool beatmap::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
     if (!is_active || is_hold_held)
         return true;
 
-    bool gain_tap_combo = false;
     const bool is_in_tap_range = (std::abs(front.beat - get_beat()) <= beat_forgiveness);
     const bool is_hold_press_complete = (front.duration != 0.0f && front.hold_press_complete);
     if (is_in_tap_range && !is_hold_press_complete)
     {
-        gain_tap_combo = true;
         combo_increment(true);
 
         if (front.duration == 0.0f)
@@ -601,9 +613,27 @@ void beatmap::update_element(float dt)
     else
         music.Update();
 
-    const float accuracy = (max_combo != 0)
-        ? 100.f * static_cast<float>(combo + prev_total_combo) / max_combo
-        : 100.f;
+    if (pause_menu_ui.has_value() && pause_menu_ui.value().ref.should_destruct())
+    {
+        pause_menu_ui.reset();
+        for (auto& [keycode, key_ui] : keys)
+        {
+            const bool is_key_ui_down = (key_ui.ref.get_opt_color() == raylib::Color::Green());
+            const bool is_key_really_down = game_ref.is_key_down(keycode);
+            
+            if (is_key_really_down != is_key_ui_down)
+            {
+                if (is_key_really_down)
+                    on_element_key_down(keycode, magic_enum::containers::bitset<kee::mods>());
+                else
+                    on_element_key_up(keycode, magic_enum::containers::bitset<kee::mods>());
+            }
+        }
+    }
+
+    float accuracy = 100.0f;
+    if (max_combo != 0)
+        accuracy *= static_cast<float>(combo + prev_total_combo) / max_combo;
 
     const float accuracy_trunc = std::floor(accuracy * 100.f) / 100.f;
     accuracy_text.ref.set_string(std::format("{:.2f}", accuracy_trunc));

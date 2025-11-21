@@ -10,7 +10,9 @@ class game
 public:
     game();
 
-    void main_loop();
+    void main_loop(); /* TODO: wtf to do with this ??*/
+
+    bool is_key_down(int key) const;
 
     void queue_game_exit();
 

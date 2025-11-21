@@ -1,11 +1,11 @@
 #include "kee/game.hpp"
 
-#include "kee/scene/beatmap.hpp"
+#include "kee/scene/editor/root.hpp"
 
 namespace kee {
 
 game::game() :
-    curr_scene(std::make_unique<kee::scene::beatmap>(window, *this, assets, "local_0")),
+    curr_scene(std::make_unique<kee::scene::editor::root>(window, *this, assets, "local_0")),
     game_should_exit(false)
 { }
 
@@ -56,6 +56,11 @@ void game::main_loop()
         curr_scene->render();
         window.impl.EndDrawing();
     }
+}
+
+bool game::is_key_down(int key) const
+{
+    return raylib::Keyboard::IsKeyDown(key);
 }
 
 void game::queue_game_exit()
