@@ -93,6 +93,12 @@ private:
     bool destruct_flag;
 };
 
+class end_screen final : public kee::ui::rect
+{
+public:
+    end_screen(const kee::ui::required& reqs);
+};
+
 class beatmap final : public kee::scene::base
 {
 public:
@@ -133,7 +139,9 @@ private:
     kee::ui::handle<kee::ui::base> key_frame;
 
     std::optional<kee::ui::handle<pause_menu>> pause_menu_ui;
+    std::optional<kee::ui::handle<end_screen>> end_screen_ui;
 
+    /* TODO: move to top */
     const float load_time;
     const float music_start_offset;
     const float music_bpm;

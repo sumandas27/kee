@@ -291,8 +291,11 @@ pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_
         load_time_paused = true;
 }
 
-bool pause_menu::on_element_key_down([[maybe_unused]] int keycode, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+bool pause_menu::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
 {
+    if (keycode == KeyboardKey::KEY_ESCAPE)
+        game_ref.queue_game_exit();
+
     return true;
 }
 
@@ -307,6 +310,16 @@ void pause_menu::update_element([[maybe_unused]] float dt)
     go_back_rect.ref.set_opt_color(go_back_color.get().to_color());
     exit_rect.ref.set_opt_color(exit_color.get().to_color());
 }
+
+end_screen::end_screen(const kee::ui::required& reqs) :
+    kee::ui::rect(
+        raylib::Color(30, 30, 30),
+        pos(pos::type::rel, 1),
+        pos(pos::type::rel, 0),
+        border(border::type::abs, 0),
+        false, std::nullopt, std::nullopt
+    )
+{ }
 
 beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_assets& assets, const std::filesystem::path& beatmap_dir_name) :
     beatmap(window, game, assets, beatmap_dir_info(beatmap_dir_name))
