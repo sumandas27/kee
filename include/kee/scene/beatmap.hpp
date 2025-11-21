@@ -10,7 +10,6 @@
 namespace kee {
 namespace scene {
 
-/* TODO: cap misses at one for holds */
 /* TODO: half beat forgiveness for ts beatmap */
 
 class beatmap;

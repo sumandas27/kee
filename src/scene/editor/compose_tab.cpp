@@ -1,6 +1,3 @@
-/* TODO: fix beat snapping */
-/* TODO: fix rendering */
-
 #include "kee/scene/editor/compose_tab.hpp"
 
 #include <chrono>

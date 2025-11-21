@@ -6,8 +6,6 @@ namespace kee {
 namespace scene {
 namespace editor {
 
-/* TODO: play metronome wavs next */
-
 timing_tab_info::timing_tab_info() :
     metronome_hi("assets/sfx/metronome_hi.wav"),
     metronome_lo("assets/sfx/metronome_lo.wav")

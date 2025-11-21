@@ -117,9 +117,6 @@ public:
 
     void pause_play_click(magic_enum::containers::bitset<kee::mods> mods);
 
-    /**
-     * TODO: when file writing is implemented, change this to bpm 100 offset 0.43
-     */
     float music_bpm;
     float music_start_offset;
 
