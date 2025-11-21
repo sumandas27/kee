@@ -3,6 +3,7 @@
 #include <deque>
 
 #include "kee/scene/base.hpp"
+#include "kee/ui/button.hpp"
 #include "kee/ui/rect.hpp"
 #include "kee/ui/text.hpp"
 
@@ -64,16 +65,32 @@ private:
 class pause_menu final : public kee::ui::rect
 {
 public:
-    pause_menu(const kee::ui::required& reqs, bool& pre_music_played_paused, raylib::Music& music);
+    pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_time_paused, raylib::Music& music);
 
 private:
+    bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
+    bool on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
+
     void update_element(float dt) override;
 
     raylib::Music& music;
 
     kee::transition<float>& ui_rel_y;
+    kee::transition<kee::color>& go_back_color;
+    kee::transition<kee::color>& exit_color;
 
     kee::ui::handle<kee::ui::rect> ui_frame;
+    kee::ui::handle<kee::ui::text> pause_menu_text;
+
+    kee::ui::handle<kee::ui::button> go_back_button;
+    kee::ui::handle<kee::ui::rect> go_back_rect;
+    kee::ui::handle<kee::ui::text> go_back_text;
+
+    kee::ui::handle<kee::ui::button> exit_button;
+    kee::ui::handle<kee::ui::rect> exit_rect;
+    kee::ui::handle<kee::ui::text> exit_text;
+
+    bool destruct_flag;
 };
 
 class beatmap final : public kee::scene::base
@@ -134,8 +151,7 @@ private:
     float combo_time;
     float end_beat;
 
-    bool music_played_flag;
-    bool pre_music_played_paused; /* TODO: into optional rename to load_time_paused maybe */
+    std::optional<bool> load_time_paused;
     float game_time;
 };
 

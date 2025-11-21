@@ -161,7 +161,7 @@ void beatmap_key::render_element() const
         hit_obj_rect.render();
 }
 
-pause_menu::pause_menu(const kee::ui::required& reqs, bool& pre_music_played_paused, raylib::Music& music) :
+pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_time_paused, raylib::Music& music) :
     kee::ui::rect(reqs,
         raylib::Color(255, 255, 255, 20),
         pos(pos::type::rel, 0.5f),
@@ -172,30 +172,140 @@ pause_menu::pause_menu(const kee::ui::required& reqs, bool& pre_music_played_pau
         ),
         true, std::nullopt, std::nullopt
     ),
+    music(music),
+    ui_rel_y(add_transition<float>(-0.5f)),
+    go_back_color(add_transition<kee::color>(kee::color(0, 200, 0))),
+    exit_color(add_transition<kee::color>(kee::color(200, 0, 0))),
     ui_frame(add_child<kee::ui::rect>(std::nullopt,
         raylib::Color(30, 30, 30),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, -0.5f),
         dims(
-            dim(dim::type::rel, 0.5f),
+            dim(dim::type::rel, 0.4f),
             dim(dim::type::rel, 1)
         ),
         true, std::nullopt, std::nullopt
     )),
-    music(music),
-    ui_rel_y(add_transition<float>(-0.5f))
+    pause_menu_text(ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.25f),
+        ui::text_size(ui::text_size::type::rel_h, 0.06f),
+        true, assets.font_semi_bold, "PAUSE MENU", false
+    )),
+    go_back_button(ui_frame.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.45f),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 0.05f)
+        ),
+        false
+    )),
+    go_back_rect(go_back_button.ref.add_child<kee::ui::rect>(std::nullopt,
+        go_back_color.get().to_color(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        kee::border(kee::border::type::abs, 0),
+        true, std::nullopt, std::nullopt
+    )),
+    go_back_text(go_back_rect.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        ui::text_size(ui::text_size::type::rel_h, 0.7f),
+        true, assets.font_semi_bold, "GO BACK", false
+    )),
+    exit_button(ui_frame.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.5f),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 0.05f)
+        ),
+        false
+    )),
+    exit_rect(exit_button.ref.add_child<kee::ui::rect>(std::nullopt,
+        exit_color.get().to_color(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        kee::border(kee::border::type::abs, 0),
+        true, std::nullopt, std::nullopt
+    )),
+    exit_text(exit_rect.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        ui::text_size(ui::text_size::type::rel_h, 0.7f),
+        true, assets.font_semi_bold, "EXIT", false
+    )),
+    destruct_flag(false)
 {
+    /* TODO: make kee colors static const vars use in both beatmap and editor */
+    go_back_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            this->go_back_color.set(std::nullopt, kee::color(0, 150, 0), 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            this->go_back_color.set(std::nullopt, kee::color(0, 200, 0), 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    go_back_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        this->destruct_flag = true;
+    };
+
+    exit_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            this->exit_color.set(std::nullopt, kee::color(150, 0, 0), 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            this->exit_color.set(std::nullopt, kee::color(200, 0, 0), 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    exit_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        this->game_ref.queue_game_exit();
+    };
+
+    take_keyboard_capture();
+
     ui_rel_y.set(std::nullopt, 0.5f, 0.5f, kee::transition_type::exp);
     if (music.IsPlaying())
         music.Pause();
     else
-        pre_music_played_paused = true;
-    /* TODO: take over keyboard input */
+        load_time_paused = true;
+}
+
+bool pause_menu::on_element_key_down([[maybe_unused]] int keycode, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+{
+    return true;
+}
+
+bool pause_menu::on_element_key_up([[maybe_unused]] int keycode, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+{
+    return true;
 }
 
 void pause_menu::update_element([[maybe_unused]] float dt)
 {
     ui_frame.ref.y.val = ui_rel_y.get();
+    go_back_rect.ref.set_opt_color(go_back_color.get().to_color());
+    exit_rect.ref.set_opt_color(exit_color.get().to_color());
 }
 
 beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_assets& assets, const std::filesystem::path& beatmap_dir_name) :
@@ -204,9 +314,9 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
 
 float beatmap::get_beat() const
 {
-    const float music_time = music_played_flag
-        ? music.GetTimePlayed()
-        : game_time - load_time;
+    const float music_time = load_time_paused.has_value()
+        ? game_time - load_time
+        : music.GetTimePlayed();
 
     return (music_time - music_start_offset) * music_bpm / 60.0f;
 }
@@ -342,8 +452,7 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
     misses(0),
     combo_time(0.0f),
     end_beat(0.0f),
-    music_played_flag(false),
-    pre_music_played_paused(false),
+    load_time_paused(false),
     game_time(0.0f)
 {
     for (const auto& [id, rel_pos] : kee::key_ui_data)
@@ -389,7 +498,7 @@ bool beatmap::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
             return true;
 
         if (!pause_menu_ui.has_value())
-            pause_menu_ui.emplace(add_child<pause_menu>(10, pre_music_played_paused, music));
+            pause_menu_ui.emplace(add_child<pause_menu>(10, load_time_paused, music));
 
         return true;
     }
@@ -465,15 +574,15 @@ bool beatmap::on_element_key_up(int keycode, [[maybe_unused]] magic_enum::contai
 
 void beatmap::update_element(float dt)
 {
-    if (!pre_music_played_paused)
+    if (!load_time_paused.has_value() || !load_time_paused.value())
         game_time += dt;
     
-    if (!music_played_flag)
+    if (load_time_paused.has_value())
     {
         if (game_time >= load_time)
         {
             music.Play();
-            music_played_flag = true;
+            load_time_paused.reset();
         }
     }
     else
