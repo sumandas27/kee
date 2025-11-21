@@ -50,8 +50,7 @@ beatmap_key::beatmap_key(const kee::ui::required& reqs, kee::scene::beatmap& bea
         pos(pos::type::rel, 0.5),
         ui::text_size(ui::text_size::type::rel_h, 0.5 * (1.0f - 2 * kee::key_border_parent_h)),
         true, assets.font_light, std::string(), false
-    )),
-    combo_lost_time(0.0f)
+    ))
 {
     set_opt_color(raylib::Color::White());
 
@@ -362,6 +361,9 @@ void beatmap::combo_lose(bool is_miss)
 
 beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_assets& assets, beatmap_dir_info&& beatmap_info) :
     kee::scene::base(window, game, assets),
+    beat_forgiveness(beatmap_info.beat_forgiveness),
+    approach_beats(beatmap_info.approach_beats),
+    max_combo(0),
     combo_gain(add_transition<float>(0.0f)),
     load_rect(add_child<kee::ui::rect>(0,
         raylib::Color(255, 255, 255, 20),
@@ -454,9 +456,6 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
         ),
         true
     )),
-    beat_forgiveness(beatmap_info.beat_forgiveness),
-    approach_beats(beatmap_info.approach_beats),
-    max_combo(0),
     load_time(2.0f),
     music_start_offset(beatmap_info.song_start_offset),
     music_bpm(beatmap_info.song_bpm),
@@ -466,10 +465,9 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
     prev_total_combo(0),
     combo(0),
     misses(0),
-    combo_time(0.0f),
-    end_beat(0.0f),
     load_time_paused(false),
-    game_time(0.0f)
+    game_time(0.0f),
+    end_beat(0.0f)
 {
     for (const auto& [id, rel_pos] : kee::key_ui_data)
         keys.emplace(id, key_frame.ref.add_child<beatmap_key>(std::nullopt, *this, id, rel_pos));
@@ -529,12 +527,10 @@ bool beatmap::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
     if (!is_active || is_hold_held)
         return true;
 
-    bool gain_tap_combo = false;
     const bool is_in_tap_range = (std::abs(front.beat - get_beat()) <= beat_forgiveness);
     const bool is_hold_press_complete = (front.duration != 0.0f && front.hold_press_complete);
     if (is_in_tap_range && !is_hold_press_complete)
     {
-        gain_tap_combo = true;
         combo_increment(true);
 
         if (front.duration == 0.0f)

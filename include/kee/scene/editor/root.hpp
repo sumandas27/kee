@@ -83,7 +83,6 @@ private:
     void queue_for_destruction();
 
     const kee::image_texture& error_png;
-    const float menu_width;
 
     kee::transition<float>& base_w;
     kee::transition<kee::color>& confirm_button_color;
@@ -128,8 +127,6 @@ private:
     void update_element(float dt) override;
 
     static constexpr std::array<float, 6> playback_speeds = { 0.25f, 0.5f, 0.75f, 1.0f, 1.5f, 2.0f };
-
-    const kee::image_texture& arrow_png;
 
     kee::transition<kee::color>& pause_play_color;
     kee::transition<float>& pause_play_scale;

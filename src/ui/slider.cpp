@@ -13,7 +13,6 @@ slider::slider(
     kee::ui::base(reqs, x, y, dimensions, centered),
     on_event([]([[maybe_unused]] slider::event slider_event){}),
     progress(0.0f),
-    slider_state(mouse_state::off),
     fill_color(add_transition<kee::color>(kee::color::white)),
     thumb_scale(add_transition<float>(1.75f)),
     track(make_temp_child<kee::ui::rect>(
@@ -50,7 +49,8 @@ slider::slider(
         true,
         std::nullopt,
         rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt)
-    ))
+    )),
+    slider_state(mouse_state::off)
 { }
 
 bool slider::is_down() const

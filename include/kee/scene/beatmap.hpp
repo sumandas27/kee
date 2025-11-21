@@ -58,7 +58,6 @@ private:
     kee::ui::handle<kee::ui::rect> frame_combo_lost;
     kee::ui::handle<kee::ui::text> key_text;
 
-    float combo_lost_time;
     std::deque<beatmap_hit_object> hit_objects;
 };
 
@@ -157,11 +156,10 @@ private:
     unsigned int combo;
     unsigned int misses;
 
-    float combo_time;
-    float end_beat;
-
     std::optional<bool> load_time_paused;
     float game_time;
+
+    float end_beat;
 };
 
 } // namespace scene
