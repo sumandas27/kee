@@ -715,6 +715,9 @@ void root::save_beatmap()
         boost::json::object output;
         output["song_artist"] = setup_info.song_artist;
         output["song_name"] = setup_info.song_name;
+        output["mapper"] = setup_info.mapper;
+        output["level_name"] = setup_info.level_name;
+
         output["beat_forgiveness"] = setup_info.beat_forgiveness;
         output["approach_beats"] = approach_beats;
 

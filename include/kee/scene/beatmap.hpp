@@ -108,13 +108,17 @@ private:
 class end_screen final : public kee::ui::rect
 {
 public:
-    end_screen(const kee::ui::required& reqs, float accuracy, unsigned int misses, unsigned int combo, unsigned int max_combo, unsigned int highest_combo);
+    end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene);
 
 private:
     bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
     bool on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
 
-    void update_element(float dt);
+    void update_element(float dt) override;
+
+    void truncate_name_str(kee::ui::handle<kee::ui::text>& name_ui);
+
+    beatmap& beatmap_scene;
 
     kee::transition<float>& ui_rel_x;
     kee::transition<kee::color>& exit_text_color;
@@ -123,8 +127,6 @@ private:
     kee::ui::handle<kee::ui::text> rank_misses_text;
 
     kee::ui::handle<kee::ui::base> ui_frame;
-    /* TODO NEXT: dont hardcode these */
-    /* TODO: manage text truncating if too long */
     kee::ui::handle<kee::ui::text> song_name;
     kee::ui::handle<kee::ui::text> artist_name;
     kee::ui::handle<kee::ui::text> level_name;
@@ -160,7 +162,16 @@ public:
     const float beat_forgiveness;
     const float approach_beats;
 
+    const std::string song_name;
+    const std::string song_artist;
+    const std::string mapper;
+    const std::string level_name;
+
     unsigned int max_combo;
+    unsigned int prev_total_combo;
+    unsigned int prev_highest_combo;
+    unsigned int combo;
+    unsigned int misses;
 
 private:
     beatmap(const kee::scene::window& window, kee::game& game, kee::global_assets& assets, beatmap_dir_info&& beatmap_info);
@@ -198,18 +209,12 @@ private:
     std::optional<kee::ui::handle<kee::ui::rect>> end_fade_out;
     std::optional<kee::ui::handle<end_screen>> end_screen_ui;
     
-
     std::unordered_map<int, kee::ui::handle<beatmap_key>> keys;
     float end_beat;
 
     raylib::Music music;
     raylib::Sound hitsound;
     raylib::Sound combo_lost_sfx;
-
-    unsigned int prev_total_combo;
-    unsigned int prev_highest_combo;
-    unsigned int combo;
-    unsigned int misses;
 
     std::optional<bool> load_time_paused;
     std::optional<float> time_till_end_screen;

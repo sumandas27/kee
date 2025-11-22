@@ -215,6 +215,9 @@ public:
     raylib::Music song;
     std::string song_name;
     std::string song_artist;
+    std::string mapper;
+    std::string level_name;
+
     float song_bpm;
     float song_start_offset;
 

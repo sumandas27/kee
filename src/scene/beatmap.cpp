@@ -372,7 +372,7 @@ void pause_menu::update_element([[maybe_unused]] float dt)
     exit_rect.ref.set_opt_color(exit_color.get().to_color());
 }
 
-end_screen::end_screen(const kee::ui::required& reqs, float accuracy, unsigned int misses, unsigned int combo, unsigned int max_combo, unsigned int highest_combo) :
+end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
     kee::ui::rect(reqs,
         raylib::Color(30, 30, 30),
         pos(pos::type::rel, 1.5f),
@@ -380,6 +380,7 @@ end_screen::end_screen(const kee::ui::required& reqs, float accuracy, unsigned i
         kee::border(kee::border::type::rel_h, 0.08f),
         true, std::nullopt, std::nullopt
     ),
+    beatmap_scene(beatmap_scene),
     ui_rel_x(add_transition<float>(1)),
     exit_text_color(add_transition<kee::color>(kee::color::white)),
     rank_text(add_child<kee::ui::text>(std::nullopt,
@@ -407,21 +408,21 @@ end_screen::end_screen(const kee::ui::required& reqs, float accuracy, unsigned i
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        false, assets.font_semi_bold, "Something About Us", false
+        false, assets.font_semi_bold, beatmap_scene.song_name, false
     )),
     artist_name(ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.11f),
         ui::text_size(ui::text_size::type::rel_h, 0.04f),
-        false, assets.font_semi_bold, "Daft Punk", false
+        false, assets.font_semi_bold, beatmap_scene.song_artist, false
     )),
     level_name(ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.17f),
         ui::text_size(ui::text_size::type::rel_h, 0.04f),
-        false, assets.font_semi_bold, "suman's Normal", false
+        false, assets.font_semi_bold, std::format("{}'s {}", beatmap_scene.mapper, beatmap_scene.level_name), false
     )),
     exit_button(ui_frame.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::end, 0),
@@ -504,30 +505,47 @@ end_screen::end_screen(const kee::ui::required& reqs, float accuracy, unsigned i
         pos(pos::type::end, 0),
         pos(pos::type::rel, 0.3f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        false, assets.font_regular, std::format("{:.2f}", accuracy), false
+        false, assets.font_regular, std::string(), false
     )),
     missed_result(results_frame.ref.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
         pos(pos::type::end, 0),
         pos(pos::type::rel, 0.45f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        false, assets.font_regular, std::to_string(misses), false
+        false, assets.font_regular, std::to_string(beatmap_scene.misses), false
     )),
     combo_result(results_frame.ref.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
         pos(pos::type::end, 0),
         pos(pos::type::rel, 0.6f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        false, assets.font_regular, std::format("{}/{}", combo, max_combo), false
+        false, assets.font_regular, std::string(), false
     )),
     highest_combo_result(results_frame.ref.add_child<kee::ui::text>(std::nullopt,
         raylib::Color::White(),
         pos(pos::type::end, 0),
         pos(pos::type::rel, 0.75f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        false, assets.font_regular, std::format("{}x", highest_combo), false
+        false, assets.font_regular, std::string(), false
     ))
-{ 
+{
+    truncate_name_str(song_name);
+    truncate_name_str(artist_name);
+    truncate_name_str(level_name);
+
+    const unsigned int curr_combo = beatmap_scene.combo + beatmap_scene.prev_total_combo;
+    const unsigned int highest_combo = std::max(beatmap_scene.combo, beatmap_scene.prev_highest_combo);
+
+    float accuracy = 100.f;
+    if (beatmap_scene.max_combo != 0)
+        accuracy *= static_cast<float>(curr_combo) / beatmap_scene.max_combo;
+
+    const float accuracy_trunc = std::floor(accuracy * 100.f) / 100.f;
+    accuracy_result.ref.set_string(std::format("{:.2f}", accuracy_trunc));
+
+    combo_result.ref.set_string(std::format("{}/{}", curr_combo, beatmap_scene.max_combo));
+    highest_combo_result.ref.set_string(std::format("{}x", highest_combo));
+
     ui_rel_x.set(std::nullopt, 0.5f, 0.5f, kee::transition_type::exp);
 
     exit_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -550,22 +568,23 @@ end_screen::end_screen(const kee::ui::required& reqs, float accuracy, unsigned i
         this->game_ref.queue_game_exit();
     };
 
-    if (misses == 0)
+    if (beatmap_scene.misses == 0)
     {
         rank_text.ref.set_opt_color(raylib::Color::Gold());
         rank_text.ref.set_string("FC");
     }
     else
     {
-        if (misses >= 1 && misses <= 10)
+        if (beatmap_scene.misses >= 1 && beatmap_scene.misses <= 10)
         {
             rank_text.ref.y.val = 0.525f;
             rank_misses_text.ref.set_opt_color(raylib::Color::DarkGray());
-            rank_misses_text.ref.set_string(std::format("({}x)", misses));
+            rank_misses_text.ref.set_string(std::format("({}x)", beatmap_scene.misses));
         }
 
         const unsigned int accuracy_uint = static_cast<unsigned int>(accuracy);
         rank_text.ref.set_string(std::to_string(accuracy_uint));
+
         if (accuracy >= 90.f)
             rank_text.ref.set_opt_color(raylib::Color::Green());
         else if (accuracy >= 80.f)
@@ -596,6 +615,21 @@ void end_screen::update_element([[maybe_unused]] float dt)
 {
     x.val = ui_rel_x.get();
     exit_text.ref.set_opt_color(exit_text_color.get().to_color());
+}
+
+void end_screen::truncate_name_str(kee::ui::handle<kee::ui::text>& name_ui)
+{
+    if (name_ui.ref.get_raw_rect().width <= 0.45f * ui_frame.ref.get_raw_rect().width)
+        return;
+
+    for (std::size_t str_end_char = name_ui.ref.get_string().size(); str_end_char > 0; str_end_char--)
+    {
+        const std::string new_str = name_ui.ref.get_string().substr(0, str_end_char) + "...";
+        name_ui.ref.set_string(new_str);
+
+        if (name_ui.ref.get_raw_rect().width <= 0.45f * ui_frame.ref.get_raw_rect().width)
+            return;
+    }
 }
 
 beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_assets& assets, const std::filesystem::path& beatmap_dir_name) :
@@ -641,6 +675,10 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
     kee::scene::base(window, game, assets),
     beat_forgiveness(beatmap_info.beat_forgiveness),
     approach_beats(beatmap_info.approach_beats),
+    song_name(beatmap_info.song_name),
+    song_artist(beatmap_info.song_artist),
+    mapper(beatmap_info.mapper),
+    level_name(beatmap_info.level_name),
     keys_json_obj(beatmap_info.keys_json_obj),
     load_time(2.0f),
     music_start_offset(beatmap_info.song_start_offset),
@@ -755,7 +793,8 @@ void beatmap::reset_level()
     for (const auto& [id, rel_pos] : kee::key_ui_data)
         keys.emplace(id, key_frame.ref.add_child<beatmap_key>(std::nullopt, *this, id, rel_pos));
 
-    for (const auto& [keycode, _] : kee::key_ui_data)
+    keys.at(KeyboardKey::KEY_Q).ref.push(beatmap_hit_object(0.0f, 4.0f));
+    /*for (const auto& [keycode, _] : kee::key_ui_data)
     {
         const std::string key_str = std::string(1, static_cast<char>(keycode));
         const boost::json::array& key_hit_objs = keys_json_obj.at(key_str).as_array();
@@ -768,7 +807,7 @@ void beatmap::reset_level()
             
             keys.at(keycode).ref.push(beatmap_hit_object(beat, duration));
         }
-    }
+    }*/
 
     for (const auto& [keycode, _] : kee::key_ui_data)
     {
@@ -917,12 +956,6 @@ void beatmap::update_element(float dt)
             reset_level();
     }
 
-    const unsigned int curr_combo = combo + prev_total_combo;
-    float accuracy = 100.0f;
-    if (max_combo != 0)
-        accuracy *= static_cast<float>(curr_combo) / max_combo;
-
-    const float accuracy_trunc = std::floor(accuracy * 100.f) / 100.f;
     if (!time_till_end_screen.has_value())
     {
         if (get_beat() >= end_beat)
@@ -943,10 +976,7 @@ void beatmap::update_element(float dt)
     {
         time_till_end_screen.value() -= dt;
         if (time_till_end_screen.value() <= 0)
-        {
-            const unsigned int highest_combo = std::max(combo, prev_highest_combo);
-            end_screen_ui.emplace(add_child<end_screen>(10, accuracy_trunc, misses, curr_combo, max_combo, highest_combo));
-        }
+            end_screen_ui.emplace(add_child<end_screen>(10, *this));
     }
 
     if (end_fade_out.has_value())
@@ -954,6 +984,12 @@ void beatmap::update_element(float dt)
         const unsigned char a = static_cast<unsigned char>(end_fade_out_alpha.get());
         end_fade_out.value().ref.set_opt_color(raylib::Color(10, 10, 10, a));
     }
+
+    float accuracy = 100.f;
+    if (max_combo != 0)
+        accuracy *= static_cast<float>(combo + prev_total_combo) / max_combo;
+
+    const float accuracy_trunc = std::floor(accuracy * 100.f) / 100.f;
 
     accuracy_text.ref.set_string(std::format("{:.2f}", accuracy_trunc));
     if (accuracy == 100.f)

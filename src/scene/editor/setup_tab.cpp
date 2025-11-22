@@ -10,6 +10,8 @@ setup_tab_info::setup_tab_info(const std::optional<beatmap_dir_info>& dir_info) 
     from_dir(dir_info.has_value()),
     song_artist(dir_info.has_value() ? dir_info.value().song_artist : ""),
     song_name(dir_info.has_value() ? dir_info.value().song_name : ""),
+    mapper(dir_info.has_value() ? dir_info.value().mapper : ""),
+    level_name(dir_info.has_value() ? dir_info.value().level_name : ""),
     beat_forgiveness(dir_info.has_value() ? dir_info.value().beat_forgiveness : 0.25f)
 { }
 
@@ -96,6 +98,38 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         ),
         false, *this, setup_info.song_name
     )),
+    mapper_text(metadata_bg.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0.1f),
+        pos(pos::type::rel, 0.36f),
+        ui::text_size(ui::text_size::type::rel_h, 0.03f),
+        false, assets.font_semi_bold, "MAPPER", false
+    )),
+    mapper_textbox(metadata_bg.ref.add_child<kee::ui::textbox>(std::nullopt,
+        pos(pos::type::rel, 0.45f),
+        pos(pos::type::rel, 0.36f),
+        dims(
+            dim(dim::type::rel, 0.45f),
+            dim(dim::type::rel, 0.03f)
+        ),
+        false, *this, setup_info.mapper
+    )),
+    level_name_text(metadata_bg.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0.1f),
+        pos(pos::type::rel, 0.4225f),
+        ui::text_size(ui::text_size::type::rel_h, 0.03f),
+        false, assets.font_semi_bold, "LEVEL NAME", false
+    )),
+    level_name_textbox(metadata_bg.ref.add_child<kee::ui::textbox>(std::nullopt,
+        pos(pos::type::rel, 0.45f),
+        pos(pos::type::rel, 0.4225f),
+        dims(
+            dim(dim::type::rel, 0.45f),
+            dim(dim::type::rel, 0.03f)
+        ),
+        false, *this, setup_info.level_name
+    )),
     difficulty_bg(add_child<kee::ui::rect>(std::nullopt,
         raylib::Color(20, 20, 20),
         pos(pos::type::rel, 17.0f / 30.0f),
@@ -170,6 +204,24 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     song_name_textbox.ref.on_string_input = [&](std::string_view new_str) -> bool
     {
         this->setup_info.song_name = new_str;
+        if (this->root_elem.save_info.has_value())
+            this->root_elem.save_info.value().save_metadata_needed = true;
+
+        return true;
+    };
+
+    mapper_textbox.ref.on_string_input = [&](std::string_view new_str) -> bool
+    {
+        this->setup_info.mapper = new_str;
+        if (this->root_elem.save_info.has_value())
+            this->root_elem.save_info.value().save_metadata_needed = true;
+
+        return true;
+    };
+
+    level_name_textbox.ref.on_string_input = [&](std::string_view new_str) -> bool
+    {
+        this->setup_info.level_name = new_str;
         if (this->root_elem.save_info.has_value())
             this->root_elem.save_info.value().save_metadata_needed = true;
 

@@ -20,6 +20,8 @@ public:
     bool from_dir;
     std::string song_artist;
     std::string song_name;
+    std::string mapper;
+    std::string level_name;
 
     float beat_forgiveness;
 };
@@ -45,6 +47,12 @@ private:
     
     kee::ui::handle<kee::ui::text> song_name_text;
     kee::ui::handle<kee::ui::textbox> song_name_textbox;
+
+    kee::ui::handle<kee::ui::text> mapper_text;
+    kee::ui::handle<kee::ui::textbox> mapper_textbox;
+
+    kee::ui::handle<kee::ui::text> level_name_text;
+    kee::ui::handle<kee::ui::textbox> level_name_textbox;
 
     kee::ui::handle<kee::ui::rect> difficulty_bg;
     kee::ui::handle<kee::ui::text> difficulty_label;

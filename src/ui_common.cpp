@@ -86,6 +86,12 @@ beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_name
     if (!json_object.contains("song_name") || !json_object.at("song_name").is_string())
         throw std::runtime_error("`metadata.json` has malformed `song_name` key.");
 
+    if (!json_object.contains("mapper") || !json_object.at("mapper").is_string())
+        throw std::runtime_error("`metadata.json` has malformed `mapper` key.");
+
+    if (!json_object.contains("level_name") || !json_object.at("level_name").is_string())
+        throw std::runtime_error("`metadata.json` has malformed `level_name` key.");
+
     if (!json_object.contains("beat_forgiveness") || !json_object.at("beat_forgiveness").is_double())
         throw std::runtime_error("`metadata.json` has malformed `beat_forgiveness` key.");
 
@@ -129,6 +135,9 @@ beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_name
     beatmap_dir_path = beatmap_dir_info::app_data_dir / beatmap_dir_name;
     song_name = json_object.at("song_name").as_string();
     song_artist = json_object.at("song_artist").as_string();
+    mapper = json_object.at("mapper").as_string();
+    level_name = json_object.at("level_name").as_string();
+
     song_bpm = static_cast<float>(json_object.at("song_bpm").as_double());
     song_start_offset = static_cast<float>(json_object.at("song_start_offset").as_double());
 
