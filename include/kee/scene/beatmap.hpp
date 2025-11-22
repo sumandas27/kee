@@ -11,6 +11,7 @@ namespace kee {
 namespace scene {
 
 /* TODO: half beat forgiveness for ts beatmap */
+/* TODO: remove music loop */
 
 class beatmap;
 
@@ -71,19 +72,19 @@ public:
     pause_menu& operator=(const pause_menu&) = delete;
     pause_menu& operator=(pause_menu&&) = delete;
 
-    bool should_destruct() const;
+    std::optional<bool> destruct_else_restart() const;
 
 private:
     bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
     bool on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
 
     void update_element(float dt) override;
-
     std::optional<bool>& load_time_paused;
     raylib::Music& music;
 
     kee::transition<float>& ui_rel_y;
     kee::transition<kee::color>& go_back_color;
+    kee::transition<kee::color>& restart_color;
     kee::transition<kee::color>& exit_color;
 
     kee::ui::handle<kee::ui::rect> ui_frame;
@@ -93,11 +94,15 @@ private:
     kee::ui::handle<kee::ui::rect> go_back_rect;
     kee::ui::handle<kee::ui::text> go_back_text;
 
+    kee::ui::handle<kee::ui::button> restart_button;
+    kee::ui::handle<kee::ui::rect> restart_rect;
+    kee::ui::handle<kee::ui::text> restart_text;
+
     kee::ui::handle<kee::ui::button> exit_button;
     kee::ui::handle<kee::ui::rect> exit_rect;
     kee::ui::handle<kee::ui::text> exit_text;
 
-    bool destruct_flag;
+    std::optional<bool> destruct_else_restart_flag;
 };
 
 class end_screen final : public kee::ui::rect
@@ -118,6 +123,12 @@ private:
     kee::ui::handle<kee::ui::text> rank_misses_text;
 
     kee::ui::handle<kee::ui::base> ui_frame;
+    /* TODO NEXT: dont hardcode these */
+    /* TODO: manage text truncating if too long */
+    kee::ui::handle<kee::ui::text> song_name;
+    kee::ui::handle<kee::ui::text> artist_name;
+    kee::ui::handle<kee::ui::text> level_name;
+
     kee::ui::handle<kee::ui::button> exit_button;
     kee::ui::handle<kee::ui::rect> exit_rect;
     kee::ui::handle<kee::ui::text> exit_text;
@@ -159,6 +170,13 @@ private:
 
     void update_element(float dt) override;
 
+    void reset_level();
+
+    const boost::json::object keys_json_obj;
+    const float load_time;
+    const float music_start_offset;
+    const float music_bpm;
+
     kee::transition<float>& combo_gain;
     kee::transition<float>& end_fade_out_alpha;
 
@@ -179,13 +197,10 @@ private:
     std::optional<kee::ui::handle<pause_menu>> pause_menu_ui;
     std::optional<kee::ui::handle<kee::ui::rect>> end_fade_out;
     std::optional<kee::ui::handle<end_screen>> end_screen_ui;
-
-    /* TODO: move to top */
-    const float load_time;
-    const float music_start_offset;
-    const float music_bpm;
+    
 
     std::unordered_map<int, kee::ui::handle<beatmap_key>> keys;
+    float end_beat;
 
     raylib::Music music;
     raylib::Sound hitsound;
@@ -197,10 +212,8 @@ private:
     unsigned int misses;
 
     std::optional<bool> load_time_paused;
-    float game_time;
-
-    float end_beat;
     std::optional<float> time_till_end_screen;
+    float game_time;
 };
 
 } // namespace scene

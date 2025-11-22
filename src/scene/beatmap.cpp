@@ -127,13 +127,16 @@ void beatmap_key::update_element([[maybe_unused]] float dt)
             beatmap_scene.max_combo++;
             combo_lose(true);
 
-            if (front.duration == 0.0f)
-                pop();
-            else
+            if (front.duration != 0.0f)
+            {
                 front.hold_press_complete = true;
+                front.hold_not_missed = false;
+            }
+            else
+                pop();
         }
     }
-    else if (front.hold_next_combo.has_value() && beatmap_scene.get_beat() >= front.hold_next_combo.value()) /* get hold intermediate combo */
+    else if (front.hold_next_combo.has_value() && beatmap_scene.get_beat() >= front.hold_next_combo.value())
     {
         if (front.hold_is_held)
             beatmap_scene.combo_increment(false);
@@ -175,6 +178,7 @@ pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_
     music(music),
     ui_rel_y(add_transition<float>(-0.5f)),
     go_back_color(add_transition<kee::color>(kee::color(0, 200, 0))),
+    restart_color(add_transition<kee::color>(kee::color(200, 200, 0))),
     exit_color(add_transition<kee::color>(kee::color(200, 0, 0))),
     ui_frame(add_child<kee::ui::rect>(std::nullopt,
         raylib::Color(30, 30, 30),
@@ -195,10 +199,10 @@ pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_
     )),
     go_back_button(ui_frame.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0.45f),
+        pos(pos::type::rel, 0.5f),
         dims(
             dim(dim::type::rel, 1),
-            dim(dim::type::rel, 0.05f)
+            dim(dim::type::rel, 0.06f)
         ),
         false
     )),
@@ -216,12 +220,35 @@ pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_
         ui::text_size(ui::text_size::type::rel_h, 0.7f),
         true, assets.font_semi_bold, "GO BACK", false
     )),
-    exit_button(ui_frame.ref.add_child<kee::ui::button>(std::nullopt,
+    restart_button(ui_frame.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.56f),
         dims(
             dim(dim::type::rel, 1),
-            dim(dim::type::rel, 0.05f)
+            dim(dim::type::rel, 0.06f)
+        ),
+        false
+    )),
+    restart_rect(restart_button.ref.add_child<kee::ui::rect>(std::nullopt,
+        restart_color.get().to_color(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        kee::border(kee::border::type::abs, 0),
+        true, std::nullopt, std::nullopt
+    )),
+    restart_text(restart_rect.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        ui::text_size(ui::text_size::type::rel_h, 0.7f),
+        true, assets.font_semi_bold, "RESTART", false
+    )),
+    exit_button(ui_frame.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.62f),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 0.06f)
         ),
         false
     )),
@@ -238,10 +265,8 @@ pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.7f),
         true, assets.font_semi_bold, "EXIT", false
-    )),
-    destruct_flag(false)
+    ))
 {
-    /* TODO: make kee colors static const vars use in both beatmap and editor */
     go_back_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
         switch (button_event)
@@ -259,7 +284,27 @@ pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_
 
     go_back_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        this->destruct_flag = true;    
+        this->destruct_else_restart_flag = true;    
+    };
+
+    restart_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            this->restart_color.set(std::nullopt, kee::color(150, 150, 0), 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            this->restart_color.set(std::nullopt, kee::color(200, 200, 0), 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    restart_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        this->destruct_else_restart_flag = false;
     };
 
     exit_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -301,9 +346,9 @@ pause_menu::~pause_menu()
     release_keyboard_capture();
 }
 
-bool pause_menu::should_destruct() const
+std::optional<bool> pause_menu::destruct_else_restart() const
 {
-    return destruct_flag;
+    return destruct_else_restart_flag;
 }
 
 bool pause_menu::on_element_key_down([[maybe_unused]] int keycode, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -323,6 +368,7 @@ void pause_menu::update_element([[maybe_unused]] float dt)
 {
     ui_frame.ref.y.val = ui_rel_y.get();
     go_back_rect.ref.set_opt_color(go_back_color.get().to_color());
+    restart_rect.ref.set_opt_color(restart_color.get().to_color());
     exit_rect.ref.set_opt_color(exit_color.get().to_color());
 }
 
@@ -339,14 +385,14 @@ end_screen::end_screen(const kee::ui::required& reqs, float accuracy, unsigned i
     rank_text(add_child<kee::ui::text>(std::nullopt,
         raylib::Color::Blank(),
         pos(pos::type::rel, 0.25f),
-        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.55f),
         ui::text_size(ui::text_size::type::rel_h, 0.15f),
         true, assets.font_semi_bold, std::string(), false
     )),
     rank_misses_text(add_child<kee::ui::text>(std::nullopt,
         raylib::Color::Blank(),
         pos(pos::type::rel, 0.25f),
-        pos(pos::type::rel, 0.575f),
+        pos(pos::type::rel, 0.625f),
         ui::text_size(ui::text_size::type::rel_h, 0.05f),
         true, assets.font_semi_bold, std::string(), false
     )),
@@ -355,6 +401,27 @@ end_screen::end_screen(const kee::ui::required& reqs, float accuracy, unsigned i
         pos(pos::type::rel, 0.5f),
         kee::border(kee::border::type::rel_h, 0.1f),
         true
+    )),
+    song_name(ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        ui::text_size(ui::text_size::type::rel_h, 0.08f),
+        false, assets.font_semi_bold, "Something About Us", false
+    )),
+    artist_name(ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.11f),
+        ui::text_size(ui::text_size::type::rel_h, 0.04f),
+        false, assets.font_semi_bold, "Daft Punk", false
+    )),
+    level_name(ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        raylib::Color::White(),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.17f),
+        ui::text_size(ui::text_size::type::rel_h, 0.04f),
+        false, assets.font_semi_bold, "suman's Normal", false
     )),
     exit_button(ui_frame.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::end, 0),
@@ -492,7 +559,7 @@ end_screen::end_screen(const kee::ui::required& reqs, float accuracy, unsigned i
     {
         if (misses >= 1 && misses <= 10)
         {
-            rank_text.ref.y.val = 0.475f;
+            rank_text.ref.y.val = 0.525f;
             rank_misses_text.ref.set_opt_color(raylib::Color::DarkGray());
             rank_misses_text.ref.set_string(std::format("({}x)", misses));
         }
@@ -571,19 +638,12 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
     kee::scene::base(window, game, assets),
     beat_forgiveness(beatmap_info.beat_forgiveness),
     approach_beats(beatmap_info.approach_beats),
-    max_combo(0),
+    keys_json_obj(beatmap_info.keys_json_obj),
+    load_time(2.0f),
+    music_start_offset(beatmap_info.song_start_offset),
+    music_bpm(beatmap_info.song_bpm),
     combo_gain(add_transition<float>(0.0f)),
     end_fade_out_alpha(add_transition<float>(0.0f)),
-    load_rect(add_child<kee::ui::rect>(0,
-        raylib::Color(255, 255, 255, 20),
-        pos(pos::type::beg, 0),
-        pos(pos::type::end, 0),
-        dims(
-            dim(dim::type::rel, 1),
-            dim(dim::type::rel, 1)
-        ),
-        false, std::nullopt, std::nullopt
-    )),
     progress_bg(add_child<kee::ui::rect>(1,
         raylib::Color(20, 20, 20),
         pos(pos::type::beg, 0),
@@ -665,33 +725,37 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
         ),
         true
     )),
-    load_time(2.0f),
-    music_start_offset(beatmap_info.song_start_offset),
-    music_bpm(beatmap_info.song_bpm),
     music(std::move(beatmap_info.song)),
     hitsound("assets/sfx/hitsound.wav"),
     combo_lost_sfx("assets/sfx/combo_lost.wav"),
-    prev_total_combo(0),
-    prev_highest_combo(0),
-    combo(0),
-    misses(0),
-    load_time_paused(false),
-    game_time(0.0f),
     end_beat(0.0f)
+{ 
+    reset_level();
+}
+
+void beatmap::reset_level()
 {
+    load_rect.emplace(add_child<kee::ui::rect>(0,
+        raylib::Color(255, 255, 255, 20),
+        pos(pos::type::beg, 0),
+        pos(pos::type::end, 0),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 1)
+        ),
+        false, std::nullopt, std::nullopt
+    ));
+
+    pause_menu_ui.reset();
+    
+    keys.clear();
     for (const auto& [id, rel_pos] : kee::key_ui_data)
         keys.emplace(id, key_frame.ref.add_child<beatmap_key>(std::nullopt, *this, id, rel_pos));
 
-    music.SetLooping(false);
-    music.SetVolume(0.1f);
-    hitsound.SetVolume(0.01f);
-    combo_lost_sfx.SetVolume(0.05f);
-
-    keys.at(KeyboardKey::KEY_Q).ref.push(beatmap_hit_object(0.f, 4.f));
-    /*for (const auto& [keycode, _] : kee::key_ui_data)
+    for (const auto& [keycode, _] : kee::key_ui_data)
     {
         const std::string key_str = std::string(1, static_cast<char>(keycode));
-        const boost::json::array& key_hit_objs = beatmap_info.keys_json_obj.at(key_str).as_array();
+        const boost::json::array& key_hit_objs = keys_json_obj.at(key_str).as_array();
         
         for (const boost::json::value& key_hit_obj : key_hit_objs)
         {
@@ -701,7 +765,7 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
             
             keys.at(keycode).ref.push(beatmap_hit_object(beat, duration));
         }
-    }*/
+    }
 
     for (const auto& [keycode, _] : kee::key_ui_data)
     {
@@ -712,6 +776,23 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
         if (end_beat < back.beat + back.duration)
             end_beat = back.beat + back.duration;
     }
+
+    music.SetLooping(false);
+    music.SetVolume(0.1f);
+    music.Seek(0.0f);
+    music.Pause();
+
+    hitsound.SetVolume(0.01f);
+    combo_lost_sfx.SetVolume(0.05f);
+
+    max_combo = 0;
+    prev_total_combo = 0;
+    prev_highest_combo = 0;
+    combo = 0;
+    misses = 0;
+
+    load_time_paused = false,
+    game_time = 0.0f;
 }
 
 bool beatmap::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -810,22 +891,27 @@ void beatmap::update_element(float dt)
     else
         music.Update();
 
-    if (pause_menu_ui.has_value() && pause_menu_ui.value().ref.should_destruct())
+    if (pause_menu_ui.has_value() && pause_menu_ui.value().ref.destruct_else_restart().has_value())
     {
-        pause_menu_ui.reset();
-        for (auto& [keycode, key_ui] : keys)
+        if (pause_menu_ui.value().ref.destruct_else_restart().value())
         {
-            const bool is_key_ui_down = (key_ui.ref.get_opt_color() == raylib::Color::Green());
-            const bool is_key_really_down = game_ref.is_key_down(keycode);
-            
-            if (is_key_really_down != is_key_ui_down)
+            pause_menu_ui.reset();
+            for (auto& [keycode, key_ui] : keys)
             {
-                if (is_key_really_down)
-                    on_element_key_down(keycode, magic_enum::containers::bitset<kee::mods>());
-                else
-                    on_element_key_up(keycode, magic_enum::containers::bitset<kee::mods>());
+                const bool is_key_ui_down = (key_ui.ref.get_opt_color() == raylib::Color::Green());
+                const bool is_key_really_down = game_ref.is_key_down(keycode);
+                
+                if (is_key_really_down != is_key_ui_down)
+                {
+                    if (is_key_really_down)
+                        on_element_key_down(keycode, magic_enum::containers::bitset<kee::mods>());
+                    else
+                        on_element_key_up(keycode, magic_enum::containers::bitset<kee::mods>());
+                }
             }
         }
+        else
+            reset_level();
     }
 
     const unsigned int curr_combo = combo + prev_total_combo;
@@ -845,7 +931,7 @@ void beatmap::update_element(float dt)
                 raylib::Color::Blank(),
                 pos(pos::type::rel, 0.5f),
                 pos(pos::type::rel, 0.5f),
-                kee::border(kee::border::type::abs, 0),
+                kee::border(kee::border::type::abs, -1),
                 true, std::nullopt, std::nullopt
             ));
         }
@@ -855,7 +941,7 @@ void beatmap::update_element(float dt)
         time_till_end_screen.value() -= dt;
         if (time_till_end_screen.value() <= 0)
         {
-            const unsigned int highest_combo = misses == 0 ? combo : prev_highest_combo;
+            const unsigned int highest_combo = std::max(combo, prev_highest_combo);
             end_screen_ui.emplace(add_child<end_screen>(10, accuracy_trunc, misses, curr_combo, max_combo, highest_combo));
         }
     }
