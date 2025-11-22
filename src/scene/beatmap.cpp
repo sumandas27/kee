@@ -581,6 +581,9 @@ end_screen::end_screen(const kee::ui::required& reqs, float accuracy, unsigned i
 
 bool end_screen::on_element_key_down([[maybe_unused]] int keycode, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
 {
+    if (keycode == KeyboardKey::KEY_ESCAPE)
+        game_ref.queue_game_exit();
+
     return true;
 }
 
