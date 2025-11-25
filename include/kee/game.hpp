@@ -10,7 +10,7 @@ class game
 public:
     game();
 
-    void main_loop(); /* TODO: wtf to do with this ??*/
+    void begin_main_loop(); 
 
     bool is_key_down(int key) const;
 
@@ -28,6 +28,7 @@ private:
     boost::optional<kee::ui::base&> render_priority;
     std::unique_ptr<kee::scene::base> curr_scene;
     
+    bool main_loop_begun;
     bool game_should_exit;
 };
 

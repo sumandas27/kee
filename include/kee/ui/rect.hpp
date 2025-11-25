@@ -15,16 +15,14 @@ public:
     rect_outline::type rect_outline_type;
     float val;
 
-    std::optional<raylib::Color> opt_color;
+    std::optional<raylib::Color> opt_color; /* TODO: change to color i think */
 };
 
 enum class rect_outline::type
 {
     abs,
     rel_w,
-    rel_w_parent,
-    rel_h,
-    rel_h_parent
+    rel_h
 };
 
 class rect_roundness
@@ -69,7 +67,7 @@ public:
 
     raylib::Rectangle get_extended_raw_rect() const;
 
-    std::optional<kee::ui::rect_outline> border;
+    std::optional<kee::ui::rect_outline> border; /* TODO: name change to outline */
     std::optional<kee::ui::rect_roundness> roundness;
 
 protected:

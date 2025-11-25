@@ -131,6 +131,9 @@ protected:
     float timer;
 };
 
+/* TODO: experiment holding references in these transitions */
+/* TODO: replace transition& with only transition, maybe have it hold ref to some transition_impl ?? */
+
 template <typename T>
 class transition final : public transition_base
 {
@@ -151,7 +154,7 @@ private:
 };
 
 /**
- * Unfortunately neither `raylib::Color` nor `raylib::Vector4` has both vector addition and floating-point scalar 
+ * Neither `raylib::Color` nor `raylib::Vector4` has both vector addition and floating-point scalar 
  * multiplication operator overloads (unlike `raylib::Vector2` and `raylib::Vector3` which makes zero sense), 
  * making them unsuitable for our transition system. We use this helper class instead for color interpolation.
  * 

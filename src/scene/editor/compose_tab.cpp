@@ -227,9 +227,12 @@ void compose_tab_key::update_element([[maybe_unused]] float dt)
             pos(pos::type::rel, 0.5),
             border(border::type::rel_h, start_progress),
             true,
-            ui::rect_outline(ui::rect_outline::type::rel_h_parent, std::max(end_progress - start_progress, kee::key_border_width), raylib::Color::Red()),
+            ui::rect_outline(ui::rect_outline::type::abs, 0, raylib::Color::Red()),
             std::nullopt
         ));
+
+        const float rel_h_parent = std::max(end_progress - start_progress, kee::key_border_width);
+        hit_obj_rects.back().border.value().val = get_raw_rect().height * rel_h_parent;
     }
 }
 

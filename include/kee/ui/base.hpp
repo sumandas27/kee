@@ -10,6 +10,8 @@
 #include "kee/global_assets.hpp"
 #include "kee/ui_common.hpp"
 
+/* TODO: remove optional colors, maybe even use kee::color instead to use with transitions */
+
 namespace kee {
 namespace ui {
 

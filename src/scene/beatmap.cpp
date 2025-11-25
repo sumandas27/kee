@@ -110,9 +110,12 @@ void beatmap_key::update_element([[maybe_unused]] float dt)
             pos(pos::type::rel, 0.5),
             border(border::type::rel_h, start_progress + kee::key_border_parent_h),
             true,
-            ui::rect_outline(ui::rect_outline::type::rel_h_parent, std::max(end_progress - start_progress, kee::key_border_width), std::nullopt),
+            ui::rect_outline(ui::rect_outline::type::abs, 0, std::nullopt),
             std::nullopt
         ));
+
+        const float rel_h_parent = std::max(end_progress - start_progress, kee::key_border_width);
+        hit_obj_rects.back().border.value().val = get_raw_rect().height * rel_h_parent;
     }
 
     frame_combo_lost.ref.set_opt_color(raylib::Color(255, 0, 0, static_cast<unsigned char>(combo_lost_alpha.get())));
@@ -793,8 +796,7 @@ void beatmap::reset_level()
     for (const auto& [id, rel_pos] : kee::key_ui_data)
         keys.emplace(id, key_frame.ref.add_child<beatmap_key>(std::nullopt, *this, id, rel_pos));
 
-    keys.at(KeyboardKey::KEY_Q).ref.push(beatmap_hit_object(0.0f, 4.0f));
-    /*for (const auto& [keycode, _] : kee::key_ui_data)
+    for (const auto& [keycode, _] : kee::key_ui_data)
     {
         const std::string key_str = std::string(1, static_cast<char>(keycode));
         const boost::json::array& key_hit_objs = keys_json_obj.at(key_str).as_array();
@@ -807,7 +809,7 @@ void beatmap::reset_level()
             
             keys.at(keycode).ref.push(beatmap_hit_object(beat, duration));
         }
-    }*/
+    }
 
     for (const auto& [keycode, _] : kee::key_ui_data)
     {

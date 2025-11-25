@@ -15,7 +15,7 @@ int main()
 
     try {
         kee::game game;
-        game.main_loop();
+        game.begin_main_loop();
         return EXIT_SUCCESS;
     }
     catch (const raylib::RaylibException& e) 

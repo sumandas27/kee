@@ -6,11 +6,16 @@ namespace kee {
 
 game::game() :
     curr_scene(std::make_unique<kee::scene::beatmap>(window, *this, assets, "local_0")),
+    main_loop_begun(false),
     game_should_exit(false)
 { }
 
-void game::main_loop()
+void game::begin_main_loop()
 {
+    if (main_loop_begun)
+        throw std::logic_error("kee::game: main loop already begun");
+
+    main_loop_begun = true;
     while (!game_should_exit)
     {
         magic_enum::containers::bitset<kee::mods> mods;

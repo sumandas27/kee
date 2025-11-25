@@ -79,14 +79,8 @@ void rect::render_element() const
         case rect_outline::type::rel_w:
             uniform_outline_thickness = dst_rect.width * border.value().val;
             break;
-        case rect_outline::type::rel_w_parent:
-            uniform_outline_thickness = get_raw_rect_parent().width * border.value().val;
-            break;
         case rect_outline::type::rel_h:
             uniform_outline_thickness = dst_rect.height * border.value().val;
-            break;
-        case rect_outline::type::rel_h_parent:
-            uniform_outline_thickness = get_raw_rect_parent().height * border.value().val;
             break;
         default:
             std::unreachable();

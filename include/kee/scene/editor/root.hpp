@@ -5,6 +5,9 @@
 #include "kee/scene/editor/setup_tab.hpp"
 #include "kee/scene/editor/timing_tab.hpp"
 
+/* TODO: add background img */
+/* TODO: add background video */
+
 namespace kee {
 namespace scene {
 namespace editor {
