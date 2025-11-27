@@ -154,7 +154,7 @@ bool file_dialog::on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_
 
 void file_dialog::update_element([[maybe_unused]] float dt)
 {
-    fd_rect.border.value().color = fd_outline_color.get();
+    fd_rect.outline.value().color = fd_outline_color.get();
     fd_image.color = fd_outline_color.get();
 }
 

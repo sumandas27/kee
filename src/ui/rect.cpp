@@ -22,11 +22,11 @@ rect::rect(
     const kee::pos& y, 
     const std::variant<kee::dims, kee::border>& dims,
     bool centered, 
-    std::optional<kee::ui::rect_outline> border,
+    std::optional<kee::ui::rect_outline> outline,
     std::optional<kee::ui::rect_roundness> roundness
 ) :
     kee::ui::base(reqs, x, y, dims, centered),
-    border(border),
+    outline(outline),
     roundness(roundness)
 {
     color = color_param;
@@ -62,24 +62,24 @@ void rect::render_element() const
 
     float uniform_outline_thickness = 0;
     std::array<float, 4> uniform_outline_color = { 0.0f, 0.0f, 0.0f, 0.0f };    
-    if (border.has_value())
+    if (outline.has_value())
     {
-        switch (border.value().rect_outline_type)
+        switch (outline.value().rect_outline_type)
         {
         case rect_outline::type::abs:
-            uniform_outline_thickness = border.value().val;
+            uniform_outline_thickness = outline.value().val;
             break;
         case rect_outline::type::rel_w:
-            uniform_outline_thickness = dst_rect.width * border.value().val;
+            uniform_outline_thickness = dst_rect.width * outline.value().val;
             break;
         case rect_outline::type::rel_h:
-            uniform_outline_thickness = dst_rect.height * border.value().val;
+            uniform_outline_thickness = dst_rect.height * outline.value().val;
             break;
         default:
             std::unreachable();
         }
 
-        const kee::color outline_color = border.value().color;
+        const kee::color outline_color = outline.value().color;
         uniform_outline_color = { outline_color.r / 255.0f, outline_color.g / 255.0f, outline_color.b / 255.0f, outline_color.a / 255.0f };
     }
 

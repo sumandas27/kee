@@ -223,7 +223,7 @@ bool dropdown::on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mou
 
 void dropdown::update_element([[maybe_unused]] float dt)
 {
-    dropdown_rect.border.value().color = dropdown_outline_color.get();
+    dropdown_rect.outline.value().color = dropdown_outline_color.get();
     dropdown_img.color = dropdown_outline_color.get();
     dropdown_img.rotation = dropdown_img_rotation.get();
 

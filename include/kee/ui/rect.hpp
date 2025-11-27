@@ -63,13 +63,13 @@ public:
         const kee::pos& y,
         const std::variant<kee::dims, kee::border>& dims,
         bool centered, 
-        std::optional<kee::ui::rect_outline> border,
+        std::optional<kee::ui::rect_outline> outline,
         std::optional<kee::ui::rect_roundness> roundness
     );
 
     raylib::Rectangle get_extended_raw_rect() const;
 
-    std::optional<kee::ui::rect_outline> border; /* TODO: name change to outline */
+    std::optional<kee::ui::rect_outline> outline;
     std::optional<kee::ui::rect_roundness> roundness;
 
 protected:

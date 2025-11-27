@@ -57,14 +57,12 @@ hit_obj_ui::hit_obj_ui(const kee::ui::required& reqs, float beat, float duration
     key_idx(key_idx)
 { }
 
-/* TODO: change `border` to `outline` mem var name */
-
 void hit_obj_ui::select()
 {
     selected = true;
 
     color = kee::color::dark_green;
-    border.value().color = kee::color::green_raylib;
+    outline.value().color = kee::color::green_raylib;
     circle_l.ref.color = kee::color::green_raylib;
     circle_r.ref.color = kee::color::green_raylib;
 }
@@ -74,7 +72,7 @@ void hit_obj_ui::unselect()
     selected = false;
 
     color = kee::color::dark_blue;
-    border.value().color = kee::color::blue_raylib;
+    outline.value().color = kee::color::blue_raylib;
     circle_l.ref.color = kee::color::blue_raylib;
     circle_r.ref.color = kee::color::blue_raylib;
 }
@@ -212,7 +210,7 @@ compose_tab_key::compose_tab_key(
 
 void compose_tab_key::update_element([[maybe_unused]] float dt)
 {
-    frame.ref.border.value().color = color;
+    frame.ref.outline.value().color = color;
     key_text.ref.color = color;
 
     hit_obj_rects.clear();
@@ -237,7 +235,7 @@ void compose_tab_key::update_element([[maybe_unused]] float dt)
         ));
 
         const float rel_h_parent = std::max(end_progress - start_progress, kee::key_border_width);
-        hit_obj_rects.back().border.value().val = get_raw_rect().height * rel_h_parent;
+        hit_obj_rects.back().outline.value().val = get_raw_rect().height * rel_h_parent;
     }
 }
 
@@ -1585,11 +1583,11 @@ void compose_tab::update_element([[maybe_unused]] float dt)
         }
     }
 
-    beat_snap_button_rect.ref.border.value().color = beat_snap_button_color.get();
-    beat_snap_button_rect.ref.border.value().val = beat_snap_button_outline.get();
+    beat_snap_button_rect.ref.outline.value().color = beat_snap_button_color.get();
+    beat_snap_button_rect.ref.outline.value().val = beat_snap_button_outline.get();
 
-    key_lock_button_rect.ref.border.value().color = key_lock_button_color.get();
-    key_lock_button_rect.ref.border.value().val = key_lock_button_outline.get();
+    key_lock_button_rect.ref.outline.value().color = key_lock_button_color.get();
+    key_lock_button_rect.ref.outline.value().val = key_lock_button_outline.get();
 
     std::get<kee::dims>(tick_l_img.ref.dimensions).w.val = tick_l_button_scale.get();
     std::get<kee::dims>(tick_l_img.ref.dimensions).h.val = tick_l_button_scale.get();

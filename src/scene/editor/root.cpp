@@ -169,10 +169,10 @@ bool confirm_save_ui::on_element_mouse_down(const raylib::Vector2& mouse_pos, bo
 
 void confirm_save_ui::update_element([[maybe_unused]] float dt)
 {
-    leave_rect.ref.border.value().color = leave_color.get();
+    leave_rect.ref.outline.value().color = leave_color.get();
     leave_text.ref.color = leave_color.get();
 
-    save_rect.ref.border.value().color = save_color.get();
+    save_rect.ref.outline.value().color = save_color.get();
     save_text.ref.color = save_color.get();
 }
 
@@ -759,7 +759,7 @@ void root::set_error(std::string_view error_str, bool from_file_dialog)
 
     notif_img.ref.set_image(error_png);
     notif_img.ref.color = new_notif_color;
-    notif_rect.ref.border.value().color = new_notif_color;
+    notif_rect.ref.outline.value().color = new_notif_color;
     notif_text.ref.set_string(error_str);
     /**
      * File dialogs hang the program during file selection, making that frame's 
@@ -776,7 +776,7 @@ void root::set_info(std::string_view info_str)
 
     notif_img.ref.set_image(info_png);
     notif_img.ref.color = new_notif_color;
-    notif_rect.ref.border.value().color = new_notif_color;
+    notif_rect.ref.outline.value().color = new_notif_color;
     notif_text.ref.set_string(info_str);
 
     notif_skips_before_start = 0;
@@ -1144,11 +1144,11 @@ void root::update_element(float dt)
         confirm_exit.reset();
 
     const unsigned char error_a = static_cast<unsigned char>(notif_alpha.get());
-    const kee::color notif_rect_border_color = notif_rect.ref.border.value().color;
+    const kee::color notif_rect_border_color = notif_rect.ref.outline.value().color;
     const kee::color notif_img_color = notif_img.ref.color;
     
     notif_rect.ref.color = kee::color(80, 80, 80, error_a);
-    notif_rect.ref.border.value().color = kee::color(notif_rect_border_color.r, notif_rect_border_color.g, notif_rect_border_color.b, error_a);
+    notif_rect.ref.outline.value().color = kee::color(notif_rect_border_color.r, notif_rect_border_color.g, notif_rect_border_color.b, error_a);
     notif_img.ref.color = kee::color(notif_img_color.r, notif_img_color.g, notif_img_color.b, error_a);
     notif_text.ref.color = kee::color(255, 255, 255, error_a);
     notif_rect.ref.x.val = notif_rect_rel_x.get();

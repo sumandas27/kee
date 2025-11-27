@@ -93,7 +93,7 @@ void beatmap_key::pop()
 
 void beatmap_key::update_element([[maybe_unused]] float dt)
 {
-    frame.ref.border.value().color = color;
+    frame.ref.outline.value().color = color;
     key_text.ref.color = color;
 
     hit_obj_rects.clear();
@@ -113,12 +113,12 @@ void beatmap_key::update_element([[maybe_unused]] float dt)
             pos(pos::type::rel, 0.5),
             border(border::type::rel_h, start_progress + kee::key_border_parent_h),
             true,
-            ui::rect_outline(ui::rect_outline::type::abs, 0, kee::color::white), /* TODO: check (3) */
+            ui::rect_outline(ui::rect_outline::type::abs, 0, color),
             std::nullopt
         ));
 
         const float rel_h_parent = std::max(end_progress - start_progress, kee::key_border_width);
-        hit_obj_rects.back().border.value().val = get_raw_rect().height * rel_h_parent;
+        hit_obj_rects.back().outline.value().val = get_raw_rect().height * rel_h_parent;
     }
 
     frame_combo_lost.ref.color = kee::color(255.f, 0.f, 0.f, combo_lost_alpha.get());

@@ -405,7 +405,7 @@ bool textbox::on_element_mouse_up([[maybe_unused]] const raylib::Vector2& mouse_
 
 void textbox::update_element([[maybe_unused]] float dt)
 {
-    textbox_rect.border.value().color = textbox_outline_color.get();
+    textbox_rect.outline.value().color = textbox_outline_color.get();
 
     if (selection_ui.has_value() && std::holds_alternative<cursor>(selection_ui.value()) && textbox_state != mouse_state::down)
     {
