@@ -164,9 +164,18 @@ private:
 class color
 {
 public:
+    static const kee::color blank;
+    static const kee::color blue_raylib;
+    static const kee::color dark_blue;
+    static const kee::color dark_gray;
+    static const kee::color dark_green;
     static const kee::color dark_orange;
+    static const kee::color gold;
     static const kee::color green;
+    static const kee::color green_raylib;
     static const kee::color red;
+    static const kee::color red_raylib;
+    static const kee::color violet;
     static const kee::color white;
 
     constexpr color();
@@ -178,7 +187,8 @@ public:
     kee::color operator*(float scalar) const;
     kee::color operator+(const kee::color& other) const;
 
-private:
+    bool operator==(const kee::color& other) const = default;
+
     /**
      * Color attributes are scaled from 0.0f to 255.0f
      */

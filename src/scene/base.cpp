@@ -18,9 +18,14 @@ window::window()
         ConfigFlags::FLAG_WINDOW_HIGHDPI                /* Correct rendering on Apple machines */
     );
 
+    /* TODO: custom window size and fix ui so fun :D */
     impl.Init(2560, 1440);
     impl.SetTargetFPS(window_fps);
 }
+
+base::base(kee::game& game, kee::global_assets& assets) :
+    kee::ui::base(game, assets)
+{ }
 
 bool base::on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods)
 {
@@ -44,28 +49,6 @@ void base::render() const
 
     if (render_priority.has_value())
         render_priority.value().render();
-}
-
-base::base(const kee::scene::window& window, kee::game& game, kee::global_assets& assets) :
-    kee::ui::base(kee::ui::required(boost::none, game, assets)),
-    window(window)
-{
-    x = pos(pos::type::beg, 0);
-    y = pos(pos::type::beg, 0);
-    dimensions = dims(
-        dim(dim::type::abs, static_cast<float>(window.impl.GetWidth())),
-        dim(dim::type::abs, static_cast<float>(window.impl.GetHeight()))
-    );
-
-    centered = false;
-    set_opt_color(raylib::Color::Blank());
-}
-
-void base::update_element([[maybe_unused]] float dt)
-{
-    auto& [w, h] = std::get<kee::dims>(dimensions);
-    w.val = static_cast<float>(window.impl.GetWidth());
-    h.val = static_cast<float>(window.impl.GetHeight());
 }
 
 } // namespace scene

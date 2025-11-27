@@ -14,25 +14,24 @@ base::base(
     const std::variant<kee::dims, kee::border>& dimensions, 
     bool centered
 ) :
+    game_ref(reqs.game_ref),
     x(x),
     y(y),
     dimensions(dimensions),
     centered(centered),
-    game_ref(reqs.game_ref),
+    color(kee::color::blank),
     assets(reqs.assets),
     parent(reqs.parent),
     children(std::make_unique<std::multimap<int, std::unique_ptr<kee::ui::base>>>()),
     has_render_priority(false)
-{ 
-    set_opt_color(raylib::Color::Blank());
-}
+{ }
 
 base::base(base&& other) noexcept :
+    game_ref(other.game_ref),
     x(std::move(other.x)),
     y(std::move(other.y)),
     dimensions(std::move(other.dimensions)),
     centered(other.centered),
-    game_ref(other.game_ref),
     assets(other.assets),
     parent(other.parent),
     children(std::move(other.children)),
@@ -135,24 +134,6 @@ void base::render() const
             it->second->render();
         it++;
     }
-}
-
-void base::set_opt_color(const std::optional<raylib::Color>& opt_color)
-{
-    if (!opt_color.has_value() && !parent.has_value())
-        throw std::invalid_argument("Cannot set color source to parent when UI element has no parent!");
-
-    color = opt_color;
-}
-
-const std::optional<raylib::Color>& base::get_opt_color() const
-{
-    return color;
-}
-
-raylib::Color base::get_color_from_opt(const std::optional<raylib::Color>& opt_color) const
-{
-    return opt_color.has_value() ? opt_color.value() : parent.value().get_color_from_opt(parent.value().get_opt_color());
 }
 
 raylib::Rectangle base::get_raw_rect() const
@@ -259,10 +240,14 @@ void base::release_keyboard_capture()
     game_ref.element_keyboard_capture.reset();
 }
 
-base::base(const kee::ui::required& reqs) :
-    game_ref(reqs.game_ref),
-    assets(reqs.assets),
-    parent(reqs.parent),
+base::base(kee::game& game_ref, kee::global_assets& assets) :
+    game_ref(game_ref),
+    x(pos(pos::type::rel, 0.5f)),
+    x(pos(pos::type::rel, 0.5f)),
+    dimensions(border(border::type::abs, 0)),
+    centered(false),
+    color(kee::color::blank),
+    assets(assets),
     children(std::make_unique<std::multimap<int, std::unique_ptr<kee::ui::base>>>()),
     has_render_priority(false)
 { }

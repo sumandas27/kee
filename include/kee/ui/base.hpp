@@ -108,10 +108,6 @@ public:
     template <typename T>
     kee::transition<T>& add_transition(const T& default_val);
 
-    void set_opt_color(const std::optional<raylib::Color>& opt_color);
-    const std::optional<raylib::Color>& get_opt_color() const;
-    raylib::Color get_color_from_opt(const std::optional<raylib::Color>& opt_color) const;
-
     /**
      * NOTE: We climb up UI hierarchy every time we render a UI element every frame. 
      * Inefficient, if performance is a problem investigate and fix if applicable.
@@ -125,6 +121,8 @@ public:
     void take_keyboard_capture();
     void release_keyboard_capture();
 
+    kee::game& game_ref;
+
     kee::pos x;
     kee::pos y;
     /**
@@ -135,13 +133,13 @@ public:
     std::variant<kee::dims, kee::border> dimensions;
     bool centered;
 
-    kee::game& game_ref;
+    kee::color color;
 
 protected:
     /**
      * Scene subclasses do *NOT* specify a `parent`, non-scene subclasses do.
      */
-    base(const kee::ui::required& reqs);
+    base(kee::game& game_ref, kee::global_assets& assets);
 
     virtual bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods);
     virtual bool on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods);
@@ -168,8 +166,6 @@ private:
      */
     std::unique_ptr<std::multimap<int, std::unique_ptr<kee::ui::base>>> children;
     std::vector<std::unique_ptr<kee::transition_base>> transitions;
-
-    std::optional<raylib::Color> color;
 
     bool has_render_priority;
 };

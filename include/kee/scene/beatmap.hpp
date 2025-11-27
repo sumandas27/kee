@@ -118,8 +118,6 @@ private:
 
     void truncate_name_str(kee::ui::handle<kee::ui::text>& name_ui);
 
-    beatmap& beatmap_scene;
-
     kee::transition<float>& ui_rel_x;
     kee::transition<kee::color>& exit_text_color;
 
@@ -152,7 +150,7 @@ private:
 class beatmap final : public kee::scene::base
 {
 public:
-    beatmap(const kee::scene::window& window, kee::game& game, kee::global_assets& assets, const std::filesystem::path& beatmap_dir_name);
+    beatmap(kee::game& game, kee::global_assets& assets, const std::filesystem::path& beatmap_dir_name);
 
     float get_beat() const;
 
@@ -174,7 +172,7 @@ public:
     unsigned int misses;
 
 private:
-    beatmap(const kee::scene::window& window, kee::game& game, kee::global_assets& assets, beatmap_dir_info&& beatmap_info);
+    beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&& beatmap_info);
 
     bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
     bool on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;

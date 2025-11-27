@@ -171,10 +171,10 @@ bool confirm_save_ui::on_element_mouse_down(const raylib::Vector2& mouse_pos, bo
 void confirm_save_ui::update_element([[maybe_unused]] float dt)
 {
     leave_rect.ref.border.value().opt_color = leave_color.get().to_color();
-    leave_text.ref.set_opt_color(leave_color.get().to_color());
+    leave_text.ref.color = leave_color.get();
 
     save_rect.ref.border.value().opt_color = save_color.get().to_color();
-    save_text.ref.set_opt_color(save_color.get().to_color());
+    save_text.ref.color = save_color.get();
 }
 
 confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, root& root_elem, const kee::image_texture& error_png, float menu_width) :
@@ -309,8 +309,8 @@ void confirm_exit_ui::update_element(float dt)
         destroy_timer.value() -= dt;
 
     std::get<kee::dims>(dimensions).w.val = base_w.get();
-    confirm_button_bg.ref.set_opt_color(confirm_button_color.get().to_color());
-    go_back_button_bg.ref.set_opt_color(go_back_button_color.get().to_color());
+    confirm_button_bg.ref.color = confirm_button_color.get();
+    go_back_button_bg.ref.color = go_back_button_color.get();
 
     if (confirm_save.has_value() && confirm_save.value().ref.should_destruct())
         confirm_save.reset();
@@ -650,7 +650,7 @@ void song_ui::update_element([[maybe_unused]] float dt)
 
     std::get<kee::dims>(pause_play_img.ref.dimensions).w.val = pause_play_scale.get();
     std::get<kee::dims>(pause_play_img.ref.dimensions).h.val = pause_play_scale.get();
-    pause_play_img.ref.set_opt_color(pause_play_color.get().to_color());
+    pause_play_img.ref.color = pause_play_color.get();
 
     const unsigned int music_length = static_cast<unsigned int>(music.GetTimeLength());
     const unsigned int music_time_int = static_cast<unsigned int>(music_time);
@@ -662,10 +662,8 @@ void song_ui::update_element([[maybe_unused]] float dt)
     std::get<kee::border>(playback_l_img.ref.dimensions).val = (1.0f - playback_l_scale) / 2;
     std::get<kee::border>(playback_r_img.ref.dimensions).val = (1.0f - playback_r_scale) / 2;
 
-    const raylib::Color playback_l_color = (playback_speed_idx > 0) ? playback_l_img_color.get().to_color() : raylib::Color(255, 255, 255, 80);
-    const raylib::Color playback_r_color = (playback_speed_idx < song_ui::playback_speeds.size() - 1) ? playback_r_img_color.get().to_color() : raylib::Color(255, 255, 255, 80);
-    playback_l_img.ref.set_opt_color(playback_l_color);
-    playback_r_img.ref.set_opt_color(playback_r_color);
+    playback_l_img.ref.color = (playback_speed_idx > 0) ? playback_l_img_color.get() : kee::color(255, 255, 255, 80);
+    playback_r_img.ref.color = (playback_speed_idx < song_ui::playback_speeds.size() - 1) ? playback_r_img_color.get() : kee::color(255, 255, 255, 80);
 }
 
 root::root(
@@ -764,11 +762,10 @@ void root::save_beatmap()
 
 void root::set_error(std::string_view error_str, bool from_file_dialog)
 {
-    const raylib::Color old_notif_color = notif_img.ref.get_opt_color().value();
-    const raylib::Color new_notif_color = raylib::Color(255, 0, 0, old_notif_color.a);
+    const kee::color new_notif_color = kee::color(255, 0, 0, notif_img.ref.color.a);
 
     notif_img.ref.set_image(error_png);
-    notif_img.ref.set_opt_color(new_notif_color);
+    notif_img.ref.color = new_notif_color;
     notif_rect.ref.border.value().opt_color = new_notif_color;
     notif_text.ref.set_string(error_str);
     /**
@@ -781,11 +778,11 @@ void root::set_error(std::string_view error_str, bool from_file_dialog)
 
 void root::set_info(std::string_view info_str)
 {
-    const raylib::Color old_notif_color = notif_img.ref.get_opt_color().value();
-    const raylib::Color new_notif_color = raylib::Color(144, 213, 255, old_notif_color.a);
+    const kee::color old_notif_color = notif_img.ref.color;
+    const kee::color new_notif_color = kee::color(144, 213, 255, old_notif_color.a); /* TODO: wtf this type */
 
     notif_img.ref.set_image(info_png);
-    notif_img.ref.set_opt_color(new_notif_color);
+    notif_img.ref.color = new_notif_color;
     notif_rect.ref.border.value().opt_color = new_notif_color;
     notif_text.ref.set_string(info_str);
 
@@ -1150,9 +1147,9 @@ void root::update_element(float dt)
     }
 
     for (std::size_t i = 0; i < tab_button_text.size(); i++)
-        tab_button_text[i].ref.set_opt_color(tab_button_text_colors[i].get().get().to_color());
+        tab_button_text[i].ref.color = tab_button_text_colors[i].get().get();
 
-    raylib::Color exit_button_rect_color = exit_button_rect.ref.get_opt_color().value();
+    kee::color exit_button_rect_color = exit_button_rect.ref.color;
     exit_button_rect_color.a = static_cast<unsigned char>(exit_button_rect_alpha.get());
     exit_button_rect.ref.set_opt_color(exit_button_rect_color);
     tab_active_rect.ref.x.val = tab_active_rect_rel_x.get();
@@ -1162,12 +1159,12 @@ void root::update_element(float dt)
 
     const unsigned char error_a = static_cast<unsigned char>(notif_alpha.get());
     const raylib::Color notif_rect_border_color = notif_rect.ref.border.value().opt_color.value();
-    const raylib::Color notif_img_color = notif_img.ref.get_opt_color().value();
+    const kee::color notif_img_color = notif_img.ref.color;
     
-    notif_rect.ref.set_opt_color(raylib::Color(80, 80, 80, error_a));
+    notif_rect.ref.color = kee::color(80, 80, 80, error_a);
     notif_rect.ref.border.value().opt_color = raylib::Color(notif_rect_border_color.r, notif_rect_border_color.g, notif_rect_border_color.b, error_a);
-    notif_img.ref.set_opt_color(raylib::Color(notif_img_color.r, notif_img_color.g, notif_img_color.b, error_a));
-    notif_text.ref.set_opt_color(raylib::Color(255, 255, 255, error_a));
+    notif_img.ref.color = kee::color(notif_img_color.r, notif_img_color.g, notif_img_color.b, error_a);
+    notif_text.ref.color = kee::color(255, 255, 255, error_a);
     notif_rect.ref.x.val = notif_rect_rel_x.get();
 }
 

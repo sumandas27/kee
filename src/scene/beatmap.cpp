@@ -52,7 +52,7 @@ beatmap_key::beatmap_key(const kee::ui::required& reqs, kee::scene::beatmap& bea
         true, assets.font_light, std::string(), false
     ))
 {
-    set_opt_color(raylib::Color::White());
+    color = kee::color::white;
 
     const std::string key_str = (key_id != KeyboardKey::KEY_SPACE) 
         ? std::string(1, static_cast<char>(key_id)) 
@@ -118,7 +118,7 @@ void beatmap_key::update_element([[maybe_unused]] float dt)
         hit_obj_rects.back().border.value().val = get_raw_rect().height * rel_h_parent;
     }
 
-    frame_combo_lost.ref.set_opt_color(raylib::Color(255, 0, 0, static_cast<unsigned char>(combo_lost_alpha.get())));
+    frame_combo_lost.ref.color = kee::color(255.f, 0.f, 0.f, combo_lost_alpha.get());
     if (hit_objects.empty())
         return;
 
@@ -370,9 +370,9 @@ bool pause_menu::on_element_key_up([[maybe_unused]] int keycode, [[maybe_unused]
 void pause_menu::update_element([[maybe_unused]] float dt)
 {
     ui_frame.ref.y.val = ui_rel_y.get();
-    go_back_rect.ref.set_opt_color(go_back_color.get().to_color());
-    restart_rect.ref.set_opt_color(restart_color.get().to_color());
-    exit_rect.ref.set_opt_color(exit_color.get().to_color());
+    go_back_rect.ref.color = go_back_color.get();
+    restart_rect.ref.color = restart_color.get();
+    exit_rect.ref.color = exit_color.get();
 }
 
 end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
@@ -383,7 +383,6 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         kee::border(kee::border::type::rel_h, 0.08f),
         true, std::nullopt, std::nullopt
     ),
-    beatmap_scene(beatmap_scene),
     ui_rel_x(add_transition<float>(1)),
     exit_text_color(add_transition<kee::color>(kee::color::white)),
     rank_text(add_child<kee::ui::text>(std::nullopt,
@@ -573,7 +572,7 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
 
     if (beatmap_scene.misses == 0)
     {
-        rank_text.ref.set_opt_color(raylib::Color::Gold());
+        rank_text.ref.color = kee::color::gold;
         rank_text.ref.set_string("FC");
     }
     else
@@ -581,7 +580,7 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         if (beatmap_scene.misses >= 1 && beatmap_scene.misses <= 10)
         {
             rank_text.ref.y.val = 0.525f;
-            rank_misses_text.ref.set_opt_color(raylib::Color::DarkGray());
+            rank_misses_text.ref.color = kee::color::dark_gray;
             rank_misses_text.ref.set_string(std::format("({}x)", beatmap_scene.misses));
         }
 
@@ -589,13 +588,13 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         rank_text.ref.set_string(std::to_string(accuracy_uint));
 
         if (accuracy >= 90.f)
-            rank_text.ref.set_opt_color(raylib::Color::Green());
+            rank_text.ref.color = kee::color::green_raylib;
         else if (accuracy >= 80.f)
-            rank_text.ref.set_opt_color(raylib::Color::Blue());
+            rank_text.ref.color = kee::color::blue_raylib;
         else if (accuracy >= 70.f)
-            rank_text.ref.set_opt_color(raylib::Color::Violet());
+            rank_text.ref.color = kee::color::violet;
         else
-            rank_text.ref.set_opt_color(raylib::Color::Red());
+            rank_text.ref.color = kee::color::red_raylib;
     }
 
     take_keyboard_capture();
@@ -617,7 +616,7 @@ bool end_screen::on_element_key_up([[maybe_unused]] int keycode, [[maybe_unused]
 void end_screen::update_element([[maybe_unused]] float dt)
 {
     x.val = ui_rel_x.get();
-    exit_text.ref.set_opt_color(exit_text_color.get().to_color());
+    exit_text.ref.color = exit_text_color.get();
 }
 
 void end_screen::truncate_name_str(kee::ui::handle<kee::ui::text>& name_ui)
@@ -635,8 +634,8 @@ void end_screen::truncate_name_str(kee::ui::handle<kee::ui::text>& name_ui)
     }
 }
 
-beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_assets& assets, const std::filesystem::path& beatmap_dir_name) :
-    beatmap(window, game, assets, beatmap_dir_info(beatmap_dir_name))
+beatmap::beatmap(kee::game& game, kee::global_assets& assets, const std::filesystem::path& beatmap_dir_name) :
+    beatmap(game, assets, beatmap_dir_info(beatmap_dir_name))
 { }
 
 float beatmap::get_beat() const
@@ -674,8 +673,8 @@ void beatmap::combo_lose(bool is_miss)
     }
 }
 
-beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_assets& assets, beatmap_dir_info&& beatmap_info) :
-    kee::scene::base(window, game, assets),
+beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&& beatmap_info) :
+    kee::scene::base(game, assets),
     beat_forgiveness(beatmap_info.beat_forgiveness),
     approach_beats(beatmap_info.approach_beats),
     song_name(beatmap_info.song_name),
@@ -769,10 +768,10 @@ beatmap::beatmap(const kee::scene::window& window, kee::game& game, kee::global_
         ),
         true
     )),
+    end_beat(0.0f),
     music(std::move(beatmap_info.song)),
     hitsound("assets/sfx/hitsound.wav"),
-    combo_lost_sfx("assets/sfx/combo_lost.wav"),
-    end_beat(0.0f)
+    combo_lost_sfx("assets/sfx/combo_lost.wav")
 { 
     reset_level();
 }
@@ -852,7 +851,7 @@ bool beatmap::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
         return true;
     }
 
-    keys.at(keycode).ref.set_opt_color(raylib::Color::Green());
+    keys.at(keycode).ref.color = kee::color::green_raylib;
     if (keys.at(keycode).ref.get_hit_objects().empty())
         return true;
 
@@ -886,7 +885,7 @@ bool beatmap::on_element_key_up(int keycode, [[maybe_unused]] magic_enum::contai
     if (!keys.contains(keycode))
         return true;
 
-    keys.at(keycode).ref.set_opt_color(raylib::Color::White());
+    keys.at(keycode).ref.color = kee::color::white;
     if (keys.at(keycode).ref.get_hit_objects().empty())
         return true;
 
@@ -942,7 +941,7 @@ void beatmap::update_element(float dt)
             pause_menu_ui.reset();
             for (auto& [keycode, key_ui] : keys)
             {
-                const bool is_key_ui_down = (key_ui.ref.get_opt_color() == raylib::Color::Green());
+                const bool is_key_ui_down = (key_ui.ref.color == kee::color::green_raylib);
                 const bool is_key_really_down = game_ref.is_key_down(keycode);
                 
                 if (is_key_really_down != is_key_ui_down)
@@ -984,7 +983,7 @@ void beatmap::update_element(float dt)
     if (end_fade_out.has_value())
     {
         const unsigned char a = static_cast<unsigned char>(end_fade_out_alpha.get());
-        end_fade_out.value().ref.set_opt_color(raylib::Color(10, 10, 10, a));
+        end_fade_out.value().ref.color = kee::color(10, 10, 10, a);
     }
 
     float accuracy = 100.f;
@@ -995,37 +994,37 @@ void beatmap::update_element(float dt)
 
     accuracy_text.ref.set_string(std::format("{:.2f}", accuracy_trunc));
     if (accuracy == 100.f)
-        accuracy_text.ref.set_opt_color(raylib::Color::White());
+        accuracy_text.ref.color = kee::color::white;
     else if (accuracy >= 90.f)
-        accuracy_text.ref.set_opt_color(raylib::Color::Green());
+        accuracy_text.ref.color = kee::color::green_raylib;
     else if (accuracy >= 80.f)
-        accuracy_text.ref.set_opt_color(raylib::Color::Blue());
+        accuracy_text.ref.color = kee::color::blue_raylib;
     else if (accuracy >= 70.f)
-        accuracy_text.ref.set_opt_color(raylib::Color::Violet());
+        accuracy_text.ref.color = kee::color::violet;
     else
-        accuracy_text.ref.set_opt_color(raylib::Color::Red());
+        accuracy_text.ref.color = kee::color::red_raylib;
 
     if (misses == 0)
     {
         fc_text.ref.set_string("FC");
-        fc_text.ref.set_opt_color(raylib::Color::Gold());
+        fc_text.ref.color = kee::color::gold;
     }
     else if (misses <= 10)
     {
-        const unsigned char g_and_b = static_cast<unsigned char>(255 * (1.f - (misses - 1) / 9.f));
+        const float g_and_b = 255 * (1.f - (misses - 1) / 9.f);
         fc_text.ref.set_string(std::format("{}x", misses));
-        fc_text.ref.set_opt_color(raylib::Color(255, g_and_b, g_and_b));
+        fc_text.ref.color = kee::color(255, g_and_b, g_and_b);
     }
     else
     {
         fc_text.ref.set_string(">10x");
-        fc_text.ref.set_opt_color(raylib::Color::Red());
+        fc_text.ref.color = kee::color::red_raylib;
     }
 
     combo_text.ref.set_string(std::to_string(combo) + "x");
     combo_text.ref.set_scale(1.0f + 0.1f * combo_gain.get());
 
-    combo_text_bg.ref.set_opt_color(raylib::Color(255, 255, 255, static_cast<unsigned char>(127.5f * combo_gain.get())));
+    combo_text_bg.ref.color = kee::color(255, 255, 255, 127.5f * combo_gain.get());
     combo_text_bg.ref.set_string(std::to_string(combo) + "x");
     combo_text_bg.ref.set_scale(1.0f + 0.5f * combo_gain.get());
 

@@ -36,9 +36,18 @@ void transition_base::update(float dt)
     }
 }
 
+const kee::color color::blank = kee::color(0, 0, 0, 0);
+const kee::color color::blue_raylib = kee::color(0, 121, 241);
+const kee::color color::dark_blue = kee::color(0, 82, 172);
+const kee::color color::dark_gray = kee::color(80, 80, 80);
+const kee::color color::dark_green = kee::color(0, 117, 44);
 const kee::color color::dark_orange = kee::color(255, 140, 0);
+const kee::color color::gold = kee::color(255, 203, 0);
 const kee::color color::green = kee::color(0, 255, 0);
+const kee::color color::green_raylib = kee::color(0, 228, 48);
 const kee::color color::red = kee::color(255, 0, 0);
+const kee::color color::red_raylib = kee::color(230, 41, 55);
+const kee::color color::violet = kee::color(135, 60, 190);
 const kee::color color::white = kee::color(255, 255, 255);
 
 raylib::Color color::to_color() const

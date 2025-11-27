@@ -61,20 +61,20 @@ void hit_obj_ui::select()
 {
     selected = true;
 
-    set_opt_color(raylib::Color::DarkGreen());
+    color = kee::color::dark_green;
     border.value().opt_color = raylib::Color::Green();
-    circle_l.ref.set_opt_color(raylib::Color::Green());
-    circle_r.ref.set_opt_color(raylib::Color::Green());
+    circle_l.ref.color = kee::color::green_raylib;
+    circle_r.ref.color = kee::color::green_raylib;
 }
 
 void hit_obj_ui::unselect()
 {
     selected = false;
 
-    set_opt_color(raylib::Color::DarkBlue());
+    color = kee::color::dark_blue;
     border.value().opt_color = raylib::Color::Blue();
-    circle_l.ref.set_opt_color(raylib::Color::Blue());
-    circle_r.ref.set_opt_color(raylib::Color::Blue());
+    circle_l.ref.color = kee::color::blue_raylib;
+    circle_r.ref.color = kee::color::blue_raylib;
 }
 
 bool hit_obj_ui::is_selected() const
@@ -165,6 +165,8 @@ compose_tab_key::compose_tab_key(
     song_ui_elem(song_ui_elem),
     key_id(key_id)
 {
+    color = kee::color::white;
+
     on_event = [&](ui::button::event button_event, magic_enum::containers::bitset<kee::mods> mods)
     {
         switch (button_event)
@@ -198,8 +200,6 @@ compose_tab_key::compose_tab_key(
     {
         this->compose_tab_scene.obj_editor.ref.attempt_add_hit_obj();
     };
-
-    set_opt_color(raylib::Color::White());
 
     const std::string key_str = (key_id != KeyboardKey::KEY_SPACE)
         ? std::string(1, static_cast<char>(key_id))
@@ -1338,7 +1338,7 @@ void compose_tab::unselect()
 {
     for (int prev_id : selected_key_ids)
     {
-        keys.at(prev_id).ref.set_opt_color(raylib::Color::White());
+        keys.at(prev_id).ref.color = kee::color::white;
         keys.at(prev_id).ref.is_selected = false;
         keys.at(prev_id).ref.frame.change_z_order(-1);
         keys.at(prev_id).ref.key_text.change_z_order(-1);
@@ -1353,7 +1353,7 @@ void compose_tab::select(int id)
     if (keys.at(id).ref.is_selected)
         return;
 
-    keys.at(id).ref.set_opt_color(raylib::Color::Green());
+    keys.at(id).ref.color = kee::color::green_raylib;
     keys.at(id).ref.is_selected = true;
     keys.at(id).ref.frame.change_z_order(0);
     keys.at(id).ref.key_text.change_z_order(0);
@@ -1444,7 +1444,7 @@ bool compose_tab::on_element_key_down(int keycode, magic_enum::containers::bitse
             return false;
 
         for (int prev_id : selected_key_ids)
-            keys.at(prev_id).ref.set_opt_color(raylib::Color::White());
+            keys.at(prev_id).ref.color = kee::color::white;
 
         unselect();
         return true;
@@ -1592,12 +1592,12 @@ void compose_tab::update_element([[maybe_unused]] float dt)
     std::get<kee::dims>(tick_r_img.ref.dimensions).h.val = tick_r_button_scale.get();
 
     for (std::size_t i = 0; i < compose_tab_info::tick_freq_count; i++)
-        tick_frame_texts[i].ref.set_opt_color(tick_frame_text_colors[i].get().get().to_color());
+        tick_frame_texts[i].ref.color = tick_frame_text_colors[i].get().get();
 
-    const raylib::Color tick_l_img_color = (compose_info.tick_freq_idx != 0) ? tick_l_button_color.get().to_color() : raylib::Color::Blank();
-    const raylib::Color tick_r_img_color = (compose_info.tick_freq_idx != compose_tab_info::tick_freq_count - 1) ? tick_r_button_color.get().to_color() : raylib::Color::Blank();
-    tick_l_img.ref.set_opt_color(tick_l_img_color);
-    tick_r_img.ref.set_opt_color(tick_r_img_color);
+    const kee::color tick_l_img_color = (compose_info.tick_freq_idx != 0) ? tick_l_button_color.get() : kee::color::blank;
+    const kee::color tick_r_img_color = (compose_info.tick_freq_idx != compose_tab_info::tick_freq_count - 1) ? tick_r_button_color.get() : kee::color::blank;
+    tick_l_img.ref.color = tick_l_img_color;
+    tick_r_img.ref.color = tick_r_img_color;
 
     tick_curr_rect.ref.x.val = tick_curr_rect_x.get();
 }
