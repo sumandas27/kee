@@ -5,7 +5,7 @@ namespace ui {
 
 triangle::triangle(
     const kee::ui::required& reqs, 
-    const std::optional<raylib::Color>& color, 
+    const kee::color& color_param, 
     const kee::pos& x,
     const kee::pos& y,
     const std::variant<kee::dims, kee::border>& dims,
@@ -19,23 +19,16 @@ triangle::triangle(
     p1(p1),
     p2(p2)
 { 
-    set_opt_color(color);
+    color = color_param;
 }
 
 void triangle::render_element() const
 {
     static const raylib::Rectangle src_rect(0, 0, global_assets::texture_empty_size, global_assets::texture_empty_size);
-
     const raylib::Rectangle raw_rect = get_raw_rect();
-    const raylib::Color raw_color = get_color_from_opt(get_opt_color());
 
     const std::array<float, 2> uniform_size = { raw_rect.width, raw_rect.height };
-    const std::array<float, 4> uniform_color = { 
-        static_cast<float>(raw_color.r) / 255.0f,
-        static_cast<float>(raw_color.g) / 255.0f,
-        static_cast<float>(raw_color.b) / 255.0f,
-        static_cast<float>(raw_color.a) / 255.0f
-    };
+    const std::array<float, 4> uniform_color = { color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f };
 
     const std::array<float, 2> uniform_p0 = { p0.x, p0.y };
     const std::array<float, 2> uniform_p1 = { p1.x, p1.y };

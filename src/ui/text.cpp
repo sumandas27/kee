@@ -10,7 +10,7 @@ text_size::text_size(text_size::type text_size_type, float val) :
 
 text::text(
     const kee::ui::required& reqs, 
-    const std::optional<raylib::Color>& color, 
+    const kee::color& color_param, 
     const kee::pos& p_x, 
     const kee::pos& p_y, 
     kee::ui::text_size p_str_size,
@@ -30,7 +30,7 @@ text::text(
     font(font),
     font_cap_height_only(font_cap_height_only)
 {
-    set_opt_color(color);
+    color = color_param;
     update_dims(p_string, p_str_size, 1.0f);
 }
 
@@ -61,7 +61,7 @@ void text::render_element() const
         raw_rect.y += raw_rect.height * (1.0f - font_cap_height_multiplier_approx);
 
     assets.shader_sdf_font.BeginMode();
-    font.DrawText(str.c_str(), raw_rect.GetPosition(), str_size * scale, 0.0f, get_color_from_opt(get_opt_color()));
+    font.DrawText(str.c_str(), raw_rect.GetPosition(), str_size * scale, 0.0f, color.to_color());
     assets.shader_sdf_font.EndMode();
 }
 

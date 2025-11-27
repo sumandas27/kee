@@ -140,7 +140,7 @@ raylib::Rectangle base::get_raw_rect() const
 {
     const raylib::Rectangle parent_raw_rect = parent.has_value() 
         ? parent.value().get_raw_rect()
-        : raylib::Rectangle(0, 0, 0, 0);
+        : raylib::Rectangle(0, 0, kee::scene::window::w, kee::scene::window::h);
 
     raylib::Rectangle res;
     res.SetSize(get_dims(parent_raw_rect));
@@ -243,9 +243,9 @@ void base::release_keyboard_capture()
 base::base(kee::game& game_ref, kee::global_assets& assets) :
     game_ref(game_ref),
     x(pos(pos::type::rel, 0.5f)),
-    x(pos(pos::type::rel, 0.5f)),
+    y(pos(pos::type::rel, 0.5f)),
     dimensions(border(border::type::abs, 0)),
-    centered(false),
+    centered(true),
     color(kee::color::blank),
     assets(assets),
     children(std::make_unique<std::multimap<int, std::unique_ptr<kee::ui::base>>>()),

@@ -15,7 +15,7 @@ on_down_idxs::on_down_idxs(const cursor_idx& idx) :
 
 cursor::cursor(textbox& parent, const cursor_idx& idx) :
     ui(parent.make_temp_child<kee::ui::rect>(
-        raylib::Color(255, 140, 0, 255),
+        kee::color(255, 140, 0, 255),
         pos(pos::type::beg, idx.pos_x),
         pos(pos::type::rel, 0.5f),
         dims(
@@ -30,7 +30,7 @@ cursor::cursor(textbox& parent, const cursor_idx& idx) :
 
 multiselect::multiselect(textbox& parent, const cursor_idx& beg, const cursor_idx& end) :
     ui(parent.make_temp_child<kee::ui::rect>(
-        raylib::Color(255, 255, 255, 128),
+        kee::color(255, 255, 255, 128),
         pos(pos::type::beg, beg.pos_x),
         pos(pos::type::rel, 0.175f),
         dims(
@@ -57,7 +57,7 @@ textbox::textbox(
     keyboard_owner(keyboard_owner),
     textbox_outline_color(add_transition<kee::color>(kee::color::white)),
     textbox_rect(make_temp_child<kee::ui::rect>(
-        raylib::Color(50, 50, 50),
+        kee::color(50, 50, 50),
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         dims(
@@ -65,7 +65,7 @@ textbox::textbox(
             dim(dim::type::rel, 1)
         ),
         false,
-        rect_outline(rect_outline::type::rel_h, 0.07f, textbox_outline_color.get().to_color()),
+        rect_outline(rect_outline::type::rel_h, 0.07f, textbox_outline_color.get()),
         rect_roundness(rect_roundness::type::rel_h, 0.2f, std::nullopt)
     )),
     textbox_text_frame(make_temp_child<kee::ui::base>(
@@ -75,7 +75,7 @@ textbox::textbox(
         true
     )),
     textbox_text(textbox_text_frame.make_temp_child<kee::ui::text>(
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         text_size(text_size::type::rel_h, 1),
@@ -163,7 +163,7 @@ bool textbox::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
                     ui.char_idx++;
                     ui.ui.x.val = this->char_idx_to_pos_x(ui.char_idx);
 
-                    ui.ui.set_opt_color(kee::color::dark_orange.to_color());
+                    ui.ui.color = kee::color::dark_orange;
                     ui.blink_timer = cursor::blink_time;
                 }
             }
@@ -198,7 +198,7 @@ bool textbox::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
                 {
                     ui.char_idx--;
                     ui.ui.x.val = this->char_idx_to_pos_x(ui.char_idx);
-                    ui.ui.set_opt_color(kee::color::dark_orange.to_color());
+                    ui.ui.color = kee::color::dark_orange;
                     ui.blink_timer = cursor::blink_time;
                 }
             }
@@ -244,7 +244,7 @@ bool textbox::on_element_char_press(char c)
 
             ui.char_idx++;
             ui.ui.x.val = this->char_idx_to_pos_x(ui.char_idx);
-            ui.ui.set_opt_color(kee::color::dark_orange.to_color());
+            ui.ui.color = kee::color::dark_orange;
             ui.blink_timer = cursor::blink_time;
         }
         else if constexpr (std::is_same_v<T, multiselect>)
@@ -405,7 +405,7 @@ bool textbox::on_element_mouse_up([[maybe_unused]] const raylib::Vector2& mouse_
 
 void textbox::update_element([[maybe_unused]] float dt)
 {
-    textbox_rect.border.value().opt_color = textbox_outline_color.get().to_color();
+    textbox_rect.border.value().color = textbox_outline_color.get();
 
     if (selection_ui.has_value() && std::holds_alternative<cursor>(selection_ui.value()) && textbox_state != mouse_state::down)
     {
@@ -414,9 +414,9 @@ void textbox::update_element([[maybe_unused]] float dt)
 
         if (blink_timer <= 0.0f)
         {
-            const unsigned char cur_alpha = std::get<cursor>(selection_ui.value()).ui.get_opt_color().value().a;
-            const unsigned char new_alpha = (cur_alpha == 0) ? 255 : 0;
-            std::get<cursor>(selection_ui.value()).ui.set_opt_color(raylib::Color(255, 140, 0, new_alpha));
+            const float cur_alpha = std::get<cursor>(selection_ui.value()).ui.color.a;
+            const float new_alpha = (cur_alpha == 0.f) ? 255.f : 0.f;
+            std::get<cursor>(selection_ui.value()).ui.color = kee::color(255, 140, 0, new_alpha);
 
             blink_timer = cursor::blink_time;
         }

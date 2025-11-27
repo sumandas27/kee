@@ -174,12 +174,7 @@ public:
 class root final : public kee::scene::base
 {
 public:
-    root(
-        const kee::scene::window& window, 
-        kee::game& game, 
-        kee::global_assets& assets,
-        const std::optional<std::filesystem::path>& beatmap_dir_name
-    );
+    root(kee::game& game, kee::global_assets& assets, const std::optional<std::filesystem::path>& beatmap_dir_name);
 
     bool needs_save() const;
     void save_beatmap();
@@ -193,12 +188,7 @@ public:
 private:
     static constexpr float error_transition_time = 0.5f;
 
-    root(
-        const kee::scene::window& window,
-        kee::game& game, 
-        kee::global_assets& assets,
-        std::optional<beatmap_dir_info> dir_info
-    );
+    root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_dir_info> dir_info);
 
     enum class tabs;
 

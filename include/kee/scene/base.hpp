@@ -8,6 +8,9 @@ namespace scene {
 class window
 {
 public:
+    static constexpr int w = 2560;
+    static constexpr int h = 1440;
+
     window();
 
     raylib::Window impl;

@@ -29,7 +29,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     setup_info(setup_info),
     approach_beats(approach_beats),
     metadata_bg(add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color(20, 20, 20),
+        kee::color(20, 20, 20),
         pos(pos::type::rel, 4.0f / 30.0f),
         pos(pos::type::rel, 0.05f),
         dims(
@@ -40,14 +40,14 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         ui::rect_roundness(ui::rect_roundness::type::rel_w, 0.1f, std::nullopt)
     )),
     metadata_label(metadata_bg.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.05f),
         ui::text_size(ui::text_size::type::rel_h, 0.05f),
         true, assets.font_semi_bold, "METADATA", false
     )),
     audio_text(metadata_bg.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.12f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
@@ -67,7 +67,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         setup_info.from_dir ? std::string_view("song.mp3") : std::string_view("Select a song")
     )),
     artist_text(metadata_bg.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.1825f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
@@ -83,7 +83,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         false, *this, setup_info.song_artist
     )),
     song_name_text(metadata_bg.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.245f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
@@ -99,7 +99,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         false, *this, setup_info.song_name
     )),
     mapper_text(metadata_bg.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.36f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
@@ -115,7 +115,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         false, *this, setup_info.mapper
     )),
     level_name_text(metadata_bg.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.4225f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
@@ -131,7 +131,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         false, *this, setup_info.level_name
     )),
     difficulty_bg(add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color(20, 20, 20),
+        kee::color(20, 20, 20),
         pos(pos::type::rel, 17.0f / 30.0f),
         pos(pos::type::rel, 0.05f),
         dims(
@@ -142,14 +142,14 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         ui::rect_roundness(ui::rect_roundness::type::rel_w, 0.1f, std::nullopt)
     )),
     difficulty_label(difficulty_bg.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.05f),
         ui::text_size(ui::text_size::type::rel_h, 0.05f),
         true, assets.font_semi_bold, "DIFFICULTY", false
     )),
     approach_text(difficulty_bg.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.12f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
@@ -165,7 +165,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         false, *this, std::format("{:.2f}", approach_beats)
     )),
     forgiveness_text(difficulty_bg.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.1825f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),

@@ -10,7 +10,7 @@ class triangle final : public kee::ui::base
 public:
     triangle(
         const kee::ui::required& reqs, 
-        const std::optional<raylib::Color>& color, 
+        const kee::color& color_param, 
         const kee::pos& x,
         const kee::pos& y,
         const std::variant<kee::dims, kee::border>& dims,

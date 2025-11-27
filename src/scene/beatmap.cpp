@@ -29,23 +29,23 @@ beatmap_key::beatmap_key(const kee::ui::required& reqs, kee::scene::beatmap& bea
     beatmap_scene(beatmap_scene),
     combo_lost_alpha(add_transition<float>(0.0f)),
     frame(add_child<kee::ui::rect>(-1,
-        raylib::Color::Blank(),
+        kee::color::blank,
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         border(border::type::rel_h, kee::key_border_parent_h),
         true,
-        ui::rect_outline(ui::rect_outline::type::rel_h, kee::key_border_width, std::nullopt), 
+        ui::rect_outline(ui::rect_outline::type::rel_h, kee::key_border_width, color),
         std::nullopt
     )),
     frame_combo_lost(add_child<kee::ui::rect>(0,
-        raylib::Color(255, 0, 0, 0),
+        kee::color(255, 0, 0, 0),
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         border(border::type::rel_h, kee::key_border_parent_h),
         true, std::nullopt, std::nullopt
     )),
     key_text(add_child<kee::ui::text>(-1,
-        std::nullopt,
+        color,
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         ui::text_size(ui::text_size::type::rel_h, 0.5 * (1.0f - 2 * kee::key_border_parent_h)),
@@ -93,6 +93,9 @@ void beatmap_key::pop()
 
 void beatmap_key::update_element([[maybe_unused]] float dt)
 {
+    frame.ref.border.value().color = color;
+    key_text.ref.color = color;
+
     hit_obj_rects.clear();
     for (const beatmap_hit_object& object : hit_objects)
     {
@@ -105,12 +108,12 @@ void beatmap_key::update_element([[maybe_unused]] float dt)
         const float start_progress = std::max((object.beat - beatmap_scene.get_beat()) / (2 * beatmap_scene.approach_beats), 0.0f);
         const float end_progress = std::max((object.beat + object.duration - beatmap_scene.get_beat()) / (2 * beatmap_scene.approach_beats), 0.0f);
         hit_obj_rects.push_back(make_temp_child<kee::ui::rect>(
-            raylib::Color::Blank(),
+            kee::color::blank,
             pos(pos::type::rel, 0.5),
             pos(pos::type::rel, 0.5),
             border(border::type::rel_h, start_progress + kee::key_border_parent_h),
             true,
-            ui::rect_outline(ui::rect_outline::type::abs, 0, std::nullopt),
+            ui::rect_outline(ui::rect_outline::type::abs, 0, kee::color::white), /* TODO: check (3) */
             std::nullopt
         ));
 
@@ -168,7 +171,7 @@ void beatmap_key::render_element() const
 
 pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_time_paused, raylib::Music& music) :
     kee::ui::rect(reqs,
-        raylib::Color(255, 255, 255, 20),
+        kee::color(255, 255, 255, 20),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         dims(
@@ -184,7 +187,7 @@ pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_
     restart_color(add_transition<kee::color>(kee::color(200, 200, 0))),
     exit_color(add_transition<kee::color>(kee::color(200, 0, 0))),
     ui_frame(add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color(30, 30, 30),
+        kee::color(30, 30, 30),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, -0.5f),
         dims(
@@ -194,7 +197,7 @@ pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_
         true, std::nullopt, std::nullopt
     )),
     pause_menu_text(ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.25f),
         ui::text_size(ui::text_size::type::rel_h, 0.06f),
@@ -210,14 +213,14 @@ pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_
         false
     )),
     go_back_rect(go_back_button.ref.add_child<kee::ui::rect>(std::nullopt,
-        go_back_color.get().to_color(),
+        go_back_color.get(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         kee::border(kee::border::type::abs, 0),
         true, std::nullopt, std::nullopt
     )),
     go_back_text(go_back_rect.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.7f),
@@ -233,14 +236,14 @@ pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_
         false
     )),
     restart_rect(restart_button.ref.add_child<kee::ui::rect>(std::nullopt,
-        restart_color.get().to_color(),
+        restart_color.get(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         kee::border(kee::border::type::abs, 0),
         true, std::nullopt, std::nullopt
     )),
     restart_text(restart_rect.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.7f),
@@ -256,14 +259,14 @@ pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_
         false
     )),
     exit_rect(exit_button.ref.add_child<kee::ui::rect>(std::nullopt,
-        exit_color.get().to_color(),
+        exit_color.get(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         kee::border(kee::border::type::abs, 0),
         true, std::nullopt, std::nullopt
     )),
     exit_text(exit_rect.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.7f),
@@ -377,7 +380,7 @@ void pause_menu::update_element([[maybe_unused]] float dt)
 
 end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
     kee::ui::rect(reqs,
-        raylib::Color(30, 30, 30),
+        kee::color(30, 30, 30),
         pos(pos::type::rel, 1.5f),
         pos(pos::type::rel, 0.5f),
         kee::border(kee::border::type::rel_h, 0.08f),
@@ -386,14 +389,14 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
     ui_rel_x(add_transition<float>(1)),
     exit_text_color(add_transition<kee::color>(kee::color::white)),
     rank_text(add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::Blank(),
+        kee::color::blank,
         pos(pos::type::rel, 0.25f),
         pos(pos::type::rel, 0.55f),
         ui::text_size(ui::text_size::type::rel_h, 0.15f),
         true, assets.font_semi_bold, std::string(), false
     )),
     rank_misses_text(add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::Blank(),
+        kee::color::blank,
         pos(pos::type::rel, 0.25f),
         pos(pos::type::rel, 0.625f),
         ui::text_size(ui::text_size::type::rel_h, 0.05f),
@@ -406,21 +409,21 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         true
     )),
     song_name(ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
         false, assets.font_semi_bold, beatmap_scene.song_name, false
     )),
     artist_name(ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.11f),
         ui::text_size(ui::text_size::type::rel_h, 0.04f),
         false, assets.font_semi_bold, beatmap_scene.song_artist, false
     )),
     level_name(ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.17f),
         ui::text_size(ui::text_size::type::rel_h, 0.04f),
@@ -436,21 +439,21 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         false
     )),
     exit_rect(exit_button.ref.add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color(60, 60, 60),
+        kee::color(60, 60, 60),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         kee::border(kee::border::type::abs, 0),
         true, std::nullopt, std::nullopt
     )),
     exit_text(exit_rect.ref.add_child<kee::ui::text>(std::nullopt,
-        exit_text_color.get().to_color(),
+        exit_text_color.get(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
         true, assets.font_semi_bold, "EXIT", false
     )),
     performance_text(ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.75f),
         pos(pos::type::rel, 0.04f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
@@ -466,28 +469,28 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         false
     )),
     accuracy_text(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.3f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
         false, assets.font_semi_bold, "ACCURACY", false
     )),
     missed_text(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.45f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
         false, assets.font_semi_bold, "MISSED", false
     )),
     combo_text(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.6f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
         false, assets.font_semi_bold, "COMBO", false
     )),
     highest_combo_text(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.75f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
@@ -503,28 +506,28 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         false
     )),
     accuracy_result(results_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::end, 0),
         pos(pos::type::rel, 0.3f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
         false, assets.font_regular, std::string(), false
     )),
     missed_result(results_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::end, 0),
         pos(pos::type::rel, 0.45f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
         false, assets.font_regular, std::to_string(beatmap_scene.misses), false
     )),
     combo_result(results_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::end, 0),
         pos(pos::type::rel, 0.6f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
         false, assets.font_regular, std::string(), false
     )),
     highest_combo_result(results_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::end, 0),
         pos(pos::type::rel, 0.75f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
@@ -688,7 +691,7 @@ beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&&
     combo_gain(add_transition<float>(0.0f)),
     end_fade_out_alpha(add_transition<float>(0.0f)),
     progress_bg(add_child<kee::ui::rect>(1,
-        raylib::Color(20, 20, 20),
+        kee::color(20, 20, 20),
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         dims(
@@ -698,7 +701,7 @@ beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&&
         false, std::nullopt, std::nullopt
     )),
     progress_rect(add_child<kee::ui::rect>(2,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         dims(
@@ -723,28 +726,28 @@ beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&&
         true
     )),
     accuracy_text(performance_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         ui::text_size(ui::text_size::type::rel_h, 1),
         false, assets.font_regular, "100.00", false
     )),
     fc_text(performance_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::Gold(),
+        kee::color::gold,
         pos(pos::type::end, 0),
         pos(pos::type::beg, 0),
         ui::text_size(ui::text_size::type::rel_h, 1),
         false, assets.font_semi_bold, "FC", false
     )),
     combo_text(add_child<kee::ui::text>(2,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::beg, 40),
         pos(pos::type::end, 40),
         ui::text_size(ui::text_size::type::rel_h, 0.1f),
         false, assets.font_light, "0x", true
     )),
     combo_text_bg(add_child<kee::ui::text>(1,
-        raylib::Color(255, 255, 255, 0),
+        kee::color(255, 255, 255, 0),
         pos(pos::type::beg, 40),
         pos(pos::type::end, 40),
         ui::text_size(ui::text_size::type::rel_h, 0.1f),
@@ -779,7 +782,7 @@ beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&&
 void beatmap::reset_level()
 {
     load_rect.emplace(add_child<kee::ui::rect>(0,
-        raylib::Color(255, 255, 255, 20),
+        kee::color(255, 255, 255, 20),
         pos(pos::type::beg, 0),
         pos(pos::type::end, 0),
         dims(
@@ -965,7 +968,7 @@ void beatmap::update_element(float dt)
 
             end_fade_out_alpha.set(std::nullopt, 255, 2.5f, kee::transition_type::lin);
             end_fade_out.emplace(add_child<kee::ui::rect>(9,
-                raylib::Color::Blank(),
+                kee::color::blank,
                 pos(pos::type::rel, 0.5f),
                 pos(pos::type::rel, 0.5f),
                 kee::border(kee::border::type::abs, -1),

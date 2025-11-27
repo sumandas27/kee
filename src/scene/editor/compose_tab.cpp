@@ -16,7 +16,7 @@ editor_hit_object::editor_hit_object(int key, float duration) :
 
 hit_obj_ui::hit_obj_ui(const kee::ui::required& reqs, float beat, float duration, float curr_beat, float beat_width, std::size_t key_idx, std::size_t rendered_key_count) :
     kee::ui::rect(reqs,
-        raylib::Color::DarkBlue(),
+        kee::color::dark_blue,
         pos(pos::type::rel, (beat - curr_beat + beat_width) / (2 * beat_width)),
         pos(pos::type::rel, object_editor::hit_objs_rel_y + object_editor::hit_objs_rel_h * (key_idx + 1) / (rendered_key_count + 1) - hit_obj_ui::rel_h / 2),
         dims(
@@ -24,11 +24,11 @@ hit_obj_ui::hit_obj_ui(const kee::ui::required& reqs, float beat, float duration
             dim(dim::type::rel, hit_obj_ui::rel_h)
         ),
         false,
-        kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, 0.15f, raylib::Color::Blue()), 
+        kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, 0.15f, kee::color::blue_raylib), 
         kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_h, 0.5f, kee::ui::rect_roundness::size_effect::extend_w)
     ),
     circle_l(add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color::Blue(),
+        kee::color::blue_raylib,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.5f),
         dims(
@@ -40,7 +40,7 @@ hit_obj_ui::hit_obj_ui(const kee::ui::required& reqs, float beat, float duration
         kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f, std::nullopt)
     )),
     circle_r(add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color::Blue(),
+        kee::color::blue_raylib,
         pos(pos::type::rel, 1),
         pos(pos::type::rel, 0.5f),
         dims(
@@ -57,12 +57,14 @@ hit_obj_ui::hit_obj_ui(const kee::ui::required& reqs, float beat, float duration
     key_idx(key_idx)
 { }
 
+/* TODO: change `border` to `outline` mem var name */
+
 void hit_obj_ui::select()
 {
     selected = true;
 
     color = kee::color::dark_green;
-    border.value().opt_color = raylib::Color::Green();
+    border.value().color = kee::color::green_raylib;
     circle_l.ref.color = kee::color::green_raylib;
     circle_r.ref.color = kee::color::green_raylib;
 }
@@ -72,7 +74,7 @@ void hit_obj_ui::unselect()
     selected = false;
 
     color = kee::color::dark_blue;
-    border.value().opt_color = raylib::Color::Blue();
+    border.value().color = kee::color::blue_raylib;
     circle_l.ref.color = kee::color::blue_raylib;
     circle_r.ref.color = kee::color::blue_raylib;
 }
@@ -142,7 +144,7 @@ compose_tab_key::compose_tab_key(
     ),
     hit_objects(hit_objects),
     frame(add_child<kee::ui::rect>(-1,
-        raylib::Color::Blank(),
+        kee::color::blank,
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         dims(
@@ -150,11 +152,11 @@ compose_tab_key::compose_tab_key(
             dim(dim::type::rel, 1)
         ),
         true,
-        ui::rect_outline(ui::rect_outline::type::rel_h, kee::key_border_width, std::nullopt),
+        ui::rect_outline(ui::rect_outline::type::rel_h, kee::key_border_width, color),
         std::nullopt
     )),
     key_text(add_child<kee::ui::text>(-1,
-        std::nullopt,
+        color,
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
@@ -210,6 +212,9 @@ compose_tab_key::compose_tab_key(
 
 void compose_tab_key::update_element([[maybe_unused]] float dt)
 {
+    frame.ref.border.value().color = color;
+    key_text.ref.color = color;
+
     hit_obj_rects.clear();
     for (const auto& [beat, object] : hit_objects)
     {
@@ -222,12 +227,12 @@ void compose_tab_key::update_element([[maybe_unused]] float dt)
         const float start_progress = std::max((beat - song_ui_elem.get_beat()) / (2 * compose_tab_scene.approach_beats), 0.0f);
         const float end_progress = std::max((beat + object.duration - song_ui_elem.get_beat()) / (2 * compose_tab_scene.approach_beats), 0.0f);
         hit_obj_rects.push_back(make_temp_child<kee::ui::rect>(
-            raylib::Color::Blank(),
+            kee::color::blank,
             pos(pos::type::rel, 0.5),
             pos(pos::type::rel, 0.5),
             border(border::type::rel_h, start_progress),
             true,
-            ui::rect_outline(ui::rect_outline::type::abs, 0, raylib::Color::Red()),
+            ui::rect_outline(ui::rect_outline::type::abs, 0, kee::color::red_raylib),
             std::nullopt
         ));
 
@@ -321,7 +326,7 @@ object_editor::object_editor(
     song_ui& song_ui_elem
 ) :
     kee::ui::rect(reqs,
-        raylib::Color(15, 15, 15, 255),
+        kee::color(15, 15, 15, 255),
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         dims(
@@ -362,7 +367,7 @@ object_editor::object_editor(
         false
     )),
     settings_rect(add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color(30, 30, 30),
+        kee::color(30, 30, 30),
         pos(pos::type::rel, 0.8f),
         pos(pos::type::rel, 0),
         dims(
@@ -372,7 +377,7 @@ object_editor::object_editor(
         false, std::nullopt, std::nullopt
     )),
     key_label_rect(settings_rect.ref.add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color(35, 35, 35),
+        kee::color(35, 35, 35),
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         dims(
@@ -382,7 +387,7 @@ object_editor::object_editor(
         false, std::nullopt, std::nullopt
     )),
     beat_indicator(add_child<kee::ui::triangle>(std::nullopt,
-        raylib::Color::Red(),
+        kee::color::red_raylib,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.05f),
         dims(
@@ -421,7 +426,7 @@ void object_editor::reset_render_hit_objs()
                 : "__";
 
             key_labels.push_back(key_label_rect.ref.add_child<kee::ui::text>(std::nullopt,
-                raylib::Color::White(),
+                kee::color::white,
                 pos(pos::type::rel, 0.5f),
                 pos(pos::type::rel, rel_y),
                 ui::text_size(ui::text_size::type::rel_h, 0.1f),
@@ -672,7 +677,7 @@ bool object_editor::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool
         const float rel_start_y = (mouse_pos.y - obj_renderer_rect.y) / obj_renderer_rect.height;
         selection_box_info box_selection = selection_box_info(
             make_temp_child<kee::ui::rect>(
-                raylib::Color(255, 255, 255, 50),
+                kee::color(255, 255, 255, 50),
                 pos(pos::type::rel, 0),
                 pos(pos::type::rel, 0),
                 dims(
@@ -724,7 +729,7 @@ void object_editor::update_element([[maybe_unused]] float dt)
         const float render_rel_h = is_whole_beat ? 0.1f : 0.05f;
 
         beat_render_rects.push_back(make_temp_child<kee::ui::rect>(
-            raylib::Color::White(),
+            kee::color::white,
             pos(pos::type::rel, render_rel_x),
             pos(pos::type::rel, 0.75f),
             dims(
@@ -740,7 +745,7 @@ void object_editor::update_element([[maybe_unused]] float dt)
         {
             const int whole_beat = beat_tick / compose_tab_scene.get_ticks_per_beat();
             whole_beat_texts.push_back(make_temp_child<kee::ui::text>(
-                raylib::Color::White(),
+                kee::color::white,
                 pos(pos::type::rel, render_rel_x),
                 pos(pos::type::rel, 0.9f),
                 ui::text_size(ui::text_size::type::rel_h, 0.15f),
@@ -993,7 +998,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
     tick_r_button_scale(add_transition<float>(1.0f)),
     tick_curr_rect_x(add_transition<float>(static_cast<float>(compose_info.tick_freq_idx * 2 + 1) / (compose_tab_info::tick_freq_count * 2))),
     inspector_rect(add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color(20, 20, 20),
+        kee::color(20, 20, 20),
         pos(pos::type::rel, 0.8f),
         pos(pos::type::rel, 0.25f),
         dims(
@@ -1012,7 +1017,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         false
     )),
     beat_snap_button_rect(beat_snap_button.ref.add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color::Blank(),
+        kee::color::blank,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         dims(
@@ -1020,11 +1025,11 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
             dim(dim::type::rel, 1)
         ),
         false,
-        kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, beat_snap_button_outline.get(), raylib::Color::White()),
+        kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, beat_snap_button_outline.get(), kee::color::white),
         std::nullopt
     )),
     beat_snap_text(inspector_rect.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.23f),
         pos(pos::type::rel, 0.245f),
         ui::text_size(ui::text_size::type::rel_h, 0.035f),
@@ -1040,7 +1045,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         false
     )),
     key_lock_button_rect(key_lock_button.ref.add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color::Blank(),
+        kee::color::blank,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         dims(
@@ -1048,18 +1053,18 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
             dim(dim::type::rel, 1)
         ),
         false,
-        kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, key_lock_button_outline.get(), raylib::Color::White()),
+        kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, key_lock_button_outline.get(), kee::color::white),
         std::nullopt
     )),
     key_lock_text(inspector_rect.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.23f),
         pos(pos::type::rel, 0.315f),
         ui::text_size(ui::text_size::type::rel_h, 0.035f),
         false, assets.font_semi_bold, "KEY LOCK", false
     )),
     tick_text(inspector_rect.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.08f),
         ui::text_size(ui::text_size::type::rel_h, 0.07f),
@@ -1075,7 +1080,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         true
     )),
     tick_l_img(tick_l_button.ref.add_child<kee::ui::image>(std::nullopt,
-        compose_info.arrow_png, raylib::Color::White(),
+        compose_info.arrow_png, kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         dims(
@@ -1094,7 +1099,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         true
     )),
     tick_r_img(tick_r_button.ref.add_child<kee::ui::image>(std::nullopt,
-        compose_info.arrow_png, raylib::Color::White(),
+        compose_info.arrow_png, kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         dims(
@@ -1104,7 +1109,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         true, true, false, 0.0f
     )),
     tick_frame(inspector_rect.ref.add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color(30, 30, 30, 255),
+        kee::color(30, 30, 30, 255),
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.15f),
         dims(
@@ -1114,7 +1119,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         false, std::nullopt, std::nullopt
     )),
     tick_curr_rect(tick_frame.ref.add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color(40, 40, 40, 255),
+        kee::color(40, 40, 40, 255),
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.5f),
         dims(
@@ -1146,7 +1151,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
     for (std::size_t i = 0; i < compose_tab_info::tick_freq_count; i++)
     {
         tick_frame_texts.push_back(tick_frame.ref.add_child<kee::ui::text>(std::nullopt,
-            raylib::Color::White(),
+            kee::color::white,
             pos(pos::type::rel, static_cast<float>(i * 2 + 1) / (compose_tab_info::tick_freq_count * 2)),
             pos(pos::type::rel, 0.5f),
             ui::text_size(ui::text_size::type::rel_h, 0.7f),
@@ -1580,10 +1585,10 @@ void compose_tab::update_element([[maybe_unused]] float dt)
         }
     }
 
-    beat_snap_button_rect.ref.border.value().opt_color.value() = beat_snap_button_color.get().to_color();
+    beat_snap_button_rect.ref.border.value().color = beat_snap_button_color.get();
     beat_snap_button_rect.ref.border.value().val = beat_snap_button_outline.get();
 
-    key_lock_button_rect.ref.border.value().opt_color.value() = key_lock_button_color.get().to_color();
+    key_lock_button_rect.ref.border.value().color = key_lock_button_color.get();
     key_lock_button_rect.ref.border.value().val = key_lock_button_outline.get();
 
     std::get<kee::dims>(tick_l_img.ref.dimensions).w.val = tick_l_button_scale.get();

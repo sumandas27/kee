@@ -37,7 +37,7 @@ timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem, song_ui& 
         false
     )),
     points_bg(points_frame.ref.add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color(20, 20, 20),
+        kee::color(20, 20, 20),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_w, 0.05f),
@@ -45,14 +45,14 @@ timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem, song_ui& 
         ui::rect_roundness(ui::rect_roundness::type::rel_w, 0.05f, std::nullopt)
     )),
     wip_text(points_bg.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.05f),
         true, assets.font_semi_bold, "WORK IN PROGRESS", false
     )),
     timing_slider(add_child<kee::ui::rect>(std::nullopt,
-        timing_tab::timing_rect_color.to_color(),
+        timing_tab::timing_rect_color,
         pos(pos::type::rel, 0.55f),
         pos(pos::type::rel, 0.4f),
         dims(
@@ -72,7 +72,7 @@ timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem, song_ui& 
         true
     )),
     timing_ball(timing_ball_frame.ref.add_child<kee::ui::rect>(1,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.5f),
         dims(
@@ -92,7 +92,7 @@ timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem, song_ui& 
         true
     )),
     bpm_text(bpm_offset_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         ui::text_size(ui::text_size::type::rel_h, 0.4f),
@@ -108,7 +108,7 @@ timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem, song_ui& 
         false, *this, std::format("{:.2f}", song_ui_elem.music_bpm)
     )),
     offset_text(bpm_offset_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.6f),
         ui::text_size(ui::text_size::type::rel_h, 0.4f),
@@ -129,7 +129,7 @@ timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem, song_ui& 
 
     for (std::size_t i = 0; i <= 4; i++)
         timing_slider_ticks.emplace_back(timing_ball_frame.ref.add_child<kee::ui::rect>(0,
-            raylib::Color::DarkGray(),
+            kee::color::dark_gray,
             pos(pos::type::rel, i / 4.0f),
             pos(pos::type::rel, 0.5f),
             dims(
@@ -143,7 +143,7 @@ timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem, song_ui& 
     timing_rects.reserve(4);
     for (std::size_t i = 0; i < 4; i++)
         timing_rects.emplace_back(add_child<kee::ui::rect>(std::nullopt,
-            timing_tab::timing_rect_color.to_color(),
+            timing_tab::timing_rect_color,
             pos(pos::type::rel, 0.55f + 0.11f * i),
             pos(pos::type::rel, 0.2f),
             dims(
@@ -227,16 +227,9 @@ void timing_tab::update_element([[maybe_unused]] float dt)
 
         for (std::size_t i = 0; i < timing_rects.size(); i++)
         {
-            raylib::Color rect_color;
-            if (i == color_idx)
-            {
-                const kee::color kee_color = timing_tab::timing_rect_color * interpolation + kee::color::green * (1.0f - interpolation);
-                rect_color = kee_color.to_color();
-            }
-            else
-                rect_color = timing_tab::timing_rect_color.to_color();
-
-            timing_rects[i].ref.set_opt_color(rect_color);
+            timing_rects[i].ref.color = (i == color_idx)
+                ? timing_tab::timing_rect_color * interpolation + kee::color::green * (1.0f - interpolation)
+                : timing_tab::timing_rect_color;
         }
 
         timing_ball.ref.x.val = (color_idx % 2 == 0) ? interpolation : 1.0f - interpolation;
@@ -244,7 +237,7 @@ void timing_tab::update_element([[maybe_unused]] float dt)
     else
     {
         for (kee::ui::handle<kee::ui::rect>& timing_rect : timing_rects)
-            timing_rect.ref.set_opt_color(timing_tab::timing_rect_color.to_color());
+            timing_rect.ref.color = timing_tab::timing_rect_color;
 
         timing_ball.ref.x.val = 0;
     }

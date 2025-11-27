@@ -16,7 +16,7 @@ slider::slider(
     fill_color(add_transition<kee::color>(kee::color::white)),
     thumb_scale(add_transition<float>(1.75f)),
     track(make_temp_child<kee::ui::rect>(
-        raylib::Color(255, 255, 255, 40),
+        kee::color(255, 255, 255, 40),
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         dims(
@@ -27,7 +27,7 @@ slider::slider(
         rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt)
     )),
     fill(make_temp_child<kee::ui::rect>(
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         dims(
@@ -39,7 +39,7 @@ slider::slider(
         rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt)
     )),
     thumb(fill.make_temp_child<kee::ui::rect>(
-        std::nullopt,
+        kee::color::white, /* TODO: keep common color local var */
         pos(pos::type::rel, 1.0f),
         pos(pos::type::rel, 0.5f),
         dims(
@@ -116,7 +116,7 @@ bool slider::on_element_mouse_up([[maybe_unused]] const raylib::Vector2& mouse_p
 
 void slider::update_element([[maybe_unused]] float dt)
 {
-    fill.set_opt_color(fill_color.get().to_color());
+    fill.color = fill_color.get();
     std::get<kee::dims>(fill.dimensions).w.val = progress;
     std::get<kee::dims>(thumb.dimensions).h.val = thumb_scale.get();
 }

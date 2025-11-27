@@ -19,7 +19,7 @@ window::window()
     );
 
     /* TODO: custom window size and fix ui so fun :D */
-    impl.Init(2560, 1440);
+    impl.Init(window::w, window::h);
     impl.SetTargetFPS(window_fps);
 }
 

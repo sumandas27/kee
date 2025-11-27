@@ -13,12 +13,12 @@ beatmap_file::beatmap_file(const std::filesystem::path& file_dir, bool save_meta
 
 confirm_save_ui::confirm_save_ui(const kee::ui::required& reqs, const kee::image_texture& error_png, root& root_elem, confirm_exit_ui& render_prio_owner) :
     kee::ui::rect(reqs,
-        raylib::Color(0, 0, 0, 230),
+        kee::color(0, 0, 0, 230),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         kee::border(kee::border::type::rel_h, 0.4f),
         true,
-        ui::rect_outline(ui::rect_outline::type::rel_h, 0.02f, raylib::Color::Red()),
+        ui::rect_outline(ui::rect_outline::type::rel_h, 0.02f, kee::color::red_raylib),
         ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.05f, std::nullopt)
     ),
     root_elem(root_elem),
@@ -32,8 +32,7 @@ confirm_save_ui::confirm_save_ui(const kee::ui::required& reqs, const kee::image
         true
     )),
     warning_png(confirm_save_ui_base.ref.add_child<kee::ui::image>(std::nullopt,
-        error_png,
-        raylib::Color::Red(),
+        error_png, kee::color::red_raylib,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         dims(
@@ -43,7 +42,7 @@ confirm_save_ui::confirm_save_ui(const kee::ui::required& reqs, const kee::image
         false, false, false, 0.0f
     )),
     confirm_save_text(confirm_save_ui_base.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.06f),
         pos(pos::type::rel, 0),
         ui::text_size(ui::text_size::type::rel_h, 0.2f),
@@ -59,16 +58,16 @@ confirm_save_ui::confirm_save_ui(const kee::ui::required& reqs, const kee::image
         false
     )),
     leave_rect(leave_button.ref.add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color::Blank(),
+        kee::color::blank,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         kee::border(kee::border::type::abs, 0),
         true,
-        ui::rect_outline(ui::rect_outline::type::rel_h, 0.1f, leave_color.get().to_color()),
+        ui::rect_outline(ui::rect_outline::type::rel_h, 0.1f, leave_color.get()),
         ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.1f, std::nullopt)
     )),
     leave_text(leave_button.ref.add_child<kee::ui::text>(std::nullopt,
-        leave_color.get().to_color(),
+        leave_color.get(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.6f),
@@ -84,16 +83,16 @@ confirm_save_ui::confirm_save_ui(const kee::ui::required& reqs, const kee::image
         false
     )),
     save_rect(save_button.ref.add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color::Blank(),
+        kee::color::blank,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         kee::border(kee::border::type::abs, 0),
         true,
-        ui::rect_outline(ui::rect_outline::type::rel_h, 0.1f, save_color.get().to_color()),
+        ui::rect_outline(ui::rect_outline::type::rel_h, 0.1f, save_color.get()),
         ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.1f, std::nullopt)
     )),
     save_text(save_button.ref.add_child<kee::ui::text>(std::nullopt,
-        save_color.get().to_color(),
+        save_color.get(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.6f),
@@ -170,10 +169,10 @@ bool confirm_save_ui::on_element_mouse_down(const raylib::Vector2& mouse_pos, bo
 
 void confirm_save_ui::update_element([[maybe_unused]] float dt)
 {
-    leave_rect.ref.border.value().opt_color = leave_color.get().to_color();
+    leave_rect.ref.border.value().color = leave_color.get();
     leave_text.ref.color = leave_color.get();
 
-    save_rect.ref.border.value().opt_color = save_color.get().to_color();
+    save_rect.ref.border.value().color = save_color.get();
     save_text.ref.color = save_color.get();
 }
 
@@ -201,14 +200,14 @@ confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, root& root_elem,
     confirm_button_color(add_transition<kee::color>(kee::color(200, 0, 0))),
     go_back_button_color(add_transition<kee::color>(kee::color(0, 200, 0))),
     confirm_button_bg(confirm_button.ref.add_child<kee::ui::rect>(std::nullopt,
-        confirm_button_color.get().to_color(),
+        confirm_button_color.get(),
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         border(border::type::abs, 0),
         true, std::nullopt, std::nullopt
     )),
     confirm_button_text(confirm_button_bg.ref.make_temp_child<kee::ui::text>(
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.75f),
@@ -224,14 +223,14 @@ confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, root& root_elem,
         false
     )),
     go_back_button_bg(go_back_button.ref.add_child<kee::ui::rect>(std::nullopt,
-        go_back_button_color.get().to_color(),
+        go_back_button_color.get(),
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         border(border::type::abs, 0),
         true, std::nullopt, std::nullopt
     )),
     go_back_button_text(go_back_button_bg.ref.make_temp_child<kee::ui::text>(
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.75f),
@@ -388,8 +387,7 @@ song_ui::song_ui(
         false
     )),
     pause_play_img(pause_play.ref.add_child<kee::ui::image>(std::nullopt,
-        assets.play_png,
-        raylib::Color::White(),
+        assets.play_png, kee::color::white,
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         dims(
@@ -399,7 +397,7 @@ song_ui::song_ui(
         true, false, false, 0.0f
     )),
     music_time_text(add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::end, 0),
         pos(pos::type::end, 0),
         ui::text_size(ui::text_size::type::rel_h, 0.75f),
@@ -415,14 +413,14 @@ song_ui::song_ui(
         false
     )),
     playback_l_bg(playback_l_button.ref.add_child<kee::ui::rect>(0,
-        raylib::Color(20, 20, 20),
+        kee::color(20, 20, 20),
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         border(border::type::rel_h, 0),
         false, std::nullopt, std::nullopt
     )),
     playback_l_img(playback_l_button.ref.add_child<kee::ui::image>(1,
-        arrow_png, raylib::Color::White(),
+        arrow_png, kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_h, 0.15f),
@@ -430,7 +428,7 @@ song_ui::song_ui(
     )),
     playback_speed_idx(3),
     playback_text_bg(add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color(10, 10, 10),
+        kee::color(10, 10, 10),
         pos(pos::type::rel, 0.07f),
         pos(pos::type::rel, 0.3f),
         dims(
@@ -440,7 +438,7 @@ song_ui::song_ui(
         false, std::nullopt, std::nullopt
     )),
     playback_text(playback_text_bg.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.7f),
@@ -456,14 +454,14 @@ song_ui::song_ui(
         false
     )),
     playback_r_bg(playback_r_button.ref.add_child<kee::ui::rect>(0,
-        raylib::Color(20, 20, 20),
+        kee::color(20, 20, 20),
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         border(border::type::rel_h, 0),
         false, std::nullopt, std::nullopt
     )),
     playback_r_img(playback_r_button.ref.add_child<kee::ui::image>(std::nullopt,
-        arrow_png, raylib::Color::White(),
+        arrow_png, kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_h, 0.15f),
@@ -666,13 +664,8 @@ void song_ui::update_element([[maybe_unused]] float dt)
     playback_r_img.ref.color = (playback_speed_idx < song_ui::playback_speeds.size() - 1) ? playback_r_img_color.get() : kee::color(255, 255, 255, 80);
 }
 
-root::root(
-    const kee::scene::window& window, 
-    kee::game& game, 
-    kee::global_assets& assets,
-    const std::optional<std::filesystem::path>& beatmap_dir_name
-) :
-    root(window, game, assets, beatmap_dir_name.has_value() 
+root::root(kee::game& game, kee::global_assets& assets, const std::optional<std::filesystem::path>& beatmap_dir_name) :
+    root(game, assets, beatmap_dir_name.has_value() 
         ? std::make_optional(beatmap_dir_info(beatmap_dir_name.value()))
         : std::nullopt
     )
@@ -766,7 +759,7 @@ void root::set_error(std::string_view error_str, bool from_file_dialog)
 
     notif_img.ref.set_image(error_png);
     notif_img.ref.color = new_notif_color;
-    notif_rect.ref.border.value().opt_color = new_notif_color;
+    notif_rect.ref.border.value().color = new_notif_color;
     notif_text.ref.set_string(error_str);
     /**
      * File dialogs hang the program during file selection, making that frame's 
@@ -783,7 +776,7 @@ void root::set_info(std::string_view info_str)
 
     notif_img.ref.set_image(info_png);
     notif_img.ref.color = new_notif_color;
-    notif_rect.ref.border.value().opt_color = new_notif_color;
+    notif_rect.ref.border.value().color = new_notif_color;
     notif_text.ref.set_string(info_str);
 
     notif_skips_before_start = 0;
@@ -795,13 +788,8 @@ void root::set_song(std::filesystem::path song_path)
     playback_ui.emplace<kee::ui::handle<song_ui>>(playback_ui_frame.ref.add_child<song_ui>(std::nullopt, arrow_png, song_path));
 }
 
-root::root(
-    const kee::scene::window& window, 
-    kee::game& game, 
-    kee::global_assets& assets,
-    std::optional<beatmap_dir_info> dir_info
-) :
-    kee::scene::base(window, game, assets),
+root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_dir_info> dir_info) :
+    kee::scene::base(game, assets),
     save_info(dir_info.has_value() ? std::make_optional(beatmap_file(dir_info.value().beatmap_dir_path, false)) : std::nullopt),
     arrow_png("assets/img/arrow.png"),
     error_png("assets/img/error.png"),
@@ -820,7 +808,7 @@ root::root(
     notif_rect_rel_x(add_transition<float>(1.0f)),
     notif_alpha(add_transition<float>(0)),
     tab_rect(add_child<kee::ui::rect>(1,
-        raylib::Color(10, 10, 10, 255),
+        kee::color(10, 10, 10, 255),
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         dims(
@@ -839,7 +827,7 @@ root::root(
         false
     )),
     tab_active_rect(tab_display_frame.ref.add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color(20, 20, 20, 255),
+        kee::color(20, 20, 20, 255),
         pos(pos::type::rel, tab_active_rect_rel_x.get()),
         pos(pos::type::rel, 0),
         dims(
@@ -858,22 +846,21 @@ root::root(
         false
     )),
     exit_button_rect(exit_button.ref.add_child<kee::ui::rect>(0,
-        raylib::Color(255, 0, 0, static_cast<unsigned char>(exit_button_rect_alpha.get())),
+        kee::color(255, 0, 0, static_cast<unsigned char>(exit_button_rect_alpha.get())),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::abs, 0),
         true, std::nullopt, std::nullopt
     )),
     exit_button_image(exit_button.ref.add_child<kee::ui::image>(1,
-        exit_png,
-        raylib::Color::White(),
+        exit_png, kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_w, 0.3f),
         true, false, false, 0.0f
     )),
     playback_bg(add_child<kee::ui::rect>(std::nullopt,
-        raylib::Color(30, 30, 30),
+        kee::color(30, 30, 30),
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.92f),
         dims(
@@ -897,7 +884,7 @@ root::root(
         ) :
         std::variant<kee::ui::handle<song_ui>, kee::ui::handle<kee::ui::text>>(
             playback_ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
-                raylib::Color::White(),
+                kee::color::white,
                 pos(pos::type::rel, 0),
                 pos(pos::type::rel, 0),
                 ui::text_size(ui::text_size::type::rel_h, 0.5f),
@@ -906,7 +893,7 @@ root::root(
         )
     ),
     notif_rect(add_child<kee::ui::rect>(1,
-        raylib::Color(80, 80, 80, static_cast<unsigned char>(notif_alpha.get())),
+        kee::color(80, 80, 80, static_cast<unsigned char>(notif_alpha.get())),
         pos(pos::type::rel, notif_rect_rel_x.get()),
         pos(pos::type::rel, 0.93f),
         dims(
@@ -914,7 +901,7 @@ root::root(
             dim(dim::type::rel, 0.05f)
         ),
         false,
-        ui::rect_outline(ui::rect_outline::type::rel_h, 0.1f, raylib::Color(255, 0, 0, static_cast<unsigned char>(notif_alpha.get()))),
+        ui::rect_outline(ui::rect_outline::type::rel_h, 0.1f, kee::color(255, 0, 0, static_cast<unsigned char>(notif_alpha.get()))),
         ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.2f, std::nullopt)
     )),
     notif_img_frame(notif_rect.ref.add_child<kee::ui::base>(std::nullopt,
@@ -927,15 +914,14 @@ root::root(
         false
     )),
     notif_img(notif_img_frame.ref.add_child<kee::ui::image>(std::nullopt,
-        error_png,
-        raylib::Color(255, 0, 0, static_cast<unsigned char>(notif_alpha.get())),
+        error_png, kee::color(255, 0, 0, notif_alpha.get()),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_h, 0.3f),
         true, false, false, 0.0f
     )),
     notif_text(notif_rect.ref.add_child<kee::ui::text>(std::nullopt,
-        raylib::Color(255, 255, 255, static_cast<unsigned char>(notif_alpha.get())),
+        kee::color(255, 255, 255, static_cast<unsigned char>(notif_alpha.get())),
         pos(pos::type::rel, 0.13f),
         pos(pos::type::rel, 0.3f),
         ui::text_size(ui::text_size::type::rel_h, 0.4f),
@@ -1052,7 +1038,7 @@ root::root(
         std::transform(enum_name.begin(), enum_name.end(), enum_name.begin(), [](unsigned char c) { return static_cast<unsigned char>(std::toupper(c)); });
 
         tab_button_text.push_back(tab_buttons.back().ref.add_child<kee::ui::text>(std::nullopt,
-            raylib::Color::White(),
+            kee::color::white,
             pos(pos::type::rel, 0.5f),
             pos(pos::type::rel, 0.5f),
             ui::text_size(ui::text_size::type::rel_h, 0.6f),
@@ -1151,18 +1137,18 @@ void root::update_element(float dt)
 
     kee::color exit_button_rect_color = exit_button_rect.ref.color;
     exit_button_rect_color.a = static_cast<unsigned char>(exit_button_rect_alpha.get());
-    exit_button_rect.ref.set_opt_color(exit_button_rect_color);
+    exit_button_rect.ref.color = exit_button_rect_color;
     tab_active_rect.ref.x.val = tab_active_rect_rel_x.get();
 
     if (confirm_exit.has_value() && confirm_exit.value().ref.should_destruct())
         confirm_exit.reset();
 
     const unsigned char error_a = static_cast<unsigned char>(notif_alpha.get());
-    const raylib::Color notif_rect_border_color = notif_rect.ref.border.value().opt_color.value();
+    const kee::color notif_rect_border_color = notif_rect.ref.border.value().color;
     const kee::color notif_img_color = notif_img.ref.color;
     
     notif_rect.ref.color = kee::color(80, 80, 80, error_a);
-    notif_rect.ref.border.value().opt_color = raylib::Color(notif_rect_border_color.r, notif_rect_border_color.g, notif_rect_border_color.b, error_a);
+    notif_rect.ref.border.value().color = kee::color(notif_rect_border_color.r, notif_rect_border_color.g, notif_rect_border_color.b, error_a);
     notif_img.ref.color = kee::color(notif_img_color.r, notif_img_color.g, notif_img_color.b, error_a);
     notif_text.ref.color = kee::color(255, 255, 255, error_a);
     notif_rect.ref.x.val = notif_rect_rel_x.get();

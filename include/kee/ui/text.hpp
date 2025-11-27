@@ -29,7 +29,7 @@ class text final : public kee::ui::base
 public:
     text(
         const kee::ui::required& reqs, 
-        const std::optional<raylib::Color>& color, 
+        const kee::color& color_param, 
         const kee::pos& p_x, 
         const kee::pos& p_y, 
         kee::ui::text_size p_str_size,

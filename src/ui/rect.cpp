@@ -3,10 +3,10 @@
 namespace kee {
 namespace ui {
 
-rect_outline::rect_outline(rect_outline::type rect_outline_type, float val, const std::optional<raylib::Color>& opt_color) :
+rect_outline::rect_outline(rect_outline::type rect_outline_type, float val, const kee::color& color) :
     rect_outline_type(rect_outline_type),
     val(val),
-    opt_color(opt_color)
+    color(color)
 { }
 
 rect_roundness::rect_roundness(rect_roundness::type rect_roundness_type, float val, std::optional<rect_roundness::size_effect> rect_size_effect) :
@@ -17,7 +17,7 @@ rect_roundness::rect_roundness(rect_roundness::type rect_roundness_type, float v
 
 rect::rect(
     const kee::ui::required& reqs, 
-    const std::optional<raylib::Color>& color, 
+    const kee::color& color_param, 
     const kee::pos& x, 
     const kee::pos& y, 
     const std::variant<kee::dims, kee::border>& dims,
@@ -29,7 +29,7 @@ rect::rect(
     border(border),
     roundness(roundness)
 {
-    set_opt_color(color);
+    color = color_param;
 }
 
 raylib::Rectangle rect::get_extended_raw_rect() const
@@ -54,18 +54,11 @@ raylib::Rectangle rect::get_extended_raw_rect() const
 void rect::render_element() const 
 {
     static const raylib::Rectangle src_rect(0, 0, global_assets::texture_empty_size, global_assets::texture_empty_size);
-
-    const raylib::Color raw_color = get_color_from_opt(get_opt_color());
     const raylib::Rectangle dst_rect = get_extended_raw_rect();
 
     const float uniform_roundness_size = get_roundness();
     const std::array<float, 2> uniform_size = { dst_rect.width, dst_rect.height };
-    const std::array<float, 4> uniform_color = { 
-        static_cast<float>(raw_color.r) / 255.0f,
-        static_cast<float>(raw_color.g) / 255.0f,
-        static_cast<float>(raw_color.b) / 255.0f,
-        static_cast<float>(raw_color.a) / 255.0f
-    };
+    const std::array<float, 4> uniform_color = { color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f };
 
     float uniform_outline_thickness = 0;
     std::array<float, 4> uniform_outline_color = { 0.0f, 0.0f, 0.0f, 0.0f };    
@@ -86,13 +79,8 @@ void rect::render_element() const
             std::unreachable();
         }
 
-        const raylib::Color outline_color = get_color_from_opt(border.value().opt_color);
-        uniform_outline_color = {
-            static_cast<float>(outline_color.r) / 255.0f,
-            static_cast<float>(outline_color.g) / 255.0f,
-            static_cast<float>(outline_color.b) / 255.0f,
-            static_cast<float>(outline_color.a) / 255.0f
-        };
+        const kee::color outline_color = border.value().color;
+        uniform_outline_color = { outline_color.r / 255.0f, outline_color.g / 255.0f, outline_color.b / 255.0f, outline_color.a / 255.0f };
     }
 
     assets.shader_sdf_rect.SetValue(assets.sdf_rect_loc_color, uniform_color.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC4);

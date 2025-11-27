@@ -15,7 +15,7 @@ decoration_tab::decoration_tab(const kee::ui::required& reqs) :
         false
     ),
     wip_text(add_child<kee::ui::text>(std::nullopt,
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.07f),

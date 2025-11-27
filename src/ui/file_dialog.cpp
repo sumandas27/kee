@@ -22,7 +22,7 @@ file_dialog::file_dialog(
     on_filter_mismatch([](){}),
     fd_outline_color(add_transition<kee::color>(kee::color::white)),
     fd_rect(make_temp_child<kee::ui::rect>(
-        raylib::Color(50, 50, 50),
+        kee::color(50, 50, 50),
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         dims(
@@ -30,7 +30,7 @@ file_dialog::file_dialog(
             dim(dim::type::rel, 1)
         ),
         false,
-        rect_outline(rect_outline::type::rel_h, 0.07f, fd_outline_color.get().to_color()),
+        rect_outline(rect_outline::type::rel_h, 0.07f, fd_outline_color.get()),
         rect_roundness(rect_roundness::type::rel_h, 0.15f, std::nullopt)
     )),
     fd_button(make_temp_child<kee::ui::button>(
@@ -43,8 +43,7 @@ file_dialog::file_dialog(
         false
     )),
     fd_image(fd_button.make_temp_child<kee::ui::image>(
-        assets.directory_png,
-        raylib::Color::White(),
+        assets.directory_png, kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_w, 0.2f),
@@ -66,7 +65,7 @@ file_dialog::file_dialog(
         true
     )),
     fd_text(fd_text_frame.make_temp_child<kee::ui::text>(
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         text_size(text_size::type::rel_h, 1),
@@ -155,8 +154,8 @@ bool file_dialog::on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_
 
 void file_dialog::update_element([[maybe_unused]] float dt)
 {
-    fd_rect.border.value().opt_color = fd_outline_color.get().to_color();
-    fd_image.set_opt_color(fd_outline_color.get().to_color());
+    fd_rect.border.value().color = fd_outline_color.get();
+    fd_image.color = fd_outline_color.get();
 }
 
 void file_dialog::render_element() const

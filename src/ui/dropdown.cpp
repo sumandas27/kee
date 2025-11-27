@@ -20,7 +20,7 @@ dropdown::dropdown(
     options_height(add_transition<float>(0.0f)),
     options_curr_rect_y(add_transition<float>((start_idx + 1.0f) / (options.size() + 1.0f))),
     dropdown_rect(make_temp_child<kee::ui::rect>(
-        raylib::Color::DarkGray(),
+        kee::color::dark_gray,
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         dims(
@@ -28,7 +28,7 @@ dropdown::dropdown(
             dim(dim::type::rel, 1)
         ),
         false,
-        rect_outline(rect_outline::type::rel_w, 0.02f, raylib::Color::White()),
+        rect_outline(rect_outline::type::rel_w, 0.02f, kee::color::white),
         std::nullopt
     )),
     dropdown_button(make_temp_child<kee::ui::button>(
@@ -47,7 +47,7 @@ dropdown::dropdown(
         true
     )),
     dropdown_text(dropdown_text_frame.make_temp_child<kee::ui::text>(
-        raylib::Color::White(),
+        kee::color::white,
         pos(pos::type::rel, 0.05f),
         pos(pos::type::beg, 0),
         text_size(text_size::type::rel_h, 1),
@@ -63,15 +63,14 @@ dropdown::dropdown(
         false
     )),
     dropdown_img(dropdown_img_frame.make_temp_child<kee::ui::image>(
-        assets.play_png,
-        raylib::Color::White(),
+        assets.play_png, kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_w, 0.3f),
         true, false, false, 90.0f
     )),
     options_rect(make_temp_child<kee::ui::rect>(
-        raylib::Color::DarkGray(),
+        kee::color::dark_gray,
         pos(pos::type::beg, 0),
         pos(pos::type::end, 0),
         dims(
@@ -81,16 +80,16 @@ dropdown::dropdown(
         false, std::nullopt, std::nullopt
     )),
     options_rect_border(options_rect.make_temp_child<kee::ui::rect>(
-        raylib::Color::Blank(),
+        kee::color::blank,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         border(border::type::rel_h, 0),
         false,
-        rect_outline(rect_outline::type::rel_w, 0.02f, raylib::Color::White()),
+        rect_outline(rect_outline::type::rel_w, 0.02f, kee::color::white),
         std::nullopt
     )),
     options_curr_rect(options_rect.make_temp_child<kee::ui::rect>(
-        raylib::Color(60, 60, 60, 255),
+        kee::color(60, 60, 60, 255),
         pos(pos::type::rel, 0),
         pos(pos::type::rel, options_curr_rect_y.get()),
         dims(
@@ -122,10 +121,10 @@ dropdown::dropdown(
             switch (button_event)
             {
             case button::event::on_hot:
-                this->options_button_texts[idx].set_opt_color(kee::color::dark_orange.to_color());
+                this->options_button_texts[idx].color = kee::color::dark_orange;
                 break;
             case button::event::on_leave:
-                this->options_button_texts[idx].set_opt_color(raylib::Color::White());
+                this->options_button_texts[idx].color = kee::color::white;
                 break;
             default:
                 break;
@@ -147,7 +146,7 @@ dropdown::dropdown(
         ));
 
         options_button_texts.push_back(options_button_text_frames[i].make_temp_child<kee::ui::text>(
-            raylib::Color::White(),
+            kee::color::white,
             pos(pos::type::rel, 0.05f),
             pos(pos::type::beg, 0),
             text_size(text_size::type::rel_h, 1),
@@ -224,8 +223,8 @@ bool dropdown::on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mou
 
 void dropdown::update_element([[maybe_unused]] float dt)
 {
-    dropdown_rect.border.value().opt_color.value() = dropdown_outline_color.get().to_color();
-    dropdown_img.set_opt_color(dropdown_outline_color.get().to_color());
+    dropdown_rect.border.value().color = dropdown_outline_color.get();
+    dropdown_img.color = dropdown_outline_color.get();
     dropdown_img.rotation = dropdown_img_rotation.get();
 
     options_rect.y.val = -options_height.get();

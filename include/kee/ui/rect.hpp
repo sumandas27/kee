@@ -12,12 +12,12 @@ class rect_outline
 public:
     enum class type;
 
-    rect_outline(rect_outline::type rect_outline_type, float val, const std::optional<raylib::Color>& opt_color);
+    rect_outline(rect_outline::type rect_outline_type, float val, const kee::color& color);
 
     rect_outline::type rect_outline_type;
     float val;
 
-    std::optional<raylib::Color> opt_color; /* TODO: change to color i think */
+    kee::color color;
 };
 
 enum class rect_outline::type
@@ -58,7 +58,7 @@ class rect : public kee::ui::base
 public:
     rect(
         const kee::ui::required& reqs, 
-        const std::optional<raylib::Color>& color, 
+        const kee::color& color_param, 
         const kee::pos& x,
         const kee::pos& y,
         const std::variant<kee::dims, kee::border>& dims,

@@ -6,7 +6,7 @@ namespace ui {
 image::image(
     const kee::ui::required& reqs,
     const kee::image_texture& img_texture,
-    const raylib::Color& color,
+    const kee::color& color_param,
     const kee::pos& x, 
     const kee::pos& y,
     const std::variant<kee::dims, kee::border>& dimensions,
@@ -21,7 +21,7 @@ image::image(
     flip_vertical(flip_vertical),
     img_texture_ref(img_texture)
 { 
-    set_opt_color(color);
+    color = color_param;
 }
 
 void image::set_image(const kee::image_texture& new_img_texture)
@@ -54,7 +54,7 @@ void image::render_element() const
         img_size_scaled.y
     );
 
-    img_texture.Draw(img_src, img_dst, img_size_scaled / 2, rotation, get_color_from_opt(get_opt_color()));
+    img_texture.Draw(img_src, img_dst, img_size_scaled / 2, rotation, color.to_color());
 }
 
 } // namespace ui
