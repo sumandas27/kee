@@ -11,7 +11,6 @@ namespace kee {
 namespace scene {
 
 /* TODO: half beat forgiveness for ts beatmap */
-/* TODO: remove music loop */
 
 class beatmap;
 

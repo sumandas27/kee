@@ -5,8 +5,6 @@
 namespace kee {
 namespace ui {
 
-/* TODO: change all ui color params to kee::color */
-
 class rect_outline
 {
 public:

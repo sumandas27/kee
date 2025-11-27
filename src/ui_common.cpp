@@ -50,7 +50,7 @@ const kee::color color::red_raylib = kee::color(230, 41, 55);
 const kee::color color::violet = kee::color(135, 60, 190);
 const kee::color color::white = kee::color(255, 255, 255);
 
-raylib::Color color::to_color() const
+raylib::Color color::raylib() const
 {
     return raylib::Color(
         static_cast<unsigned char>(r),

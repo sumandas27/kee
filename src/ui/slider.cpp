@@ -39,7 +39,7 @@ slider::slider(
         rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt)
     )),
     thumb(fill.make_temp_child<kee::ui::rect>(
-        kee::color::white, /* TODO: keep common color local var */
+        kee::color::white,
         pos(pos::type::rel, 1.0f),
         pos(pos::type::rel, 0.5f),
         dims(

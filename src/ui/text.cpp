@@ -61,7 +61,7 @@ void text::render_element() const
         raw_rect.y += raw_rect.height * (1.0f - font_cap_height_multiplier_approx);
 
     assets.shader_sdf_font.BeginMode();
-    font.DrawText(str.c_str(), raw_rect.GetPosition(), str_size * scale, 0.0f, color.to_color());
+    font.DrawText(str.c_str(), raw_rect.GetPosition(), str_size * scale, 0.0f, color.raylib());
     assets.shader_sdf_font.EndMode();
 }
 

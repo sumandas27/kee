@@ -772,7 +772,7 @@ void root::set_error(std::string_view error_str, bool from_file_dialog)
 void root::set_info(std::string_view info_str)
 {
     const kee::color old_notif_color = notif_img.ref.color;
-    const kee::color new_notif_color = kee::color(144, 213, 255, old_notif_color.a); /* TODO: wtf this type */
+    const kee::color new_notif_color = kee::color(144, 213, 255, old_notif_color.a);
 
     notif_img.ref.set_image(info_png);
     notif_img.ref.color = new_notif_color;

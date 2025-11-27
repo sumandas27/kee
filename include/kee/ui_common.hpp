@@ -131,9 +131,6 @@ protected:
     float timer;
 };
 
-/* TODO: experiment holding references in these transitions */
-/* TODO: replace transition& with only transition, maybe have it hold ref to some transition_impl ?? */
-
 template <typename T>
 class transition final : public transition_base
 {
@@ -182,7 +179,7 @@ public:
     constexpr color(float r, float g, float b);
     constexpr color(float r, float g, float b, float a);
 
-    raylib::Color to_color() const;
+    raylib::Color raylib() const;
 
     kee::color operator*(float scalar) const;
     kee::color operator+(const kee::color& other) const;

@@ -54,7 +54,7 @@ void image::render_element() const
         img_size_scaled.y
     );
 
-    img_texture.Draw(img_src, img_dst, img_size_scaled / 2, rotation, color.to_color());
+    img_texture.Draw(img_src, img_dst, img_size_scaled / 2, rotation, color.raylib());
 }
 
 } // namespace ui
