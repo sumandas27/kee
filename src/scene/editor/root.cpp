@@ -39,7 +39,7 @@ confirm_save_ui::confirm_save_ui(const kee::ui::required& reqs, const kee::image
             dim(dim::type::rel, 0.03f),
             dim(dim::type::aspect, 1)
         ),
-        false, false, false, 0.0f
+        false, ui::image::display::shrink_to_fit, false, false, 0.0f
     )),
     confirm_save_text(confirm_save_ui_base.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
@@ -394,7 +394,7 @@ song_ui::song_ui(
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
-        true, false, false, 0.0f
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
     )),
     music_time_text(add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
@@ -424,7 +424,7 @@ song_ui::song_ui(
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_h, 0.15f),
-        true, false, false, 0.0f
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
     )),
     playback_speed_idx(3),
     playback_text_bg(add_child<kee::ui::rect>(std::nullopt,
@@ -465,7 +465,7 @@ song_ui::song_ui(
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_h, 0.15f),
-        true, true, false, 0.0f
+        true, ui::image::display::shrink_to_fit, true, false, 0.0f
     )),
     music(std::holds_alternative<beatmap_dir_info>(music_info) 
         ? raylib::Music(std::move(std::get<beatmap_dir_info>(music_info).song))
@@ -783,9 +783,14 @@ void root::set_info(std::string_view info_str)
 }
 
 
-void root::set_song(std::filesystem::path song_path)
+void root::set_song(const std::filesystem::path& song_path)
 {
     playback_ui.emplace<kee::ui::handle<song_ui>>(playback_ui_frame.ref.add_child<song_ui>(std::nullopt, arrow_png, song_path));
+}
+
+void root::set_bg_img(const std::filesystem::path& bg_path)
+{
+    compose_info.bg_img.emplace(bg_path);
 }
 
 root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_dir_info> dir_info) :
@@ -857,7 +862,7 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_w, 0.3f),
-        true, false, false, 0.0f
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
     )),
     playback_bg(add_child<kee::ui::rect>(std::nullopt,
         kee::color(30, 30, 30),
@@ -918,7 +923,7 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_h, 0.3f),
-        true, false, false, 0.0f
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
     )),
     notif_text(notif_rect.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color(255, 255, 255, static_cast<unsigned char>(notif_alpha.get())),
@@ -1019,9 +1024,6 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
                 this->active_tab_elem.emplace<kee::ui::handle<compose_tab>>(add_child<compose_tab>(std::nullopt, approach_beats, song_ui_elem, compose_info));
                 break;
             }
-            case root::tabs::decoration:
-                this->active_tab_elem.emplace<kee::ui::handle<decoration_tab>>(add_child<decoration_tab>(std::nullopt));
-                break;
             case root::tabs::timing: {
                 song_ui& song_ui_elem = std::get<kee::ui::handle<song_ui>>(this->playback_ui).ref;
                 this->active_tab_elem.emplace<kee::ui::handle<timing_tab>>(add_child<timing_tab>(std::nullopt, *this, song_ui_elem, timing_info));

@@ -161,6 +161,7 @@ private:
 class color
 {
 public:
+    static const kee::color black;
     static const kee::color blank;
     static const kee::color blue_raylib;
     static const kee::color dark_blue;
@@ -283,6 +284,9 @@ static const std::array<key_pos_data, key_count> key_ui_data = {
 
 static constexpr float key_border_width = 0.025f;
 static constexpr float key_border_parent_h = 0.05f;
+
+static constexpr float key_aspect_w = 11;
+static constexpr float key_aspect_h = 4;
 
 } // namespace kee
 

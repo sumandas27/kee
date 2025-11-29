@@ -11,12 +11,14 @@ image::image(
     const kee::pos& y,
     const std::variant<kee::dims, kee::border>& dimensions,
     bool centered,
+    image::display display_setting,
     bool flip_horizontal,
     bool flip_vertical,
     float rotation
 ) :
     kee::ui::base(reqs, x, y, dimensions, centered),
     rotation(rotation),
+    display_setting(display_setting),
     flip_horizontal(flip_horizontal),
     flip_vertical(flip_vertical),
     img_texture_ref(img_texture)
@@ -34,9 +36,19 @@ void image::render_element() const
     const raylib::Rectangle raw_rect = get_raw_rect();
     const raylib::Texture& img_texture = img_texture_ref.get().texture;
 
-    const float scale = (img_texture.width * raw_rect.height >= img_texture.height * raw_rect.width)
-        ? raw_rect.width / img_texture.width
-        : raw_rect.height / img_texture.height;
+    float scale;
+    if (img_texture.width * raw_rect.height >= img_texture.height * raw_rect.width)
+    {
+        scale = (display_setting == image::display::shrink_to_fit) 
+            ? raw_rect.width / img_texture.width
+            : raw_rect.height / img_texture.height;
+    }
+    else
+    {
+        scale = (display_setting == image::display::shrink_to_fit) 
+            ? raw_rect.height / img_texture.height
+            : raw_rect.width / img_texture.width;
+    }
 
     const raylib::Vector2 img_size = img_texture.GetSize();
     const raylib::Vector2 img_size_scaled = img_size * scale;
@@ -54,7 +66,16 @@ void image::render_element() const
         img_size_scaled.y
     );
 
+    BeginScissorMode(
+        static_cast<int>(raw_rect.x),
+        static_cast<int>(raw_rect.y),
+        static_cast<int>(raw_rect.width),
+        static_cast<int>(raw_rect.height)
+    );
+
     img_texture.Draw(img_src, img_dst, img_size_scaled / 2, rotation, color.raylib());
+
+    EndScissorMode();
 }
 
 } // namespace ui

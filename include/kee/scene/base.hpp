@@ -5,6 +5,8 @@
 namespace kee {
 namespace scene {
 
+/* TODO: move to `ui_common.hpp` */
+
 class window
 {
 public:

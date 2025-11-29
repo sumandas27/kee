@@ -1,12 +1,8 @@
 #pragma once
 
 #include "kee/scene/editor/compose_tab.hpp"
-#include "kee/scene/editor/decoration_tab.hpp"
 #include "kee/scene/editor/setup_tab.hpp"
 #include "kee/scene/editor/timing_tab.hpp"
-
-/* TODO: add background img */
-/* TODO: add background video */
 
 namespace kee {
 namespace scene {
@@ -181,7 +177,9 @@ public:
 
     void set_error(std::string_view error_str, bool from_file_dialog);
     void set_info(std::string_view info_str);
-    void set_song(std::filesystem::path song_path);
+
+    void set_song(const std::filesystem::path& song_path);
+    void set_bg_img(const std::filesystem::path& bg_path); /* TODO: should i rename this for both img/video ?? */
 
     std::optional<beatmap_file> save_info;
 
@@ -209,7 +207,6 @@ private:
     std::variant<
         kee::ui::handle<setup_tab>,
         kee::ui::handle<compose_tab>,
-        kee::ui::handle<decoration_tab>,
         kee::ui::handle<timing_tab>
     > active_tab_elem;
     root::tabs active_tab;
@@ -251,7 +248,6 @@ enum class root::tabs
 {
     setup,
     compose,
-    decoration,
     timing
 };
 

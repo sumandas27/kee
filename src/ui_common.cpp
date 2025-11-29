@@ -36,6 +36,7 @@ void transition_base::update(float dt)
     }
 }
 
+const kee::color color::black = kee::color(0, 0, 0);
 const kee::color color::blank = kee::color(0, 0, 0, 0);
 const kee::color color::blue_raylib = kee::color(0, 121, 241);
 const kee::color color::dark_blue = kee::color(0, 82, 172);

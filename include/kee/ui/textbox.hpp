@@ -101,7 +101,7 @@ private:
     mouse_state textbox_state;
     std::optional<on_down_idxs> char_idxs;
     std::optional<float> scroll_vel;
-    std::optional<std::variant<cursor, multiselect>> selection_ui;
+    std::optional<std::variant<cursor, multiselect>> selection_ui; /* TODO: replace with std::monostate */
 
     std::string old_str;
     bool has_render_priority;

@@ -16,6 +16,7 @@ public:
     setup_tab_info(const std::optional<beatmap_dir_info>& dir_info);
 
     std::optional<std::filesystem::path> new_song_path;
+    std::optional<std::filesystem::path> new_bg_img_path;
 
     bool from_dir;
     std::string song_artist;
@@ -36,8 +37,9 @@ private:
     setup_tab_info& setup_info;
     float& approach_beats;
 
-    kee::ui::handle<kee::ui::rect> metadata_bg;
-    kee::ui::handle<kee::ui::text> metadata_label;
+    kee::ui::handle<kee::ui::base> l_side_frame;
+    kee::ui::handle<kee::ui::rect> audio_bg;
+    kee::ui::handle<kee::ui::text> audio_label;
 
     kee::ui::handle<kee::ui::text> audio_text;
     kee::ui::handle<kee::ui::file_dialog> audio_file_dialog;
@@ -48,12 +50,16 @@ private:
     kee::ui::handle<kee::ui::text> song_name_text;
     kee::ui::handle<kee::ui::textbox> song_name_textbox;
 
+    kee::ui::handle<kee::ui::rect> metadata_bg;
+    kee::ui::handle<kee::ui::text> metadata_label;
+
     kee::ui::handle<kee::ui::text> mapper_text;
     kee::ui::handle<kee::ui::textbox> mapper_textbox;
 
     kee::ui::handle<kee::ui::text> level_name_text;
     kee::ui::handle<kee::ui::textbox> level_name_textbox;
 
+    kee::ui::handle<kee::ui::base> r_side_frame;
     kee::ui::handle<kee::ui::rect> difficulty_bg;
     kee::ui::handle<kee::ui::text> difficulty_label;
 
@@ -62,6 +68,15 @@ private:
 
     kee::ui::handle<kee::ui::text> forgiveness_text;
     kee::ui::handle<kee::ui::textbox> forgiveness_textbox;
+
+    kee::ui::handle<kee::ui::rect> decoration_bg;
+    kee::ui::handle<kee::ui::text> decoration_label;
+
+    kee::ui::handle<kee::ui::text> background_text;
+    kee::ui::handle<kee::ui::file_dialog> background_dialog;
+
+    kee::ui::handle<kee::ui::text> key_color_text;
+    kee::ui::handle<kee::ui::file_dialog> key_color_dialog;
 };
 
 } // namespace editor

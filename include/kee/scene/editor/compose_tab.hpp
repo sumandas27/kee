@@ -15,6 +15,9 @@ namespace kee {
 namespace scene {
 namespace editor {
 
+/* TODO: add beatmap ui elements to editor down the line i.e. progress bar/combo/etc */
+/* TODO: add bg opacity slider in the editor */
+
 class song_ui;
 class compose_tab;
 class editor_hit_object;
@@ -288,6 +291,8 @@ public:
 
     const kee::image_texture& arrow_png;
 
+    std::optional<kee::image_texture> bg_img;
+
     raylib::Sound hitsound;
 
     std::unordered_map<int, std::map<float, editor_hit_object>> hit_objs;
@@ -370,6 +375,13 @@ private:
     std::vector<kee::ui::handle<kee::ui::text>> tick_frame_texts;
     std::vector<kee::ui::handle<kee::ui::button>> tick_frame_buttons;
     std::vector<std::reference_wrapper<kee::transition<kee::color>>> tick_frame_text_colors;
+
+    kee::ui::handle<kee::ui::rect> game_display_frame_raw;
+    kee::ui::handle<kee::ui::base> game_display_frame;
+    std::variant<
+        kee::ui::handle<kee::ui::rect>,
+        kee::ui::handle<kee::ui::image>
+    > game_bg;
 
     kee::ui::handle<kee::ui::base> key_border;
     kee::ui::handle<kee::ui::base> key_frame;

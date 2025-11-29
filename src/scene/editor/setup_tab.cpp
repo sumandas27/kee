@@ -28,32 +28,41 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     root_elem(root_elem),
     setup_info(setup_info),
     approach_beats(approach_beats),
-    metadata_bg(add_child<kee::ui::rect>(std::nullopt,
-        kee::color(20, 20, 20),
-        pos(pos::type::rel, 4.0f / 30.0f),
+    l_side_frame(add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.05f),
         dims(
-            dim(dim::type::rel, 0.3f),
+            dim(dim::type::rel, 0.35f),
             dim(dim::type::rel, 0.9f)
+        ),
+        false
+    )),
+    audio_bg(l_side_frame.ref.add_child<kee::ui::rect>(0,
+        kee::color(20, 20, 20),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 0.4f)
         ),
         false, std::nullopt,
         ui::rect_roundness(ui::rect_roundness::type::rel_w, 0.1f, std::nullopt)
     )),
-    metadata_label(metadata_bg.ref.add_child<kee::ui::text>(std::nullopt,
+    audio_label(l_side_frame.ref.add_child<kee::ui::text>(1,
         kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.05f),
         ui::text_size(ui::text_size::type::rel_h, 0.05f),
-        true, assets.font_semi_bold, "METADATA", false
+        true, assets.font_semi_bold, "AUDIO", true
     )),
-    audio_text(metadata_bg.ref.add_child<kee::ui::text>(std::nullopt,
+    audio_text(l_side_frame.ref.add_child<kee::ui::text>(1,
         kee::color::white,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.12f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
-        false, assets.font_semi_bold, "AUDIO", false
+        false, assets.font_semi_bold, "FILE", false
     )),
-    audio_file_dialog(metadata_bg.ref.add_child<kee::ui::file_dialog>(std::nullopt,
+    audio_file_dialog(l_side_frame.ref.add_child<kee::ui::file_dialog>(1,
         pos(pos::type::rel, 0.45f),
         pos(pos::type::rel, 0.12f),
         dims(
@@ -61,19 +70,17 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
             dim(dim::type::rel, 0.03f)
         ),
         false,
-        std::vector<kee::ui::file_dialog_filter>({
-            kee::ui::file_dialog_filter("MP3 File", ".mp3")
-        }),
+        std::vector<std::string_view>({".mp3"}),
         setup_info.from_dir ? std::string_view("song.mp3") : std::string_view("Select a song")
     )),
-    artist_text(metadata_bg.ref.add_child<kee::ui::text>(std::nullopt,
+    artist_text(l_side_frame.ref.add_child<kee::ui::text>(1,
         kee::color::white,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.1825f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
         false, assets.font_semi_bold, "ARTIST", false
     )),
-    artist_textbox(metadata_bg.ref.add_child<kee::ui::textbox>(std::nullopt,
+    artist_textbox(l_side_frame.ref.add_child<kee::ui::textbox>(1,
         pos(pos::type::rel, 0.45f),
         pos(pos::type::rel, 0.1825f),
         dims(
@@ -82,14 +89,14 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         ),
         false, *this, setup_info.song_artist
     )),
-    song_name_text(metadata_bg.ref.add_child<kee::ui::text>(std::nullopt,
+    song_name_text(l_side_frame.ref.add_child<kee::ui::text>(1,
         kee::color::white,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.245f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
         false, assets.font_semi_bold, "SONG NAME", false
     )),
-    song_name_textbox(metadata_bg.ref.add_child<kee::ui::textbox>(std::nullopt,
+    song_name_textbox(l_side_frame.ref.add_child<kee::ui::textbox>(1,
         pos(pos::type::rel, 0.45f),
         pos(pos::type::rel, 0.245f),
         dims(
@@ -98,64 +105,91 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         ),
         false, *this, setup_info.song_name
     )),
-    mapper_text(metadata_bg.ref.add_child<kee::ui::text>(std::nullopt,
+    metadata_bg(l_side_frame.ref.add_child<kee::ui::rect>(0,
+        kee::color(20, 20, 20),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.5f),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 0.5f)
+        ),
+        false, std::nullopt,
+        ui::rect_roundness(ui::rect_roundness::type::rel_w, 0.1f, std::nullopt)
+    )),
+    metadata_label(l_side_frame.ref.add_child<kee::ui::text>(1,
+        kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.55f),
+        ui::text_size(ui::text_size::type::rel_h, 0.05f),
+        true, assets.font_semi_bold, "METADATA", true
+    )),
+    mapper_text(l_side_frame.ref.add_child<kee::ui::text>(1,
         kee::color::white,
         pos(pos::type::rel, 0.1f),
-        pos(pos::type::rel, 0.36f),
+        pos(pos::type::rel, 0.62f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
         false, assets.font_semi_bold, "MAPPER", false
     )),
-    mapper_textbox(metadata_bg.ref.add_child<kee::ui::textbox>(std::nullopt,
+    mapper_textbox(l_side_frame.ref.add_child<kee::ui::textbox>(1,
         pos(pos::type::rel, 0.45f),
-        pos(pos::type::rel, 0.36f),
+        pos(pos::type::rel, 0.62f),
         dims(
             dim(dim::type::rel, 0.45f),
             dim(dim::type::rel, 0.03f)
         ),
         false, *this, setup_info.mapper
     )),
-    level_name_text(metadata_bg.ref.add_child<kee::ui::text>(std::nullopt,
+    level_name_text(l_side_frame.ref.add_child<kee::ui::text>(1,
         kee::color::white,
         pos(pos::type::rel, 0.1f),
-        pos(pos::type::rel, 0.4225f),
+        pos(pos::type::rel, 0.6825f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
         false, assets.font_semi_bold, "LEVEL NAME", false
     )),
-    level_name_textbox(metadata_bg.ref.add_child<kee::ui::textbox>(std::nullopt,
+    level_name_textbox(l_side_frame.ref.add_child<kee::ui::textbox>(1,
         pos(pos::type::rel, 0.45f),
-        pos(pos::type::rel, 0.4225f),
+        pos(pos::type::rel, 0.6825f),
         dims(
             dim(dim::type::rel, 0.45f),
             dim(dim::type::rel, 0.03f)
         ),
         false, *this, setup_info.level_name
     )),
-    difficulty_bg(add_child<kee::ui::rect>(std::nullopt,
-        kee::color(20, 20, 20),
-        pos(pos::type::rel, 17.0f / 30.0f),
+    r_side_frame(add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.55f),
         pos(pos::type::rel, 0.05f),
         dims(
-            dim(dim::type::rel, 0.3f),
+            dim(dim::type::rel, 0.35f),
             dim(dim::type::rel, 0.9f)
+        ),
+        false
+    )),
+    difficulty_bg(r_side_frame.ref.add_child<kee::ui::rect>(0,
+        kee::color(20, 20, 20),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 0.4f)
         ),
         false, std::nullopt,
         ui::rect_roundness(ui::rect_roundness::type::rel_w, 0.1f, std::nullopt)
     )),
-    difficulty_label(difficulty_bg.ref.add_child<kee::ui::text>(std::nullopt,
+    difficulty_label(r_side_frame.ref.add_child<kee::ui::text>(1,
         kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.05f),
         ui::text_size(ui::text_size::type::rel_h, 0.05f),
-        true, assets.font_semi_bold, "DIFFICULTY", false
+        true, assets.font_semi_bold, "DIFFICULTY", true
     )),
-    approach_text(difficulty_bg.ref.add_child<kee::ui::text>(std::nullopt,
+    approach_text(r_side_frame.ref.add_child<kee::ui::text>(1,
         kee::color::white,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.12f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
         false, assets.font_semi_bold, "APPROACH BEATS", false
     )),
-    approach_textbox(difficulty_bg.ref.add_child<kee::ui::textbox>(std::nullopt,
+    approach_textbox(r_side_frame.ref.add_child<kee::ui::textbox>(1,
         pos(pos::type::rel, 0.65f),
         pos(pos::type::rel, 0.12f),
         dims(
@@ -164,14 +198,14 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         ),
         false, *this, std::format("{:.2f}", approach_beats)
     )),
-    forgiveness_text(difficulty_bg.ref.add_child<kee::ui::text>(std::nullopt,
+    forgiveness_text(r_side_frame.ref.add_child<kee::ui::text>(1,
         kee::color::white,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.1825f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
         false, assets.font_semi_bold, "BEAT FORGIVENESS", false
     )),
-    forgiveness_textbox(difficulty_bg.ref.add_child<kee::ui::textbox>(std::nullopt,
+    forgiveness_textbox(r_side_frame.ref.add_child<kee::ui::textbox>(1,
         pos(pos::type::rel, 0.65f),
         pos(pos::type::rel, 0.1825f),
         dims(
@@ -179,6 +213,60 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
             dim(dim::type::rel, 0.03f)
         ),
         false, *this, std::format("{:.2f}", setup_info.beat_forgiveness)
+    )),
+    decoration_bg(r_side_frame.ref.add_child<kee::ui::rect>(0,
+        kee::color(20, 20, 20),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.5f),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 0.5f)
+        ),
+        false, std::nullopt,
+        ui::rect_roundness(ui::rect_roundness::type::rel_w, 0.1f, std::nullopt)
+    )),
+    decoration_label(r_side_frame.ref.add_child<kee::ui::text>(1,
+        kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.55f),
+        ui::text_size(ui::text_size::type::rel_h, 0.05f),
+        true, assets.font_semi_bold, "DECORATION", true
+    )),
+    background_text(r_side_frame.ref.add_child<kee::ui::text>(1,
+        kee::color::white,
+        pos(pos::type::rel, 0.1f),
+        pos(pos::type::rel, 0.62f),
+        ui::text_size(ui::text_size::type::rel_h, 0.03f),
+        false, assets.font_semi_bold, "BACKGROUND", false
+    )),
+    background_dialog(r_side_frame.ref.add_child<kee::ui::file_dialog>(1,
+        pos(pos::type::rel, 0.45f),
+        pos(pos::type::rel, 0.62f),
+        dims(
+            dim(dim::type::rel, 0.45f),
+            dim(dim::type::rel, 0.03f)
+        ),
+        false,
+        std::vector<std::string_view>({".png", ".mp4"}),
+        std::string_view("Select an image/video")
+    )),
+    key_color_text(r_side_frame.ref.add_child<kee::ui::text>(1,
+        kee::color::white,
+        pos(pos::type::rel, 0.1f),
+        pos(pos::type::rel, 0.6825f),
+        ui::text_size(ui::text_size::type::rel_h, 0.03f),
+        false, assets.font_semi_bold, "KEY COLORS", false
+    )),
+    key_color_dialog(r_side_frame.ref.add_child<kee::ui::file_dialog>(1,
+        pos(pos::type::rel, 0.45f),
+        pos(pos::type::rel, 0.6825f),
+        dims(
+            dim(dim::type::rel, 0.45f),
+            dim(dim::type::rel, 0.03f)
+        ),
+        false,
+        std::vector<std::string_view>({".json"}),
+        std::string_view("Select a valid JSON file")
     ))
 {
     audio_file_dialog.ref.on_success = [&](const std::filesystem::path& song_path)
@@ -274,6 +362,35 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         }
 
         return true;
+    };
+
+    /* TODO: implement saving */
+    background_dialog.ref.on_success = [&](const std::filesystem::path& bg_path)
+    {
+        if (bg_path.extension() == ".png")
+        {
+            this->root_elem.set_bg_img(bg_path);
+            this->setup_info.new_bg_img_path = bg_path;
+        }
+        else
+        {
+            /* TODO: implement */
+        }
+    };
+
+    background_dialog.ref.on_filter_mismatch = [&]()
+    {
+        this->root_elem.set_error("Not an image or a video!", true);
+    };
+
+    //key_color_dialog.ref.on_success = [&](const std::filesystem::path& song_path)
+    //{
+    //    /* TODO: implement */
+    //};
+
+    key_color_dialog.ref.on_filter_mismatch = [&]()
+    {
+        this->root_elem.set_error("Not a JSON file!", true);
     };
 }
 

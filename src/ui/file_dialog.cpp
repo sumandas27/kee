@@ -3,18 +3,13 @@
 namespace kee {
 namespace ui {
 
-file_dialog_filter::file_dialog_filter(std::string_view name, std::string_view spec) :
-    name(name),
-    spec(spec)
-{ }
-
 file_dialog::file_dialog(
     const kee::ui::required& reqs,
     const kee::pos& x,
     const kee::pos& y,
     const std::variant<kee::dims, kee::border>& dimensions,
     bool centered,
-    std::vector<file_dialog_filter> filters,
+    std::vector<std::string_view> filters,
     std::variant<std::string_view, std::filesystem::path> initial_msg
 ) :
     kee::ui::base(reqs, x, y, dimensions, centered),
@@ -47,7 +42,7 @@ file_dialog::file_dialog(
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_w, 0.2f),
-        true, false, false, 0.0f
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
     )),
     fd_text_area(make_temp_child<kee::ui::base>(
         pos(pos::type::rel, 0),
@@ -111,9 +106,9 @@ file_dialog::file_dialog(
                 return;
 
             const bool filter_match = std::any_of(this->filters.begin(), this->filters.end(), 
-                [&](const file_dialog_filter& fd_filter)
+                [&](std::string_view fd_filter)
                 {
-                    return selected_path.extension() == fd_filter.spec;
+                    return selected_path.extension() == fd_filter;
                 }
             );
 

@@ -230,7 +230,7 @@ void compose_tab_key::update_element([[maybe_unused]] float dt)
             pos(pos::type::rel, 0.5),
             border(border::type::rel_h, start_progress),
             true,
-            ui::rect_outline(ui::rect_outline::type::abs, 0, kee::color::red_raylib),
+            ui::rect_outline(ui::rect_outline::type::abs, 0, kee::color::white),
             std::nullopt
         ));
 
@@ -1085,7 +1085,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
-        true, false, false, 0.0f
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
     )),
     tick_r_button(inspector_rect.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0.8f),
@@ -1104,7 +1104,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 1)
         ),
-        true, true, false, 0.0f
+        true, ui::image::display::shrink_to_fit, true, false, 0.0f
     )),
     tick_frame(inspector_rect.ref.add_child<kee::ui::rect>(std::nullopt,
         kee::color(30, 30, 30, 255),
@@ -1126,12 +1126,52 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         ),
         true, std::nullopt, std::nullopt
     )),
-    key_border(add_child<kee::ui::base>(std::nullopt,
-        pos(pos::type::rel, 0.4f),
-        pos(pos::type::rel, 0.625f),
+    game_display_frame_raw(add_child<kee::ui::rect>(std::nullopt,
+        kee::color(10, 10, 10),
+        pos(pos::type::beg, 0),
+        pos(pos::type::end, 0),
         dims(
-            dim(dim::type::rel, 0.75f),
-            dim(dim::type::rel, 0.6f)
+            dim(dim::type::rel, 0.8f),
+            dim(dim::type::rel, 0.75f)
+        ),
+        false, std::nullopt, std::nullopt
+    )),
+    game_display_frame(game_display_frame_raw.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        dims(
+            dim(dim::type::aspect, kee::scene::window::w),
+            dim(dim::type::aspect, kee::scene::window::h)
+        ),
+        true
+    )),
+    game_bg(compose_info.bg_img.has_value() ?
+        std::variant<kee::ui::handle<kee::ui::rect>, kee::ui::handle<kee::ui::image>>(
+            game_display_frame.ref.add_child<kee::ui::image>(std::nullopt,
+                compose_info.bg_img.value(),
+                kee::color::white,
+                pos(pos::type::rel, 0.5f),
+                pos(pos::type::rel, 0.5f),
+                border(border::type::abs, 0),
+                true, ui::image::display::extend_to_fit, false, false, 0.0f
+            )
+        ) :
+        std::variant<kee::ui::handle<kee::ui::rect>, kee::ui::handle<kee::ui::image>>(
+            game_display_frame.ref.add_child<kee::ui::rect>(std::nullopt,
+                kee::color::black,
+                pos(pos::type::rel, 0.5f),
+                pos(pos::type::rel, 0.5f),
+                border(border::type::abs, 0),
+                true, std::nullopt, std::nullopt
+            )
+        )
+    ),
+    key_border(game_display_frame.ref.add_child<kee::ui::base>(1,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        dims(
+            dim(dim::type::rel, 0.9f),
+            dim(dim::type::rel, 0.9f)
         ),
         true
     )),
@@ -1139,8 +1179,8 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         dims(
-            dim(dim::type::aspect, 11),
-            dim(dim::type::aspect, 4)
+            dim(dim::type::aspect, kee::key_aspect_w),
+            dim(dim::type::aspect, kee::key_aspect_h)
         ),
         true
     )),

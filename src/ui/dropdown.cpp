@@ -67,7 +67,7 @@ dropdown::dropdown(
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_w, 0.3f),
-        true, false, false, 90.0f
+        true, ui::image::display::shrink_to_fit, false, false, 90.0f
     )),
     options_rect(make_temp_child<kee::ui::rect>(
         kee::color::dark_gray,

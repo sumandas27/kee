@@ -766,8 +766,8 @@ beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&&
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         dims(
-            dim(dim::type::aspect, 11),
-            dim(dim::type::aspect, 4)
+            dim(dim::type::aspect, kee::key_aspect_w),
+            dim(dim::type::aspect, kee::key_aspect_h)
         ),
         true
     )),
