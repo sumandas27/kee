@@ -143,6 +143,9 @@ beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_name
     song = raylib::Music(song_path.string());
 
     beatmap_dir_path = beatmap_dir_info::app_data_dir / beatmap_dir_name;
+    if (std::filesystem::exists(beatmap_dir_path / "bg.png"))
+        bg_path = beatmap_dir_path / "bg.png";
+
     song_name = json_object.at("song_name").as_string();
     song_artist = json_object.at("song_artist").as_string();
     mapper = json_object.at("mapper").as_string();

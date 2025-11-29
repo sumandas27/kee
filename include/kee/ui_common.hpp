@@ -221,7 +221,9 @@ public:
 
     beatmap_dir_info(const std::filesystem::path& beatmap_dir_name);
 
+    /* TODO: (2) abstract into own struct */
     std::filesystem::path beatmap_dir_path;
+    std::optional<std::filesystem::path> bg_path;
     
     raylib::Music song;
     std::string song_name;

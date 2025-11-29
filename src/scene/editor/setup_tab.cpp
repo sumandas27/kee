@@ -71,7 +71,15 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         ),
         false,
         std::vector<std::string_view>({".mp3"}),
-        setup_info.from_dir ? std::string_view("song.mp3") : std::string_view("Select a song")
+        [&]() -> std::variant<std::string_view, std::filesystem::path>
+        {
+            if (setup_info.new_song_path.has_value())
+                return setup_info.new_song_path.value().filename();
+            else if (setup_info.from_dir)
+                return root_elem.save_info.value().file_dir / "song.mp3";
+            else
+                return std::string_view("Select a song");
+        }()
     )),
     artist_text(l_side_frame.ref.add_child<kee::ui::text>(1,
         kee::color::white,
@@ -248,7 +256,15 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         ),
         false,
         std::vector<std::string_view>({".png", ".mp4"}),
-        std::string_view("Select an image/video")
+        [&]() -> std::variant<std::string_view, std::filesystem::path>
+        {
+            if (setup_info.new_bg_img_path.has_value())
+                return setup_info.new_bg_img_path.value().filename();
+            else if (root_elem.save_info.has_value() && root_elem.save_info.value().bg_path.has_value())
+                return root_elem.save_info.value().bg_path.value();
+            else
+                return std::string_view("Select an image/video");
+        }()
     )),
     key_color_text(r_side_frame.ref.add_child<kee::ui::text>(1,
         kee::color::white,
@@ -364,7 +380,6 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         return true;
     };
 
-    /* TODO: implement saving */
     background_dialog.ref.on_success = [&](const std::filesystem::path& bg_path)
     {
         if (bg_path.extension() == ".png")

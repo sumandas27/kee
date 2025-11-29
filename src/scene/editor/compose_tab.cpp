@@ -939,9 +939,14 @@ const std::unordered_map<int, int> compose_tab::key_to_prio = []
 
 compose_tab_info::compose_tab_info(
     const kee::image_texture& arrow_png,
+    const std::optional<std::filesystem::path>& bg_img_path,
     const std::optional<boost::json::object>& keys_json_obj
 ) :
     arrow_png(arrow_png),
+    bg_img(bg_img_path.has_value()
+        ? std::make_optional(kee::image_texture(bg_img_path.value()))    
+        : std::nullopt    
+    ),
     hitsound("assets/sfx/hitsound.wav"),
     is_beat_snap(true),
     is_key_locked(true),

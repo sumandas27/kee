@@ -6,8 +6,13 @@ namespace kee {
 namespace scene {
 namespace editor {
 
-beatmap_file::beatmap_file(const std::filesystem::path& file_dir, bool save_metadata_needed) :
+beatmap_file::beatmap_file(
+    const std::filesystem::path& file_dir, 
+    const std::optional<std::filesystem::path>& bg_path,
+    bool save_metadata_needed
+) :
     file_dir(file_dir),
+    bg_path(bg_path),
     save_metadata_needed(save_metadata_needed)
 { }
 
@@ -674,7 +679,7 @@ root::root(kee::game& game, kee::global_assets& assets, const std::optional<std:
 bool root::needs_save() const
 {
     const bool save_hit_objs_needed = (!compose_info.events_since_save.has_value() || compose_info.events_since_save.value() != 0);
-    return save_info.has_value() && (save_info.value().save_metadata_needed || setup_info.new_song_path.has_value() || save_hit_objs_needed);
+    return save_info.has_value() && (save_info.value().save_metadata_needed || setup_info.new_song_path.has_value() || setup_info.new_bg_img_path.has_value() || save_hit_objs_needed);
 }
 
 void root::save_beatmap()
@@ -697,6 +702,24 @@ void root::save_beatmap()
         }
 
         setup_info.new_song_path.reset();
+        any_saved = true;
+    }
+
+    if (setup_info.new_bg_img_path.has_value())
+    {
+        std::error_code ec;
+        const std::filesystem::path& src = setup_info.new_bg_img_path.value();
+        const std::filesystem::path dst = save_info.value().file_dir / "bg.png";
+
+        std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, ec);
+        if (ec)
+        {
+            set_error(std::format("Error saving background image: {}", ec.message()), false);
+            return;
+        }
+
+        save_info.value().bg_path = dst;
+        setup_info.new_bg_img_path.reset();
         any_saved = true;
     }
 
@@ -795,16 +818,24 @@ void root::set_bg_img(const std::filesystem::path& bg_path)
 
 root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_dir_info> dir_info) :
     kee::scene::base(game, assets),
-    save_info(dir_info.has_value() ? std::make_optional(beatmap_file(dir_info.value().beatmap_dir_path, false)) : std::nullopt),
+    save_info(dir_info.has_value() 
+        ? std::make_optional(beatmap_file(dir_info.value().beatmap_dir_path, dir_info.value().bg_path, false)) 
+        : std::nullopt
+    ),
     arrow_png("assets/img/arrow.png"),
     error_png("assets/img/error.png"),
     exit_png("assets/img/exit.png"),
     info_png("assets/img/info.png"),
     approach_beats(dir_info.has_value() ? dir_info.value().approach_beats : 2.0f),
     setup_info(dir_info),
-    compose_info(arrow_png, dir_info.has_value() 
-        ? std::make_optional(dir_info.value().keys_json_obj) 
-        : std::nullopt
+    compose_info(
+        arrow_png,
+        save_info.has_value() && save_info.value().bg_path.has_value()
+            ? std::make_optional(save_info.value().bg_path.value())
+            : std::nullopt,
+        dir_info.has_value()
+            ? std::make_optional(dir_info.value().keys_json_obj) 
+            : std::nullopt
     ),
     active_tab_elem(add_child<setup_tab>(std::nullopt, *this, setup_info, approach_beats)),
     active_tab(root::tabs::setup),
@@ -1097,7 +1128,7 @@ bool root::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::
         if (!success)
             throw std::runtime_error("Directory already exists");
 
-        this->save_info.emplace(new_path, true);
+        this->save_info.emplace(new_path, std::nullopt, true);
         this->save_beatmap();
         return true;
     }
