@@ -214,6 +214,21 @@ constexpr color::color(float r, float g, float b, float a) :
     a(a)
 { }
 
+enum class background_type
+{
+    image,
+    video
+};
+
+class beatmap_dir_state
+{
+public:
+    beatmap_dir_state(const std::filesystem::path& path);
+
+    std::filesystem::path path;
+    std::optional<background_type> bg_type;
+};
+
 class beatmap_dir_info
 {
 public:
@@ -221,9 +236,7 @@ public:
 
     beatmap_dir_info(const std::filesystem::path& beatmap_dir_name);
 
-    /* TODO: (2) abstract into own struct */
-    std::filesystem::path beatmap_dir_path;
-    std::optional<std::filesystem::path> bg_path;
+    beatmap_dir_state dir_state;
     
     raylib::Music song;
     std::string song_name;

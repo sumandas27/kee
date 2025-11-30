@@ -76,7 +76,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
             if (setup_info.new_song_path.has_value())
                 return setup_info.new_song_path.value().filename();
             else if (setup_info.from_dir)
-                return root_elem.save_info.value().file_dir / "song.mp3";
+                return root_elem.save_info.value().dir_state.path / "song.mp3";
             else
                 return std::string_view("Select a song");
         }()
@@ -260,8 +260,16 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         {
             if (setup_info.new_bg_img_path.has_value())
                 return setup_info.new_bg_img_path.value().filename();
-            else if (root_elem.save_info.has_value() && root_elem.save_info.value().bg_path.has_value())
-                return root_elem.save_info.value().bg_path.value();
+            else if (root_elem.save_info.has_value() && root_elem.save_info.value().dir_state.bg_type.has_value())
+                switch (root_elem.save_info.value().dir_state.bg_type.value())
+                {
+                case background_type::image:
+                    return root_elem.save_info.value().dir_state.path / "bg.png";
+                    break;
+                case background_type::video:
+                    return root_elem.save_info.value().dir_state.path / "bg.mp4";
+                    break;
+                }
             else
                 return std::string_view("Select an image/video");
         }()

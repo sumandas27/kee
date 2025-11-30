@@ -14,16 +14,9 @@ class confirm_exit_ui;
 class beatmap_file
 {
 public:
-    beatmap_file(
-        const std::filesystem::path& file_dir,
-        const std::optional<std::filesystem::path>& bg_path,
-        bool save_metadata_needed
-    );
+    beatmap_file(const beatmap_dir_state& dir_state, bool save_metadata_needed);
 
-    /* TODO: (1) abstract into own struct */
-    std::filesystem::path file_dir;
-    std::optional<std::filesystem::path> bg_path; /* TODO: make this an optional enum i think */
-
+    beatmap_dir_state dir_state;
     bool save_metadata_needed;
 };
 

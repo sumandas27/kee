@@ -286,7 +286,7 @@ public:
 
     compose_tab_info(
         const kee::image_texture& arrow_png,
-        const std::optional<std::filesystem::path>& bg_img_path,
+        const std::optional<beatmap_dir_state>& dir_state,
         const std::optional<boost::json::object>& keys_json_obj
     );
 

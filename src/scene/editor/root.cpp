@@ -6,13 +6,8 @@ namespace kee {
 namespace scene {
 namespace editor {
 
-beatmap_file::beatmap_file(
-    const std::filesystem::path& file_dir, 
-    const std::optional<std::filesystem::path>& bg_path,
-    bool save_metadata_needed
-) :
-    file_dir(file_dir),
-    bg_path(bg_path),
+beatmap_file::beatmap_file(const beatmap_dir_state& dir_state, bool save_metadata_needed) :
+    dir_state(dir_state),
     save_metadata_needed(save_metadata_needed)
 { }
 
@@ -692,7 +687,7 @@ void root::save_beatmap()
     {
         std::error_code ec;
         const std::filesystem::path& src = setup_info.new_song_path.value();
-        const std::filesystem::path dst = save_info.value().file_dir / "song.mp3";
+        const std::filesystem::path dst = save_info.value().dir_state.path / "song.mp3";
         
         std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, ec);
         if (ec)
@@ -709,7 +704,7 @@ void root::save_beatmap()
     {
         std::error_code ec;
         const std::filesystem::path& src = setup_info.new_bg_img_path.value();
-        const std::filesystem::path dst = save_info.value().file_dir / "bg.png";
+        const std::filesystem::path dst = save_info.value().dir_state.path / "bg.png";
 
         std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, ec);
         if (ec)
@@ -718,7 +713,7 @@ void root::save_beatmap()
             return;
         }
 
-        save_info.value().bg_path = dst;
+        save_info.value().dir_state.bg_type = background_type::image;
         setup_info.new_bg_img_path.reset();
         any_saved = true;
     }
@@ -756,7 +751,7 @@ void root::save_beatmap()
             hit_objects[key_str] = std::move(key_hit_objs);
         }
 
-        const std::filesystem::path metadata_path = save_info.value().file_dir / "metadata.json";
+        const std::filesystem::path metadata_path = save_info.value().dir_state.path / "metadata.json";
         std::ofstream metadata_file = std::ofstream(metadata_path, std::ios::binary | std::ios::trunc);
         if (!metadata_file)
         {
@@ -819,7 +814,7 @@ void root::set_bg_img(const std::filesystem::path& bg_path)
 root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_dir_info> dir_info) :
     kee::scene::base(game, assets),
     save_info(dir_info.has_value() 
-        ? std::make_optional(beatmap_file(dir_info.value().beatmap_dir_path, dir_info.value().bg_path, false)) 
+        ? std::make_optional(beatmap_file(dir_info.value().dir_state, false)) 
         : std::nullopt
     ),
     arrow_png("assets/img/arrow.png"),
@@ -830,8 +825,8 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
     setup_info(dir_info),
     compose_info(
         arrow_png,
-        save_info.has_value() && save_info.value().bg_path.has_value()
-            ? std::make_optional(save_info.value().bg_path.value())
+        save_info.has_value() 
+            ? std::optional(save_info.value().dir_state)
             : std::nullopt,
         dir_info.has_value()
             ? std::make_optional(dir_info.value().keys_json_obj) 
@@ -1128,7 +1123,7 @@ bool root::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::
         if (!success)
             throw std::runtime_error("Directory already exists");
 
-        this->save_info.emplace(new_path, std::nullopt, true);
+        this->save_info.emplace(beatmap_dir_state(new_path), true);
         this->save_beatmap();
         return true;
     }
