@@ -334,6 +334,8 @@ public:
     kee::ui::handle<object_editor> obj_editor;
 
 private:
+    static constexpr float start_bg_opacity = 0.5f;
+
     bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
     bool on_element_mouse_scroll(float mouse_scroll) override;
 
@@ -355,15 +357,6 @@ private:
     kee::transition<float>& tick_curr_rect_x;
 
     kee::ui::handle<kee::ui::rect> inspector_rect;
-
-    kee::ui::handle<kee::ui::button> beat_snap_button;
-    kee::ui::handle<kee::ui::rect> beat_snap_button_rect;
-    kee::ui::handle<kee::ui::text> beat_snap_text;
-
-    kee::ui::handle<kee::ui::button> key_lock_button;
-    kee::ui::handle<kee::ui::rect> key_lock_button_rect;
-    kee::ui::handle<kee::ui::text> key_lock_text;
-
     kee::ui::handle<kee::ui::text> tick_text;
     kee::ui::handle<kee::ui::button> tick_l_button;
     kee::ui::handle<kee::ui::image> tick_l_img;
@@ -376,6 +369,19 @@ private:
     std::vector<kee::ui::handle<kee::ui::text>> tick_frame_texts;
     std::vector<kee::ui::handle<kee::ui::button>> tick_frame_buttons;
     std::vector<std::reference_wrapper<kee::transition<kee::color>>> tick_frame_text_colors;
+
+    kee::ui::handle<kee::ui::button> beat_snap_button;
+    kee::ui::handle<kee::ui::rect> beat_snap_button_rect;
+    kee::ui::handle<kee::ui::text> beat_snap_text;
+
+    kee::ui::handle<kee::ui::button> key_lock_button;
+    kee::ui::handle<kee::ui::rect> key_lock_button_rect;
+    kee::ui::handle<kee::ui::text> key_lock_text;
+
+    kee::ui::handle<kee::ui::base> game_bg_opacity_frame;
+    kee::ui::handle<kee::ui::text> game_bg_opacity_label;
+    kee::ui::handle<kee::ui::text> game_bg_opacity_text;
+    kee::ui::handle<kee::ui::slider> game_bg_opacity_slider;
 
     kee::ui::handle<kee::ui::rect> game_display_frame_raw;
     kee::ui::handle<kee::ui::base> game_display_frame;

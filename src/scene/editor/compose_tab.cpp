@@ -1010,62 +1010,6 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         ),
         false, std::nullopt, std::nullopt
     )),
-    beat_snap_button(inspector_rect.ref.add_child<kee::ui::button>(std::nullopt,
-        pos(pos::type::rel, 0.1f),
-        pos(pos::type::rel, 0.25f),
-        dims(
-            dim(dim::type::aspect, 1),
-            dim(dim::type::rel, 0.025f)
-        ),
-        false
-    )),
-    beat_snap_button_rect(beat_snap_button.ref.add_child<kee::ui::rect>(std::nullopt,
-        kee::color::blank,
-        pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0),
-        dims(
-            dim(dim::type::rel, 1),
-            dim(dim::type::rel, 1)
-        ),
-        false,
-        kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, beat_snap_button_outline.get(), kee::color::white),
-        std::nullopt
-    )),
-    beat_snap_text(inspector_rect.ref.add_child<kee::ui::text>(std::nullopt,
-        kee::color::white,
-        pos(pos::type::rel, 0.23f),
-        pos(pos::type::rel, 0.245f),
-        ui::text_size(ui::text_size::type::rel_h, 0.035f),
-        false, assets.font_semi_bold, "BEAT SNAP", false
-    )),
-    key_lock_button(inspector_rect.ref.add_child<kee::ui::button>(std::nullopt,
-        pos(pos::type::rel, 0.1f),
-        pos(pos::type::rel, 0.32f),
-        dims(
-            dim(dim::type::aspect, 1),
-            dim(dim::type::rel, 0.025f)
-        ),
-        false
-    )),
-    key_lock_button_rect(key_lock_button.ref.add_child<kee::ui::rect>(std::nullopt,
-        kee::color::blank,
-        pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0),
-        dims(
-            dim(dim::type::rel, 1),
-            dim(dim::type::rel, 1)
-        ),
-        false,
-        kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, key_lock_button_outline.get(), kee::color::white),
-        std::nullopt
-    )),
-    key_lock_text(inspector_rect.ref.add_child<kee::ui::text>(std::nullopt,
-        kee::color::white,
-        pos(pos::type::rel, 0.23f),
-        pos(pos::type::rel, 0.315f),
-        ui::text_size(ui::text_size::type::rel_h, 0.035f),
-        false, assets.font_semi_bold, "KEY LOCK", false
-    )),
     tick_text(inspector_rect.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
         pos(pos::type::rel, 0.5f),
@@ -1131,6 +1075,94 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         ),
         true, std::nullopt, std::nullopt
     )),
+    beat_snap_button(inspector_rect.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::rel, 0.1f),
+        pos(pos::type::rel, 0.25f),
+        dims(
+            dim(dim::type::aspect, 1),
+            dim(dim::type::rel, 0.025f)
+        ),
+        false
+    )),
+    beat_snap_button_rect(beat_snap_button.ref.add_child<kee::ui::rect>(std::nullopt,
+        kee::color::blank,
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 1)
+        ),
+        false,
+        kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, beat_snap_button_outline.get(), kee::color::white),
+        std::nullopt
+    )),
+    beat_snap_text(inspector_rect.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::rel, 0.23f),
+        pos(pos::type::rel, 0.245f),
+        ui::text_size(ui::text_size::type::rel_h, 0.035f),
+        false, assets.font_semi_bold, "BEAT SNAP", false
+    )),
+    key_lock_button(inspector_rect.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::rel, 0.1f),
+        pos(pos::type::rel, 0.32f),
+        dims(
+            dim(dim::type::aspect, 1),
+            dim(dim::type::rel, 0.025f)
+        ),
+        false
+    )),
+    key_lock_button_rect(key_lock_button.ref.add_child<kee::ui::rect>(std::nullopt,
+        kee::color::blank,
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 1)
+        ),
+        false,
+        kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, key_lock_button_outline.get(), kee::color::white),
+        std::nullopt
+    )),
+    key_lock_text(inspector_rect.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::rel, 0.23f),
+        pos(pos::type::rel, 0.315f),
+        ui::text_size(ui::text_size::type::rel_h, 0.035f),
+        false, assets.font_semi_bold, "KEY LOCK", false
+    )),
+    game_bg_opacity_frame(inspector_rect.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.1f),
+        pos(pos::type::rel, 0.4f),
+        dims(
+            dim(dim::type::rel, 0.8f),
+            dim(dim::type::rel, 0.07f)
+        ),
+        false
+    )),
+    game_bg_opacity_label(game_bg_opacity_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        ui::text_size(ui::text_size::type::rel_h, 0.5f),
+        false, assets.font_semi_bold, "BG OPACITY", false
+    )),
+    game_bg_opacity_text(game_bg_opacity_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::end, 0),
+        pos(pos::type::beg, 0),
+        ui::text_size(ui::text_size::type::rel_h, 0.5f),
+        false, assets.font_semi_bold, std::format("{}%", static_cast<int>(compose_tab::start_bg_opacity * 100)), false
+    )),
+    game_bg_opacity_slider(game_bg_opacity_frame.ref.add_child<kee::ui::slider>(std::nullopt,
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.85f),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 0.15f)
+        ),
+        false
+    )),
     game_display_frame_raw(add_child<kee::ui::rect>(std::nullopt,
         kee::color(10, 10, 10),
         pos(pos::type::beg, 0),
@@ -1154,7 +1186,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         std::variant<kee::ui::handle<kee::ui::rect>, kee::ui::handle<kee::ui::image>>(
             game_display_frame.ref.add_child<kee::ui::image>(std::nullopt,
                 compose_info.bg_img.value(),
-                kee::color::white,
+                kee::color(255, 255, 255, 255 * compose_tab::start_bg_opacity),
                 pos(pos::type::rel, 0.5f),
                 pos(pos::type::rel, 0.5f),
                 border(border::type::abs, 0),
@@ -1343,6 +1375,8 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
             break;
         }
     };
+
+    game_bg_opacity_slider.ref.progress = compose_tab::start_bg_opacity;
 
     for (const auto& [id, rel_pos] : kee::key_ui_data)
     {
@@ -1628,12 +1662,6 @@ void compose_tab::update_element([[maybe_unused]] float dt)
         }
     }
 
-    beat_snap_button_rect.ref.outline.value().color = beat_snap_button_color.get();
-    beat_snap_button_rect.ref.outline.value().val = beat_snap_button_outline.get();
-
-    key_lock_button_rect.ref.outline.value().color = key_lock_button_color.get();
-    key_lock_button_rect.ref.outline.value().val = key_lock_button_outline.get();
-
     std::get<kee::dims>(tick_l_img.ref.dimensions).w.val = tick_l_button_scale.get();
     std::get<kee::dims>(tick_l_img.ref.dimensions).h.val = tick_l_button_scale.get();
     std::get<kee::dims>(tick_r_img.ref.dimensions).w.val = tick_r_button_scale.get();
@@ -1644,10 +1672,21 @@ void compose_tab::update_element([[maybe_unused]] float dt)
 
     const kee::color tick_l_img_color = (compose_info.tick_freq_idx != 0) ? tick_l_button_color.get() : kee::color::blank;
     const kee::color tick_r_img_color = (compose_info.tick_freq_idx != compose_tab_info::tick_freq_count - 1) ? tick_r_button_color.get() : kee::color::blank;
+    
     tick_l_img.ref.color = tick_l_img_color;
     tick_r_img.ref.color = tick_r_img_color;
-
     tick_curr_rect.ref.x.val = tick_curr_rect_x.get();
+
+    beat_snap_button_rect.ref.outline.value().color = beat_snap_button_color.get();
+    beat_snap_button_rect.ref.outline.value().val = beat_snap_button_outline.get();
+
+    key_lock_button_rect.ref.outline.value().color = key_lock_button_color.get();
+    key_lock_button_rect.ref.outline.value().val = key_lock_button_outline.get();
+
+    game_bg_opacity_text.ref.set_string(std::format("{}%", static_cast<int>(game_bg_opacity_slider.ref.progress * 100)));
+    std::visit([&](const auto& bg) {
+        bg.ref.color.a = 255 * game_bg_opacity_slider.ref.progress;
+    }, game_bg);
 }
 
 void compose_tab::set_tick_freq_idx(std::size_t new_tick_freq_idx)
