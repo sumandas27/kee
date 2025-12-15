@@ -9,6 +9,7 @@ namespace editor {
 setup_tab_info::setup_tab_info(const std::optional<beatmap_dir_info>& dir_info, const kee::image_texture& exit_png) :
     exit_png(exit_png),
     from_dir(dir_info.has_value()),
+    bg_path(dir_info.has_value() ? dir_info.value().dir_state.get_bg_path() : std::nullopt),
     song_artist(dir_info.has_value() ? dir_info.value().song_artist : ""),
     song_name(dir_info.has_value() ? dir_info.value().song_name : ""),
     mapper(dir_info.has_value() ? dir_info.value().mapper : ""),
@@ -29,6 +30,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     root_elem(root_elem),
     setup_info(setup_info),
     approach_beats(approach_beats),
+    background_remove_img_color(add_transition<kee::color>(setup_info.bg_path.has_value() ? kee::color::white : kee::color::blank)),
     l_side_frame(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.05f),
@@ -268,11 +270,10 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         std::vector<std::string_view>({".png", ".mp4"}),
         [&]() -> std::variant<std::string_view, std::filesystem::path>
         {
-            const std::optional<std::filesystem::path> bg_path = get_background_path();
-            if (bg_path.has_value())
-                return bg_path.value();
+            if (setup_info.bg_path.has_value())
+                return setup_info.bg_path.value();
             else
-                return std::string_view("Select an image/video");
+                return no_bg_message;
         }()
     )),
     background_remove_button(background_frame.ref.add_child<kee::ui::button>(std::nullopt,
@@ -286,7 +287,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     )),
     background_remove_img(background_remove_button.ref.add_child<kee::ui::image>(std::nullopt,
         setup_info.exit_png,
-        get_background_path().has_value() ? kee::color::white : kee::color::blank,
+        background_remove_img_color.get(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_h, 0.2f),
@@ -419,18 +420,46 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     {
         if (bg_path.extension() == ".png")
         {
-            this->root_elem.set_bg_img(bg_path);
-            this->setup_info.new_bg_img_path = bg_path;
+            this->root_elem.set_bg(bg_path);
+            this->setup_info.bg_path = bg_path;
         }
         else
         {
             /* TODO: implement */
         }
+
+        this->background_remove_img_color.set(kee::color::white);
     };
 
     background_dialog.ref.on_filter_mismatch = [&]()
     {
         this->root_elem.set_error("Not an image or a video!", true);
+    };
+
+    background_remove_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        if (!setup_info.bg_path.has_value())
+            return;
+
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            this->background_remove_img_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            this->background_remove_img_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    background_remove_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        this->background_dialog.ref.set_message(no_bg_message);
+        this->root_elem.set_bg(std::nullopt);
+        this->setup_info.bg_path.reset();
+        this->background_remove_img_color.set(kee::color::blank);
     };
 
     //key_color_dialog.ref.on_success = [&](const std::filesystem::path& song_path)
@@ -444,20 +473,11 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     };
 }
 
-std::optional<std::filesystem::path> setup_tab::get_background_path() const
-{
-    if (setup_info.new_bg_img_path.has_value())
-        return setup_info.new_bg_img_path.value().filename();
-    else if (!root_elem.save_info.has_value() || !root_elem.save_info.value().dir_state.bg_type.has_value())
-        return std::nullopt;
+const std::string_view setup_tab::no_bg_message = "Select an image/video";
 
-    switch (root_elem.save_info.value().dir_state.bg_type.value())
-    {
-    case background_type::image:
-        return root_elem.save_info.value().dir_state.path / "bg.png";
-    case background_type::video:
-        return root_elem.save_info.value().dir_state.path / "bg.mp4";
-    }
+void setup_tab::update_element([[maybe_unused]] float dt)
+{
+    background_remove_img.ref.color = background_remove_img_color.get();
 }
 
 } // namespace editor

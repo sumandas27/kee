@@ -674,7 +674,11 @@ root::root(kee::game& game, kee::global_assets& assets, const std::optional<std:
 bool root::needs_save() const
 {
     const bool save_hit_objs_needed = (!compose_info.events_since_save.has_value() || compose_info.events_since_save.value() != 0);
-    return save_info.has_value() && (save_info.value().save_metadata_needed || setup_info.new_song_path.has_value() || setup_info.new_bg_img_path.has_value() || save_hit_objs_needed);
+    if (!save_info.has_value())
+        return false;
+
+    const bool need_bg_save = (save_info.value().dir_state.get_bg_path() != setup_info.bg_path);
+    return save_info.value().save_metadata_needed || setup_info.new_song_path.has_value() || need_bg_save || save_hit_objs_needed;
 }
 
 void root::save_beatmap()
@@ -700,23 +704,33 @@ void root::save_beatmap()
         any_saved = true;
     }
 
-    /* TODO: think through this, seems overly complicated at first glance */
-    /* TODO: do sm like `std::optional<std::filesystem::path> new/old_bg` */
-    if (setup_info.new_bg_img_path.has_value()) 
+    const bool need_bg_save = (save_info.value().dir_state.get_bg_path() != setup_info.bg_path);
+    if (need_bg_save)
     {
-        std::error_code ec;
-        const std::filesystem::path& src = setup_info.new_bg_img_path.value();
-        const std::filesystem::path dst = save_info.value().dir_state.path / "bg.png";
-
-        std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, ec);
-        if (ec)
+        if (setup_info.bg_path.has_value())
         {
-            set_error(std::format("Error saving background image: {}", ec.message()), false);
-            return;
+            std::error_code ec;
+            const std::filesystem::path& src = setup_info.bg_path.value();
+            const std::filesystem::path dst = save_info.value().dir_state.path / "bg.png";
+
+            std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, ec);
+            if (ec)
+            {
+                set_error(std::format("Error saving background image: {}", ec.message()), false);
+                return;
+            }
+
+            save_info.value().dir_state.bg_type = background_type::image; /* TODO: code in videos as well */
+            setup_info.bg_path = dst;
+        }
+        else 
+        {
+            if (!std::filesystem::remove(save_info.value().dir_state.get_bg_path().value()))
+                throw std::runtime_error("Failed to remove beatmap's background file!");
+
+            save_info.value().dir_state.bg_type.reset();
         }
 
-        save_info.value().dir_state.bg_type = background_type::image;
-        setup_info.new_bg_img_path.reset();
         any_saved = true;
     }
 
@@ -808,9 +822,12 @@ void root::set_song(const std::filesystem::path& song_path)
     playback_ui.emplace<kee::ui::handle<song_ui>>(playback_ui_frame.ref.add_child<song_ui>(std::nullopt, arrow_png, song_path));
 }
 
-void root::set_bg_img(const std::filesystem::path& bg_path)
+void root::set_bg(const std::optional<std::filesystem::path>& bg_path)
 {
-    compose_info.bg_img.emplace(bg_path); /* TODO NEXT: Move this to root */
+    if (bg_path.has_value())
+        compose_info.bg_img.emplace(bg_path.value());
+    else
+        compose_info.bg_img.reset();
 }
 
 root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_dir_info> dir_info) :

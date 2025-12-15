@@ -78,6 +78,22 @@ beatmap_dir_state::beatmap_dir_state(const std::filesystem::path& path) :
         bg_type = background_type::image;
 }
 
+std::optional<std::filesystem::path> beatmap_dir_state::get_bg_path() const
+{
+    if (!bg_type.has_value())
+        return std::nullopt;
+
+    switch (bg_type.value())
+    {
+    case background_type::image:
+        return path / "bg.png";
+    case background_type::video:
+        return path / "bg.mp4";
+    default:
+        std::unreachable();
+    }
+}
+
 const std::filesystem::path beatmap_dir_info::app_data_dir = "test_app_data/";
 
 beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_name) :

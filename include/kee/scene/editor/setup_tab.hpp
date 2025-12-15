@@ -18,7 +18,7 @@ public:
     const kee::image_texture& exit_png;
 
     std::optional<std::filesystem::path> new_song_path;
-    std::optional<std::filesystem::path> new_bg_img_path;
+    std::optional<std::filesystem::path> bg_path;
 
     bool from_dir;
     std::string song_artist;
@@ -35,11 +35,15 @@ public:
     setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_info& setup_info, float& approach_beats);
 
 private:
-    std::optional<std::filesystem::path> get_background_path() const;
+    static const std::string_view no_bg_message;
+
+    void update_element(float dt) override;
 
     root& root_elem;
     setup_tab_info& setup_info;
     float& approach_beats;
+
+    kee::transition<kee::color>& background_remove_img_color;
 
     kee::ui::handle<kee::ui::base> l_side_frame;
     kee::ui::handle<kee::ui::rect> audio_bg;

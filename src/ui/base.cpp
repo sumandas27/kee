@@ -140,7 +140,7 @@ raylib::Rectangle base::get_raw_rect() const
 {
     const raylib::Rectangle parent_raw_rect = parent.has_value() 
         ? parent.value().get_raw_rect()
-        : raylib::Rectangle(0, 0, kee::scene::window::w, kee::scene::window::h);
+        : raylib::Rectangle(0, 0, kee::window_w, kee::window_h);
 
     raylib::Rectangle res;
     res.SetSize(get_dims(parent_raw_rect));

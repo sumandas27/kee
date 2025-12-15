@@ -5,19 +5,6 @@
 namespace kee {
 namespace scene {
 
-/* TODO: move to `ui_common.hpp` */
-
-class window
-{
-public:
-    static constexpr int w = 2560;
-    static constexpr int h = 1440;
-
-    window();
-
-    raylib::Window impl;
-};
-
 class base : public kee::ui::base
 {
 public:

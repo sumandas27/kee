@@ -132,6 +132,11 @@ file_dialog::file_dialog(
     };
 }
 
+void file_dialog::set_message(std::string_view message)
+{
+    fd_text.set_string(message);
+}
+
 void file_dialog::on_element_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods)
 {
     fd_button.on_element_mouse_move(mouse_pos, mods);

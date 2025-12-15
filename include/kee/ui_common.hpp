@@ -225,6 +225,8 @@ class beatmap_dir_state
 public:
     beatmap_dir_state(const std::filesystem::path& path);
 
+    std::optional<std::filesystem::path> get_bg_path() const;
+
     std::filesystem::path path;
     std::optional<background_type> bg_type;
 };
@@ -302,6 +304,9 @@ static constexpr float key_border_parent_h = 0.05f;
 
 static constexpr float key_aspect_w = 11;
 static constexpr float key_aspect_h = 4;
+
+static constexpr int window_w = 2560;
+static constexpr int window_h = 1440;
 
 static constexpr float game_start_bg_opacity = 0.5f;
 

@@ -943,8 +943,8 @@ compose_tab_info::compose_tab_info(
     const std::optional<boost::json::object>& keys_json_obj
 ) :
     arrow_png(arrow_png),
-    bg_img(dir_state.has_value() && dir_state.value().bg_type.has_value() && dir_state.value().bg_type.value() == background_type::image
-        ? std::make_optional(kee::image_texture(dir_state.value().path / "bg.png"))
+    bg_img(dir_state.has_value() && dir_state.value().get_bg_path().has_value()
+        ? std::make_optional(kee::image_texture(dir_state.value().get_bg_path().value()))
         : std::nullopt    
     ),
     hitsound("assets/sfx/hitsound.wav"),
@@ -1195,8 +1195,8 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         dims(
-            dim(dim::type::aspect, kee::scene::window::w),
-            dim(dim::type::aspect, kee::scene::window::h)
+            dim(dim::type::aspect, kee::window_w),
+            dim(dim::type::aspect, kee::window_h)
         ),
         true
     )),

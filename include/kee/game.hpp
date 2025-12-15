@@ -5,23 +5,30 @@
 
 namespace kee {
 
+class window
+{
+public:
+    window();
+
+    raylib::Window impl;
+};
+
 class game
 {
 public:
     game();
 
     void begin_main_loop(); 
+    void queue_game_exit();
 
     bool is_key_down(int key) const;
-
-    void queue_game_exit();
 
     boost::optional<kee::ui::base&> element_keyboard_capture;
 
 private:
     NFD::Guard nfd_guard;
 
-    kee::scene::window window;
+    kee::window window;
     kee::global_assets assets;
     raylib::AudioDevice audio;
 

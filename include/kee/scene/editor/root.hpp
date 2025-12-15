@@ -178,7 +178,7 @@ public:
     void set_info(std::string_view info_str);
 
     void set_song(const std::filesystem::path& song_path);
-    void set_bg_img(const std::filesystem::path& bg_path); /* TODO: should i rename this for both img/video ?? */
+    void set_bg(const std::optional<std::filesystem::path>& bg_path);
 
     std::optional<beatmap_file> save_info;
 

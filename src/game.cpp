@@ -4,6 +4,27 @@
 
 namespace kee {
 
+
+window::window()
+{
+#ifdef __APPLE__
+    static constexpr int window_fps = 60;
+#else
+    static constexpr int window_fps = 144;
+#endif
+
+    impl.SetConfigFlags(
+        ConfigFlags::FLAG_BORDERLESS_WINDOWED_MODE |    /* Make window take up the entire screen */
+        ConfigFlags::FLAG_WINDOW_UNDECORATED |          /* Remove toolbars when displaying the game */
+        ConfigFlags::FLAG_VSYNC_HINT |                  /* Prevent screen tearing */
+        ConfigFlags::FLAG_WINDOW_HIGHDPI                /* Correct rendering on Apple machines */
+    );
+
+    /* TODO: custom window size and fix ui so fun :D */
+    impl.Init(kee::window_w, kee::window_h);
+    impl.SetTargetFPS(window_fps);
+}
+
 game::game() :
     curr_scene(std::make_unique<kee::scene::editor::root>(*this, assets, "local_0")),
     main_loop_begun(false),
@@ -63,14 +84,14 @@ void game::begin_main_loop()
     }
 }
 
-bool game::is_key_down(int key) const
-{
-    return raylib::Keyboard::IsKeyDown(key);
-}
-
 void game::queue_game_exit()
 {
     game_should_exit = true;
+}
+
+bool game::is_key_down(int key) const
+{
+    return raylib::Keyboard::IsKeyDown(key);
 }
 
 } // namespace kee

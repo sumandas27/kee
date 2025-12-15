@@ -3,26 +3,6 @@
 namespace kee {
 namespace scene {
 
-window::window()
-{
-#ifdef __APPLE__
-    static constexpr int window_fps = 60;
-#else
-    static constexpr int window_fps = 144;
-#endif
-
-    impl.SetConfigFlags(
-        ConfigFlags::FLAG_BORDERLESS_WINDOWED_MODE |    /* Make window take up the entire screen */
-        ConfigFlags::FLAG_WINDOW_UNDECORATED |          /* Remove toolbars when displaying the game */
-        ConfigFlags::FLAG_VSYNC_HINT |                  /* Prevent screen tearing */
-        ConfigFlags::FLAG_WINDOW_HIGHDPI                /* Correct rendering on Apple machines */
-    );
-
-    /* TODO: custom window size and fix ui so fun :D */
-    impl.Init(window::w, window::h);
-    impl.SetTargetFPS(window_fps);
-}
-
 base::base(kee::game& game, kee::global_assets& assets) :
     kee::ui::base(game, assets)
 { }
