@@ -9,6 +9,8 @@ namespace ui {
 class slider final : public kee::ui::base
 {
 public:
+    static const kee::color track_color;
+
     enum class event;
 
     slider(

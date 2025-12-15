@@ -16,7 +16,6 @@ namespace scene {
 namespace editor {
 
 /* TODO: add beatmap ui elements to editor down the line i.e. progress bar/combo/etc */
-/* TODO: add bg opacity slider in the editor */
 
 class song_ui;
 class compose_tab;
@@ -334,8 +333,6 @@ public:
     kee::ui::handle<object_editor> obj_editor;
 
 private:
-    static constexpr float start_bg_opacity = 0.5f;
-
     bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
     bool on_element_mouse_scroll(float mouse_scroll) override;
 
@@ -381,7 +378,10 @@ private:
     kee::ui::handle<kee::ui::base> game_bg_opacity_frame;
     kee::ui::handle<kee::ui::text> game_bg_opacity_label;
     kee::ui::handle<kee::ui::text> game_bg_opacity_text;
-    kee::ui::handle<kee::ui::slider> game_bg_opacity_slider;
+    std::variant<
+        kee::ui::handle<kee::ui::slider>,
+        kee::ui::handle<kee::ui::rect>
+    > game_bg_opacity_slider;
 
     kee::ui::handle<kee::ui::rect> game_display_frame_raw;
     kee::ui::handle<kee::ui::base> game_display_frame;

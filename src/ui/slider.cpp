@@ -3,6 +3,8 @@
 namespace kee {
 namespace ui {
 
+const kee::color slider::track_color = kee::color(255, 255, 255, 40);
+
 slider::slider(
     const kee::ui::required& reqs,
     const kee::pos& x, 
@@ -16,7 +18,7 @@ slider::slider(
     fill_color(add_transition<kee::color>(kee::color::white)),
     thumb_scale(add_transition<float>(1.75f)),
     track(make_temp_child<kee::ui::rect>(
-        kee::color(255, 255, 255, 40),
+        slider::track_color,
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         dims(

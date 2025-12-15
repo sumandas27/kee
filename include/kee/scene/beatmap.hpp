@@ -4,7 +4,9 @@
 
 #include "kee/scene/base.hpp"
 #include "kee/ui/button.hpp"
+#include "kee/ui/image.hpp"
 #include "kee/ui/rect.hpp"
+#include "kee/ui/slider.hpp"
 #include "kee/ui/text.hpp"
 
 namespace kee {
@@ -63,7 +65,13 @@ private:
 class pause_menu final : public kee::ui::rect
 {
 public:
-    pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_time_paused, raylib::Music& music);
+    pause_menu(
+        const kee::ui::required& reqs, 
+        std::optional<bool>& load_time_paused, 
+        std::optional<kee::ui::handle<kee::ui::image>>& game_bg,
+        raylib::Music& music
+    );
+
     pause_menu(const pause_menu&) = delete;
     pause_menu(pause_menu&&) = delete;
     ~pause_menu();
@@ -78,7 +86,9 @@ private:
     bool on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
 
     void update_element(float dt) override;
+
     std::optional<bool>& load_time_paused;
+    std::optional<kee::ui::handle<kee::ui::image>>& game_bg;
     raylib::Music& music;
 
     kee::transition<float>& ui_rel_y;
@@ -100,6 +110,15 @@ private:
     kee::ui::handle<kee::ui::button> exit_button;
     kee::ui::handle<kee::ui::rect> exit_rect;
     kee::ui::handle<kee::ui::text> exit_text;
+
+    kee::ui::handle<kee::ui::base> game_bg_opacity_frame;
+    kee::ui::handle<kee::ui::base> game_bg_opacity_frame_inner;
+    kee::ui::handle<kee::ui::text> game_bg_opacity_label;
+    kee::ui::handle<kee::ui::text> game_bg_opacity_text;
+    std::variant<
+        kee::ui::handle<kee::ui::slider>,
+        kee::ui::handle<kee::ui::rect>
+    > game_bg_opacity_slider;
 
     std::optional<bool> destruct_else_restart_flag;
 };
@@ -188,7 +207,10 @@ private:
     kee::transition<float>& combo_gain;
     kee::transition<float>& end_fade_out_alpha;
 
+    std::optional<kee::image_texture> game_bg_img;
+    std::optional<kee::ui::handle<kee::ui::image>> game_bg;
     std::optional<kee::ui::handle<kee::ui::rect>> load_rect;
+
     kee::ui::handle<kee::ui::rect> progress_bg;
     kee::ui::handle<kee::ui::rect> progress_rect;
 

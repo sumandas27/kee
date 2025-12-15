@@ -6,7 +6,8 @@ namespace kee {
 namespace scene {
 namespace editor {
 
-setup_tab_info::setup_tab_info(const std::optional<beatmap_dir_info>& dir_info) :
+setup_tab_info::setup_tab_info(const std::optional<beatmap_dir_info>& dir_info, const kee::image_texture& exit_png) :
+    exit_png(exit_png),
     from_dir(dir_info.has_value()),
     song_artist(dir_info.has_value() ? dir_info.value().song_artist : ""),
     song_name(dir_info.has_value() ? dir_info.value().song_name : ""),
@@ -247,46 +248,72 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
         false, assets.font_semi_bold, "BACKGROUND", false
     )),
-    background_dialog(r_side_frame.ref.add_child<kee::ui::file_dialog>(1,
+    background_frame(r_side_frame.ref.add_child<kee::ui::base>(1,
         pos(pos::type::rel, 0.45f),
         pos(pos::type::rel, 0.62f),
         dims(
             dim(dim::type::rel, 0.45f),
             dim(dim::type::rel, 0.03f)
         ),
+        false
+    )),
+    background_dialog(background_frame.ref.add_child<kee::ui::file_dialog>(1,
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 0.88f),
+            dim(dim::type::rel, 1)
+        ),
         false,
         std::vector<std::string_view>({".png", ".mp4"}),
         [&]() -> std::variant<std::string_view, std::filesystem::path>
         {
-            if (setup_info.new_bg_img_path.has_value())
-                return setup_info.new_bg_img_path.value().filename();
-            else if (root_elem.save_info.has_value() && root_elem.save_info.value().dir_state.bg_type.has_value())
-                switch (root_elem.save_info.value().dir_state.bg_type.value())
-                {
-                case background_type::image:
-                    return root_elem.save_info.value().dir_state.path / "bg.png";
-                    break;
-                case background_type::video:
-                    return root_elem.save_info.value().dir_state.path / "bg.mp4";
-                    break;
-                }
+            const std::optional<std::filesystem::path> bg_path = get_background_path();
+            if (bg_path.has_value())
+                return bg_path.value();
             else
                 return std::string_view("Select an image/video");
         }()
     )),
-    key_color_text(r_side_frame.ref.add_child<kee::ui::text>(1,
+    background_remove_button(background_frame.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::end, 0),
+        pos(pos::type::beg, 0),
+        dims(
+            dim(dim::type::aspect, 1),
+            dim(dim::type::rel, 1)
+        ),
+        false
+    )),
+    background_remove_img(background_remove_button.ref.add_child<kee::ui::image>(std::nullopt,
+        setup_info.exit_png,
+        get_background_path().has_value() ? kee::color::white : kee::color::blank,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_h, 0.2f),
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
+    )),
+    key_color_text(r_side_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.6825f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
         false, assets.font_semi_bold, "KEY COLORS", false
     )),
-    key_color_dialog(r_side_frame.ref.add_child<kee::ui::file_dialog>(1,
+    key_color_frame(r_side_frame.ref.add_child<kee::ui::base>(1,
         pos(pos::type::rel, 0.45f),
         pos(pos::type::rel, 0.6825f),
         dims(
             dim(dim::type::rel, 0.45f),
             dim(dim::type::rel, 0.03f)
+        ),
+        false
+    )),
+    key_color_dialog(key_color_frame.ref.add_child<kee::ui::file_dialog>(1,
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 0.88f),
+            dim(dim::type::rel, 1)
         ),
         false,
         std::vector<std::string_view>({".json"}),
@@ -415,6 +442,22 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     {
         this->root_elem.set_error("Not a JSON file!", true);
     };
+}
+
+std::optional<std::filesystem::path> setup_tab::get_background_path() const
+{
+    if (setup_info.new_bg_img_path.has_value())
+        return setup_info.new_bg_img_path.value().filename();
+    else if (!root_elem.save_info.has_value() || !root_elem.save_info.value().dir_state.bg_type.has_value())
+        return std::nullopt;
+
+    switch (root_elem.save_info.value().dir_state.bg_type.value())
+    {
+    case background_type::image:
+        return root_elem.save_info.value().dir_state.path / "bg.png";
+    case background_type::video:
+        return root_elem.save_info.value().dir_state.path / "bg.mp4";
+    }
 }
 
 } // namespace editor

@@ -700,7 +700,9 @@ void root::save_beatmap()
         any_saved = true;
     }
 
-    if (setup_info.new_bg_img_path.has_value())
+    /* TODO: think through this, seems overly complicated at first glance */
+    /* TODO: do sm like `std::optional<std::filesystem::path> new/old_bg` */
+    if (setup_info.new_bg_img_path.has_value()) 
     {
         std::error_code ec;
         const std::filesystem::path& src = setup_info.new_bg_img_path.value();
@@ -808,7 +810,7 @@ void root::set_song(const std::filesystem::path& song_path)
 
 void root::set_bg_img(const std::filesystem::path& bg_path)
 {
-    compose_info.bg_img.emplace(bg_path);
+    compose_info.bg_img.emplace(bg_path); /* TODO NEXT: Move this to root */
 }
 
 root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_dir_info> dir_info) :
@@ -822,7 +824,7 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
     exit_png("assets/img/exit.png"),
     info_png("assets/img/info.png"),
     approach_beats(dir_info.has_value() ? dir_info.value().approach_beats : 2.0f),
-    setup_info(dir_info),
+    setup_info(dir_info, exit_png),
     compose_info(
         arrow_png,
         save_info.has_value() 

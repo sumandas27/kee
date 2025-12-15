@@ -169,7 +169,12 @@ void beatmap_key::render_element() const
         hit_obj_rect.render();
 }
 
-pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_time_paused, raylib::Music& music) :
+pause_menu::pause_menu(
+    const kee::ui::required& reqs, 
+    std::optional<bool>& load_time_paused, 
+    std::optional<kee::ui::handle<kee::ui::image>>& game_bg,
+    raylib::Music& music
+) :
     kee::ui::rect(reqs,
         kee::color(255, 255, 255, 20),
         pos(pos::type::rel, 0.5f),
@@ -181,6 +186,7 @@ pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_
         true, std::nullopt, std::nullopt
     ),
     load_time_paused(load_time_paused),
+    game_bg(game_bg),
     music(music),
     ui_rel_y(add_transition<float>(-0.5f)),
     go_back_color(add_transition<kee::color>(kee::color(0, 200, 0))),
@@ -271,7 +277,63 @@ pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.7f),
         true, assets.font_semi_bold, "EXIT", false
-    ))
+    )),
+    game_bg_opacity_frame(ui_frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.68f),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 0.12f)
+        ),
+        false
+    )),
+    game_bg_opacity_frame_inner(game_bg_opacity_frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_h, 0.2f),
+        true
+    )),
+    game_bg_opacity_label(game_bg_opacity_frame_inner.ref.add_child<kee::ui::text>(std::nullopt,
+        game_bg.has_value() ? kee::color::white : kee::color(125, 125, 125),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        ui::text_size(ui::text_size::type::rel_h, 0.5f),
+        false, assets.font_semi_bold, "BG OPACITY", false
+    )),
+    game_bg_opacity_text(game_bg_opacity_frame_inner.ref.add_child<kee::ui::text>(std::nullopt,
+        game_bg.has_value() ? kee::color::white : kee::color(125, 125, 125),
+        pos(pos::type::end, 0),
+        pos(pos::type::beg, 0),
+        ui::text_size(ui::text_size::type::rel_h, 0.5f),
+        false, assets.font_semi_bold, game_bg.has_value() ? std::format("{}%", static_cast<int>(game_bg.value().ref.color.a / 255.f)) : "--", false
+    )),
+    game_bg_opacity_slider(game_bg.has_value() ?
+        std::variant<kee::ui::handle<kee::ui::slider>, kee::ui::handle<kee::ui::rect>>(
+            game_bg_opacity_frame_inner.ref.add_child<kee::ui::slider>(std::nullopt,
+                pos(pos::type::rel, 0),
+                pos(pos::type::rel, 0.85f),
+                dims(
+                    dim(dim::type::rel, 1),
+                    dim(dim::type::rel, 0.15f)
+                ),
+                false
+            )
+        ) :
+        std::variant<kee::ui::handle<kee::ui::slider>, kee::ui::handle<kee::ui::rect>>(
+            game_bg_opacity_frame_inner.ref.add_child<kee::ui::rect>(std::nullopt,
+                kee::ui::slider::track_color,
+                pos(pos::type::rel, 0),
+                pos(pos::type::rel, 0.85f),
+                dims(
+                    dim(dim::type::rel, 1),
+                    dim(dim::type::rel, 0.15f)
+                ),
+                false,
+                std::nullopt,
+                ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.5f, std::nullopt)
+            )
+        )
+    )
 {
     go_back_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
@@ -333,6 +395,9 @@ pause_menu::pause_menu(const kee::ui::required& reqs, std::optional<bool>& load_
         this->game_ref.queue_game_exit();
     };
 
+    if (auto* slider_ptr = std::get_if<kee::ui::handle<kee::ui::slider>>(&game_bg_opacity_slider))
+        slider_ptr->ref.progress = game_bg.has_value() ? game_bg.value().ref.color.a / 255.f : 0.5f; /* TODO: what to do if no value */
+    
     ui_rel_y.set(std::nullopt, 0.5f, 0.5f, kee::transition_type::exp);
 
     take_keyboard_capture();
@@ -376,6 +441,12 @@ void pause_menu::update_element([[maybe_unused]] float dt)
     go_back_rect.ref.color = go_back_color.get();
     restart_rect.ref.color = restart_color.get();
     exit_rect.ref.color = exit_color.get();
+
+    if (auto* slider_ptr = std::get_if<kee::ui::handle<kee::ui::slider>>(&game_bg_opacity_slider))
+    {
+        game_bg.value().ref.color.a = 255 * slider_ptr->ref.progress;
+        game_bg_opacity_text.ref.set_string(std::format("{}%", static_cast<int>(slider_ptr->ref.progress * 100)));
+    }
 }
 
 end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
@@ -690,7 +761,22 @@ beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&&
     music_bpm(beatmap_info.song_bpm),
     combo_gain(add_transition<float>(0.0f)),
     end_fade_out_alpha(add_transition<float>(0.0f)),
-    progress_bg(add_child<kee::ui::rect>(1,
+    game_bg_img(beatmap_info.dir_state.bg_type.has_value() && beatmap_info.dir_state.bg_type.value() == kee::background_type::image
+        ? std::make_optional(kee::image_texture(beatmap_info.dir_state.path / "bg.png"))
+        : std::nullopt
+    ),
+    game_bg(game_bg_img.has_value() ?
+        std::make_optional(add_child<kee::ui::image>(0, /* TODO: increment by 1 */
+            game_bg_img.value(),
+            kee::color(255, 255, 255, 255 * kee::game_start_bg_opacity),
+            pos(pos::type::rel, 0.5f),
+            pos(pos::type::rel, 0.5f),
+            border(border::type::abs, 0),
+            true, ui::image::display::extend_to_fit, false, false, 0.0f
+        )) :
+        std::nullopt
+    ),
+    progress_bg(add_child<kee::ui::rect>(2,
         kee::color(20, 20, 20),
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
@@ -700,7 +786,7 @@ beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&&
         ),
         false, std::nullopt, std::nullopt
     )),
-    progress_rect(add_child<kee::ui::rect>(2,
+    progress_rect(add_child<kee::ui::rect>(3,
         kee::color::white,
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
@@ -710,7 +796,7 @@ beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&&
         ),
         false, std::nullopt, std::nullopt
     )),
-    performance_bg(add_child<kee::ui::base>(1,
+    performance_bg(add_child<kee::ui::base>(2,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.01f),
         dims(
@@ -739,21 +825,21 @@ beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&&
         ui::text_size(ui::text_size::type::rel_h, 1),
         false, assets.font_semi_bold, "FC", false
     )),
-    combo_text(add_child<kee::ui::text>(2,
+    combo_text(add_child<kee::ui::text>(3,
         kee::color::white,
         pos(pos::type::beg, 40),
         pos(pos::type::end, 40),
         ui::text_size(ui::text_size::type::rel_h, 0.1f),
         false, assets.font_light, "0x", true
     )),
-    combo_text_bg(add_child<kee::ui::text>(1,
+    combo_text_bg(add_child<kee::ui::text>(2,
         kee::color(255, 255, 255, 0),
         pos(pos::type::beg, 40),
         pos(pos::type::end, 40),
         ui::text_size(ui::text_size::type::rel_h, 0.1f),
         false, assets.font_light, "0x", true
     )),
-    window_border(add_child<kee::ui::base>(1,
+    window_border(add_child<kee::ui::base>(2,
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         dims(
@@ -781,7 +867,7 @@ beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&&
 
 void beatmap::reset_level()
 {
-    load_rect.emplace(add_child<kee::ui::rect>(0,
+    load_rect.emplace(add_child<kee::ui::rect>(1,
         kee::color(255, 255, 255, 20),
         pos(pos::type::beg, 0),
         pos(pos::type::end, 0),
@@ -849,7 +935,7 @@ bool beatmap::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
             return true;
 
         if (!pause_menu_ui.has_value())
-            pause_menu_ui.emplace(add_child<pause_menu>(10, load_time_paused, music));
+            pause_menu_ui.emplace(add_child<pause_menu>(10, load_time_paused, game_bg, music));
 
         return true;
     }

@@ -303,6 +303,8 @@ static constexpr float key_border_parent_h = 0.05f;
 static constexpr float key_aspect_w = 11;
 static constexpr float key_aspect_h = 4;
 
+static constexpr float game_start_bg_opacity = 0.5f;
+
 } // namespace kee
 
 #include "kee/ui_common.ipp"

@@ -1141,28 +1141,46 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         false
     )),
     game_bg_opacity_label(game_bg_opacity_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        kee::color::white,
+        compose_info.bg_img.has_value() ? kee::color::white : kee::color(125, 125, 125),
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
         false, assets.font_semi_bold, "BG OPACITY", false
     )),
     game_bg_opacity_text(game_bg_opacity_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        kee::color::white,
+        compose_info.bg_img.has_value() ? kee::color::white : kee::color(125, 125, 125),
         pos(pos::type::end, 0),
         pos(pos::type::beg, 0),
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
-        false, assets.font_semi_bold, std::format("{}%", static_cast<int>(compose_tab::start_bg_opacity * 100)), false
+        false, assets.font_semi_bold, compose_info.bg_img.has_value() ? std::format("{}%", static_cast<int>(kee::game_start_bg_opacity * 100)) : "--", false
     )),
-    game_bg_opacity_slider(game_bg_opacity_frame.ref.add_child<kee::ui::slider>(std::nullopt,
-        pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0.85f),
-        dims(
-            dim(dim::type::rel, 1),
-            dim(dim::type::rel, 0.15f)
-        ),
-        false
-    )),
+    game_bg_opacity_slider(compose_info.bg_img.has_value() ?
+        std::variant<kee::ui::handle<kee::ui::slider>, kee::ui::handle<kee::ui::rect>>(
+            game_bg_opacity_frame.ref.add_child<kee::ui::slider>(std::nullopt,
+                pos(pos::type::rel, 0),
+                pos(pos::type::rel, 0.85f),
+                dims(
+                    dim(dim::type::rel, 1),
+                    dim(dim::type::rel, 0.15f)
+                ),
+                false
+            )
+        ) :
+        std::variant<kee::ui::handle<kee::ui::slider>, kee::ui::handle<kee::ui::rect>>(
+            game_bg_opacity_frame.ref.add_child<kee::ui::rect>(std::nullopt,
+                kee::ui::slider::track_color,
+                pos(pos::type::rel, 0),
+                pos(pos::type::rel, 0.85f),
+                dims(
+                    dim(dim::type::rel, 1),
+                    dim(dim::type::rel, 0.15f)
+                ),
+                false,
+                std::nullopt,
+                ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.5f, std::nullopt)
+            )
+        )
+    ),
     game_display_frame_raw(add_child<kee::ui::rect>(std::nullopt,
         kee::color(10, 10, 10),
         pos(pos::type::beg, 0),
@@ -1186,7 +1204,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         std::variant<kee::ui::handle<kee::ui::rect>, kee::ui::handle<kee::ui::image>>(
             game_display_frame.ref.add_child<kee::ui::image>(std::nullopt,
                 compose_info.bg_img.value(),
-                kee::color(255, 255, 255, 255 * compose_tab::start_bg_opacity),
+                kee::color(255, 255, 255, 255 * kee::game_start_bg_opacity),
                 pos(pos::type::rel, 0.5f),
                 pos(pos::type::rel, 0.5f),
                 border(border::type::abs, 0),
@@ -1376,7 +1394,8 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         }
     };
 
-    game_bg_opacity_slider.ref.progress = compose_tab::start_bg_opacity;
+    if (auto* slider_ptr = std::get_if<kee::ui::handle<kee::ui::slider>>(&game_bg_opacity_slider))
+        slider_ptr->ref.progress = kee::game_start_bg_opacity;
 
     for (const auto& [id, rel_pos] : kee::key_ui_data)
     {
@@ -1683,10 +1702,13 @@ void compose_tab::update_element([[maybe_unused]] float dt)
     key_lock_button_rect.ref.outline.value().color = key_lock_button_color.get();
     key_lock_button_rect.ref.outline.value().val = key_lock_button_outline.get();
 
-    game_bg_opacity_text.ref.set_string(std::format("{}%", static_cast<int>(game_bg_opacity_slider.ref.progress * 100)));
-    std::visit([&](const auto& bg) {
-        bg.ref.color.a = 255 * game_bg_opacity_slider.ref.progress;
-    }, game_bg);
+    if (auto* slider_ptr = std::get_if<kee::ui::handle<kee::ui::slider>>(&game_bg_opacity_slider))
+    {
+        game_bg_opacity_text.ref.set_string(std::format("{}%", static_cast<int>(slider_ptr->ref.progress * 100)));
+        std::visit([&](const auto& bg) {
+            bg.ref.color.a = 255 * slider_ptr->ref.progress;
+        }, game_bg);   
+    }
 }
 
 void compose_tab::set_tick_freq_idx(std::size_t new_tick_freq_idx)

@@ -13,7 +13,9 @@ class root;
 class setup_tab_info
 {
 public:
-    setup_tab_info(const std::optional<beatmap_dir_info>& dir_info);
+    setup_tab_info(const std::optional<beatmap_dir_info>& dir_info, const kee::image_texture& exit_png);
+
+    const kee::image_texture& exit_png;
 
     std::optional<std::filesystem::path> new_song_path;
     std::optional<std::filesystem::path> new_bg_img_path;
@@ -33,6 +35,8 @@ public:
     setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_info& setup_info, float& approach_beats);
 
 private:
+    std::optional<std::filesystem::path> get_background_path() const;
+
     root& root_elem;
     setup_tab_info& setup_info;
     float& approach_beats;
@@ -73,9 +77,13 @@ private:
     kee::ui::handle<kee::ui::text> decoration_label;
 
     kee::ui::handle<kee::ui::text> background_text;
+    kee::ui::handle<kee::ui::base> background_frame;
     kee::ui::handle<kee::ui::file_dialog> background_dialog;
+    kee::ui::handle<kee::ui::button> background_remove_button;
+    kee::ui::handle<kee::ui::image> background_remove_img;
 
     kee::ui::handle<kee::ui::text> key_color_text;
+    kee::ui::handle<kee::ui::base> key_color_frame;
     kee::ui::handle<kee::ui::file_dialog> key_color_dialog;
 };
 
