@@ -72,27 +72,9 @@ kee::color color::operator+(const kee::color& other) const
 }
 
 beatmap_dir_state::beatmap_dir_state(const std::filesystem::path& path) :
-    path(path)
-{ 
-    if (std::filesystem::exists(path / "bg.png"))
-        bg_type = background_type::image;
-}
-
-std::optional<std::filesystem::path> beatmap_dir_state::get_bg_path() const
-{
-    if (!bg_type.has_value())
-        return std::nullopt;
-
-    switch (bg_type.value())
-    {
-    case background_type::image:
-        return path / "bg.png";
-    case background_type::video:
-        return path / "bg.mp4";
-    default:
-        std::unreachable();
-    }
-}
+    path(path),
+    has_image(std::filesystem::exists(path / "img.png"))
+{ }
 
 const std::filesystem::path beatmap_dir_info::app_data_dir = "test_app_data/";
 

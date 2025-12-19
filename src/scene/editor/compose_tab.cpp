@@ -943,8 +943,8 @@ compose_tab_info::compose_tab_info(
     const std::optional<boost::json::object>& keys_json_obj
 ) :
     arrow_png(arrow_png),
-    bg_img(dir_state.has_value() && dir_state.value().get_bg_path().has_value()
-        ? std::make_optional(kee::image_texture(dir_state.value().get_bg_path().value()))
+    bg_img(dir_state.has_value() && dir_state.value().has_image
+        ? std::make_optional(kee::image_texture(dir_state.value().path / "img.png"))
         : std::nullopt    
     ),
     hitsound("assets/sfx/hitsound.wav"),

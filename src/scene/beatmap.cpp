@@ -761,8 +761,8 @@ beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&&
     music_bpm(beatmap_info.song_bpm),
     combo_gain(add_transition<float>(0.0f)),
     end_fade_out_alpha(add_transition<float>(0.0f)),
-    game_bg_img(beatmap_info.dir_state.bg_type.has_value() && beatmap_info.dir_state.bg_type.value() == kee::background_type::image
-        ? std::make_optional(kee::image_texture(beatmap_info.dir_state.path / "bg.png"))
+    game_bg_img(beatmap_info.dir_state.has_image
+        ? std::make_optional(kee::image_texture(beatmap_info.dir_state.path / "img.png"))
         : std::nullopt
     ),
     game_bg(game_bg_img.has_value() ?

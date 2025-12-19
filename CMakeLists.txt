@@ -22,5 +22,4 @@ else()
 endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(${PROJECT_NAME} PRIVATE Boost::optional Boost::json magic_enum raylib raylib_cpp)
-target_link_libraries(${PROJECT_NAME} PRIVATE nfd)
+target_link_libraries(${PROJECT_NAME} PRIVATE Boost::optional Boost::json magic_enum nfd raylib raylib_cpp)

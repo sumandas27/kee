@@ -671,14 +671,26 @@ root::root(kee::game& game, kee::global_assets& assets, const std::optional<std:
     )
 { }
 
+/* TODO: these two functions seem sort of redundant on first glance 
+maybe create a "save class" storing what needs to be saved ???
+reduce duplicate calculations somehow 
+*/
+
 bool root::needs_save() const
 {
     const bool save_hit_objs_needed = (!compose_info.events_since_save.has_value() || compose_info.events_since_save.value() != 0);
     if (!save_info.has_value())
         return false;
 
-    const bool need_bg_save = (save_info.value().dir_state.get_bg_path() != setup_info.bg_path);
-    return save_info.value().save_metadata_needed || setup_info.new_song_path.has_value() || need_bg_save || save_hit_objs_needed;
+    bool need_img_save;
+    if (!setup_info.img_path.has_value() && !save_info.value().dir_state.has_image)
+        need_img_save = false;
+    else if (setup_info.img_path.has_value() && save_info.value().dir_state.has_image)
+        need_img_save = std::filesystem::equivalent(setup_info.img_path.value(), save_info.value().dir_state.path / "img.png");
+    else
+        need_img_save = true;
+
+    return save_info.value().save_metadata_needed || setup_info.new_song_path.has_value() || need_img_save || save_hit_objs_needed;
 }
 
 void root::save_beatmap()
@@ -704,14 +716,21 @@ void root::save_beatmap()
         any_saved = true;
     }
 
-    const bool need_bg_save = (save_info.value().dir_state.get_bg_path() != setup_info.bg_path);
-    if (need_bg_save)
+    bool need_img_save;
+    if (!setup_info.img_path.has_value() && !save_info.value().dir_state.has_image)
+        need_img_save = false;
+    else if (setup_info.img_path.has_value() && save_info.value().dir_state.has_image)
+        need_img_save = std::filesystem::equivalent(setup_info.img_path.value(), save_info.value().dir_state.path / "img.png");
+    else
+        need_img_save = true;
+
+    if (need_img_save)
     {
-        if (setup_info.bg_path.has_value())
+        if (setup_info.img_path.has_value())
         {
             std::error_code ec;
-            const std::filesystem::path& src = setup_info.bg_path.value();
-            const std::filesystem::path dst = save_info.value().dir_state.path / "bg.png";
+            const std::filesystem::path& src = setup_info.img_path.value();
+            const std::filesystem::path dst = save_info.value().dir_state.path / "img.png";
 
             std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, ec);
             if (ec)
@@ -720,15 +739,15 @@ void root::save_beatmap()
                 return;
             }
 
-            save_info.value().dir_state.bg_type = background_type::image; /* TODO: code in videos as well */
-            setup_info.bg_path = dst;
+            save_info.value().dir_state.has_image = true; /* TODO: code in videos as well */
+            setup_info.img_path = dst;
         }
         else 
         {
-            if (!std::filesystem::remove(save_info.value().dir_state.get_bg_path().value()))
+            if (!std::filesystem::remove(save_info.value().dir_state.path / "img.png"))
                 throw std::runtime_error("Failed to remove beatmap's background file!");
 
-            save_info.value().dir_state.bg_type.reset();
+            save_info.value().dir_state.has_image = false;
         }
 
         any_saved = true;

@@ -9,7 +9,10 @@ namespace editor {
 setup_tab_info::setup_tab_info(const std::optional<beatmap_dir_info>& dir_info, const kee::image_texture& exit_png) :
     exit_png(exit_png),
     from_dir(dir_info.has_value()),
-    bg_path(dir_info.has_value() ? dir_info.value().dir_state.get_bg_path() : std::nullopt),
+    img_path(dir_info.has_value() && dir_info.value().dir_state.has_image
+        ? std::make_optional(dir_info.value().dir_state.path / "img.png")
+        : std::nullopt
+    ),
     song_artist(dir_info.has_value() ? dir_info.value().song_artist : ""),
     song_name(dir_info.has_value() ? dir_info.value().song_name : ""),
     mapper(dir_info.has_value() ? dir_info.value().mapper : ""),
@@ -30,7 +33,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     root_elem(root_elem),
     setup_info(setup_info),
     approach_beats(approach_beats),
-    background_remove_img_color(add_transition<kee::color>(setup_info.bg_path.has_value() ? kee::color::white : kee::color::blank)),
+    image_remove_button_color(add_transition<kee::color>(setup_info.img_path.has_value() ? kee::color::white : kee::color::dark_gray)),
     l_side_frame(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.05f),
@@ -243,66 +246,16 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         ui::text_size(ui::text_size::type::rel_h, 0.05f),
         true, assets.font_semi_bold, "DECORATION", true
     )),
-    background_text(r_side_frame.ref.add_child<kee::ui::text>(1,
-        kee::color::white,
-        pos(pos::type::rel, 0.1f),
-        pos(pos::type::rel, 0.62f),
-        ui::text_size(ui::text_size::type::rel_h, 0.03f),
-        false, assets.font_semi_bold, "BACKGROUND", false
-    )),
-    background_frame(r_side_frame.ref.add_child<kee::ui::base>(1,
-        pos(pos::type::rel, 0.45f),
-        pos(pos::type::rel, 0.62f),
-        dims(
-            dim(dim::type::rel, 0.45f),
-            dim(dim::type::rel, 0.03f)
-        ),
-        false
-    )),
-    background_dialog(background_frame.ref.add_child<kee::ui::file_dialog>(1,
-        pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0),
-        dims(
-            dim(dim::type::rel, 0.88f),
-            dim(dim::type::rel, 1)
-        ),
-        false,
-        std::vector<std::string_view>({".png", ".mp4"}),
-        [&]() -> std::variant<std::string_view, std::filesystem::path>
-        {
-            if (setup_info.bg_path.has_value())
-                return setup_info.bg_path.value();
-            else
-                return no_bg_message;
-        }()
-    )),
-    background_remove_button(background_frame.ref.add_child<kee::ui::button>(std::nullopt,
-        pos(pos::type::end, 0),
-        pos(pos::type::beg, 0),
-        dims(
-            dim(dim::type::aspect, 1),
-            dim(dim::type::rel, 1)
-        ),
-        false
-    )),
-    background_remove_img(background_remove_button.ref.add_child<kee::ui::image>(std::nullopt,
-        setup_info.exit_png,
-        background_remove_img_color.get(),
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.5f),
-        border(border::type::rel_h, 0.2f),
-        true, ui::image::display::shrink_to_fit, false, false, 0.0f
-    )),
     key_color_text(r_side_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
         pos(pos::type::rel, 0.1f),
-        pos(pos::type::rel, 0.6825f),
+        pos(pos::type::rel, 0.62f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
         false, assets.font_semi_bold, "KEY COLORS", false
     )),
     key_color_frame(r_side_frame.ref.add_child<kee::ui::base>(1,
         pos(pos::type::rel, 0.45f),
-        pos(pos::type::rel, 0.6825f),
+        pos(pos::type::rel, 0.62f),
         dims(
             dim(dim::type::rel, 0.45f),
             dim(dim::type::rel, 0.03f)
@@ -319,6 +272,107 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         false,
         std::vector<std::string_view>({".json"}),
         std::string_view("Select a valid JSON file")
+    )),
+    image_text(r_side_frame.ref.add_child<kee::ui::text>(1,
+        kee::color::white,
+        pos(pos::type::rel, 0.1f),
+        pos(pos::type::rel, 0.6825f),
+        ui::text_size(ui::text_size::type::rel_h, 0.03f),
+        false, assets.font_semi_bold, "IMAGE", false
+    )),
+    image_frame(r_side_frame.ref.add_child<kee::ui::base>(1,
+        pos(pos::type::rel, 0.45f),
+        pos(pos::type::rel, 0.6825f),
+        dims(
+            dim(dim::type::rel, 0.45f),
+            dim(dim::type::rel, 0.03f)
+        ),
+        false
+    )),
+    image_dialog(image_frame.ref.add_child<kee::ui::file_dialog>(1,
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 0.88f),
+            dim(dim::type::rel, 1)
+        ),
+        false,
+        std::vector<std::string_view>({".png"}),
+        [&]() -> std::variant<std::string_view, std::filesystem::path>
+        {
+            if (setup_info.img_path.has_value())
+                return setup_info.img_path.value();
+            else
+                return setup_tab::no_img_message;
+        }()
+    )),
+    image_remove_button(image_frame.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::end, 0),
+        pos(pos::type::beg, 0),
+        dims(
+            dim(dim::type::aspect, 1),
+            dim(dim::type::rel, 1)
+        ),
+        false
+    )),
+    image_remove_img(image_remove_button.ref.add_child<kee::ui::image>(std::nullopt,
+        setup_info.exit_png,
+        image_remove_button_color.get(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_h, 0.2f),
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
+    )),
+    video_text(r_side_frame.ref.add_child<kee::ui::text>(1,
+        kee::color::white,
+        pos(pos::type::rel, 0.1f),
+        pos(pos::type::rel, 0.745f),
+        ui::text_size(ui::text_size::type::rel_h, 0.03f),
+        false, assets.font_semi_bold, "VIDEO", false
+    )),
+    video_frame(r_side_frame.ref.add_child<kee::ui::base>(1,
+        pos(pos::type::rel, 0.45f),
+        pos(pos::type::rel, 0.745f),
+        dims(
+            dim(dim::type::rel, 0.45f),
+            dim(dim::type::rel, 0.03f)
+        ),
+        false
+    )),
+    video_dialog(video_frame.ref.add_child<kee::ui::file_dialog>(1,
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 0.88f),
+            dim(dim::type::rel, 1)
+        ),
+        false,
+        std::vector<std::string_view>({".mp4"}),
+        [&]() -> std::variant<std::string_view, std::filesystem::path>
+        {
+            /* TODO: come back to */
+            //if (setup_info.img_path.has_value())
+            //    return setup_info.img_path.value();
+            //else
+                return setup_tab::no_vid_message;
+        }()
+    )),
+    video_remove_button(video_frame.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::end, 0),
+        pos(pos::type::beg, 0),
+        dims(
+            dim(dim::type::aspect, 1),
+            dim(dim::type::rel, 1)
+        ),
+        false
+    )),
+    video_remove_img(video_remove_button.ref.add_child<kee::ui::image>(std::nullopt,
+        setup_info.exit_png,
+        image_remove_button_color.get(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_h, 0.2f),
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
     ))
 {
     audio_file_dialog.ref.on_success = [&](const std::filesystem::path& song_path)
@@ -416,50 +470,42 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         return true;
     };
 
-    background_dialog.ref.on_success = [&](const std::filesystem::path& bg_path)
+    image_dialog.ref.on_success = [&](const std::filesystem::path& img_path)
     {
-        if (bg_path.extension() == ".png")
-        {
-            this->root_elem.set_bg(bg_path);
-            this->setup_info.bg_path = bg_path;
-        }
-        else
-        {
-            /* TODO: implement */
-        }
-
-        this->background_remove_img_color.set(kee::color::white);
+        this->root_elem.set_bg(img_path);
+        this->setup_info.img_path = img_path;
+        this->image_remove_button_color.set(kee::color::white);
     };
 
-    background_dialog.ref.on_filter_mismatch = [&]()
+    image_dialog.ref.on_filter_mismatch = [&]()
     {
         this->root_elem.set_error("Not an image or a video!", true);
     };
 
-    background_remove_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    image_remove_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        if (!setup_info.bg_path.has_value())
+        if (!setup_info.img_path.has_value())
             return;
 
         switch (button_event)
         {
         case ui::button::event::on_hot:
-            this->background_remove_img_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
+            this->image_remove_button_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_leave:
-            this->background_remove_img_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
+            this->image_remove_button_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
             break;
         default:
             break;
         }
     };
 
-    background_remove_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    image_remove_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        this->background_dialog.ref.set_message(no_bg_message);
+        this->image_dialog.ref.set_message(setup_tab::no_img_message);
         this->root_elem.set_bg(std::nullopt);
-        this->setup_info.bg_path.reset();
-        this->background_remove_img_color.set(kee::color::blank);
+        this->setup_info.img_path.reset();
+        this->image_remove_button_color.set(kee::color::dark_gray);
     };
 
     //key_color_dialog.ref.on_success = [&](const std::filesystem::path& song_path)
@@ -473,11 +519,12 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     };
 }
 
-const std::string_view setup_tab::no_bg_message = "Select an image/video";
+const std::string_view setup_tab::no_img_message = "Select a `.png` image";
+const std::string_view setup_tab::no_vid_message = "Select a `.mp4` video";
 
 void setup_tab::update_element([[maybe_unused]] float dt)
 {
-    background_remove_img.ref.color = background_remove_img_color.get();
+    image_remove_img.ref.color = image_remove_button_color.get();
 }
 
 } // namespace editor

@@ -214,21 +214,13 @@ constexpr color::color(float r, float g, float b, float a) :
     a(a)
 { }
 
-enum class background_type
-{
-    image,
-    video
-};
-
 class beatmap_dir_state
 {
 public:
     beatmap_dir_state(const std::filesystem::path& path);
 
-    std::optional<std::filesystem::path> get_bg_path() const;
-
     std::filesystem::path path;
-    std::optional<background_type> bg_type;
+    bool has_image;
 };
 
 class beatmap_dir_info
