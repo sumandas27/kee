@@ -1,0 +1,10 @@
+{
+  "dependencies": [
+    "boost-optional",
+    "boost-json",
+    "magic-enum",
+    "nativefiledialog-extended",
+    "raylib",
+    "raylib-cpp"
+  ]
+}
