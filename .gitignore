@@ -1,6 +1,2 @@
 # Windows
-.vs/
 build/
-
-# Common
-CMakeUserPresets.json
