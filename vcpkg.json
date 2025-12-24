@@ -1,11 +1,11 @@
 {
-  "dependencies": [
-    "boost-optional",
-    "boost-json",
-    "glfw3",
-    "magic-enum",
-    "nativefiledialog-extended",
-    "raylib",
-    "raylib-cpp"
-  ]
+    "dependencies": [
+        "boost-optional",
+        "boost-json",
+        "glfw3",
+        "magic-enum",
+        "nativefiledialog-extended",
+        "raylib",
+        "raylib-cpp"
+    ]
 }

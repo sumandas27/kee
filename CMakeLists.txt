@@ -4,6 +4,9 @@ project(kee)
 
 find_package(boost_json CONFIG REQUIRED)
 find_package(boost_optional CONFIG REQUIRED)
+# Linker emits undefined `glfw` symbols on macOS from Raylib source code, so we
+# include `glfw3` directly to resolve them. Seems to be a macOS issue only, other
+# people online have this exact issue, could be an issue from Raylib.
 find_package(glfw3 CONFIG REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
 find_package(nfd CONFIG REQUIRED)
