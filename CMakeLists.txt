@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 set(CMAKE_CXX_STANDARD 23)
 project(kee)
 
+find_package(avcpp CONFIG REQUIRED)
 find_package(boost_json CONFIG REQUIRED)
 find_package(boost_optional CONFIG REQUIRED)
 # Linker emits undefined `glfw` symbols on macOS from Raylib source code, so we
@@ -31,4 +32,15 @@ PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include 
     ${RAYLIB_CPP_INCLUDE_DIRS}
 )
-target_link_libraries(${PROJECT_NAME} PRIVATE Boost::json Boost::optional glfw magic_enum::magic_enum nfd::nfd raylib)
+
+target_link_libraries(${PROJECT_NAME} 
+PRIVATE 
+    avcpp::avcpp 
+    avcpp::FFmpeg 
+    Boost::json 
+    Boost::optional 
+    glfw 
+    magic_enum::magic_enum 
+    nfd::nfd 
+    raylib
+)

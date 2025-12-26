@@ -762,7 +762,7 @@ std::optional<float> beatmap::get_bg_opacity() const
     std::visit([&](auto&& ui)
     {
         using T = std::decay_t<decltype(ui)>;
-        if constexpr (std::is_same_v<T, kee::ui::handle<kee::ui::image>> || std::is_same_v<T, kee::ui::handle<kee::ui::video>>)
+        if constexpr (std::is_same_v<T, kee::ui::handle<kee::ui::image>> || std::is_same_v<T, kee::ui::handle<kee::ui::video_player>>)
             res = ui.ref.color.a;
     }, game_bg);
 
@@ -775,7 +775,7 @@ void beatmap::set_bg_opacity(float opacity)
         return;
     else if (auto* image_ptr = std::get_if<kee::ui::handle<kee::ui::image>>(&game_bg))
         image_ptr->ref.color.a = opacity;
-    else if (auto* video_ptr = std::get_if<kee::ui::handle<kee::ui::video>>(&game_bg))
+    else if (auto* video_ptr = std::get_if<kee::ui::handle<kee::ui::video_player>>(&game_bg))
         video_ptr->ref.color.a = opacity;
 }
 
@@ -797,10 +797,12 @@ beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&&
         ? std::make_optional(kee::image_texture(beatmap_info.dir_state.path / "img.png"))
         : std::nullopt
     ),
-    game_bg([&]() -> std::variant<std::monostate, kee::ui::handle<kee::ui::image>, kee::ui::handle<kee::ui::video>>
+    game_bg([&]() -> std::variant<std::monostate, kee::ui::handle<kee::ui::image>, kee::ui::handle<kee::ui::video_player>>
     {
         if (beatmap_info.dir_state.has_video)
-            return add_child<kee::ui::video>(0,
+            return add_child<kee::ui::video_player>(0,
+                beatmap_info.dir_state.path / "vid.mp4",
+                kee::color(255, 255, 255, 255 * kee::game_start_bg_opacity),
                 pos(pos::type::rel, 0.5f),
                 pos(pos::type::rel, 0.5f),
                 border(border::type::abs, 0),

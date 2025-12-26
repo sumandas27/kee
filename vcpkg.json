@@ -1,5 +1,6 @@
 {
     "dependencies": [
+        "avcpp",
         "boost-optional",
         "boost-json",
         "glfw3",

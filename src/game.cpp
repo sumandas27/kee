@@ -1,11 +1,15 @@
 #include "kee/game.hpp"
 
+#include <avcpp/av.h>
+
 #include "kee/scene/beatmap.hpp"
 
 namespace kee {
 
 window::window()
 {
+    av::init();
+
 #ifdef __APPLE__
     static constexpr int window_fps = 60;
 #else

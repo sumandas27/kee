@@ -8,7 +8,7 @@
 #include "kee/ui/rect.hpp"
 #include "kee/ui/slider.hpp"
 #include "kee/ui/text.hpp"
-#include "kee/ui/video.hpp"
+#include "kee/ui/video_player.hpp"
 
 namespace kee {
 namespace scene {
@@ -212,7 +212,7 @@ private:
     std::variant<
         std::monostate,
         kee::ui::handle<kee::ui::image>,
-        kee::ui::handle<kee::ui::video>
+        kee::ui::handle<kee::ui::video_player>
     > game_bg;
     std::optional<kee::ui::handle<kee::ui::rect>> load_rect;
 
