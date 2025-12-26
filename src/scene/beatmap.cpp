@@ -169,12 +169,7 @@ void beatmap_key::render_element() const
         hit_obj_rect.render();
 }
 
-pause_menu::pause_menu(
-    const kee::ui::required& reqs, 
-    std::optional<bool>& load_time_paused, 
-    std::optional<kee::ui::handle<kee::ui::image>>& game_bg,
-    raylib::Music& music
-) :
+pause_menu::pause_menu(const kee::ui::required& reqs, beatmap& beatmap_scene) :
     kee::ui::rect(reqs,
         kee::color(255, 255, 255, 20),
         pos(pos::type::rel, 0.5f),
@@ -185,9 +180,7 @@ pause_menu::pause_menu(
         ),
         true, std::nullopt, std::nullopt
     ),
-    load_time_paused(load_time_paused),
-    game_bg(game_bg),
-    music(music),
+    beatmap_scene(beatmap_scene),
     ui_rel_y(add_transition<float>(-0.5f)),
     go_back_color(add_transition<kee::color>(kee::color(0, 200, 0))),
     restart_color(add_transition<kee::color>(kee::color(200, 200, 0))),
@@ -294,20 +287,20 @@ pause_menu::pause_menu(
         true
     )),
     game_bg_opacity_label(game_bg_opacity_frame_inner.ref.add_child<kee::ui::text>(std::nullopt,
-        game_bg.has_value() ? kee::color::white : kee::color(125, 125, 125),
+        beatmap_scene.has_game_bg() ? kee::color::white : kee::color(125, 125, 125),
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
         false, assets.font_semi_bold, "BG OPACITY", false
     )),
     game_bg_opacity_text(game_bg_opacity_frame_inner.ref.add_child<kee::ui::text>(std::nullopt,
-        game_bg.has_value() ? kee::color::white : kee::color(125, 125, 125),
+        beatmap_scene.has_game_bg() ? kee::color::white : kee::color(125, 125, 125),
         pos(pos::type::end, 0),
         pos(pos::type::beg, 0),
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
-        false, assets.font_semi_bold, game_bg.has_value() ? std::format("{}%", static_cast<int>(game_bg.value().ref.color.a / 255.f)) : "--", false
+        false, assets.font_semi_bold, beatmap_scene.has_game_bg() ? std::format("{}%", static_cast<int>(beatmap_scene.get_bg_opacity().value() / 255.f)) : "--", false
     )),
-    game_bg_opacity_slider(game_bg.has_value() ?
+    game_bg_opacity_slider(beatmap_scene.has_game_bg() ?
         std::variant<kee::ui::handle<kee::ui::slider>, kee::ui::handle<kee::ui::rect>>(
             game_bg_opacity_frame_inner.ref.add_child<kee::ui::slider>(std::nullopt,
                 pos(pos::type::rel, 0),
@@ -395,25 +388,20 @@ pause_menu::pause_menu(
         this->game_ref.queue_game_exit();
     };
 
+    const std::optional<float> game_bg_opacity = beatmap_scene.get_bg_opacity();
     if (auto* slider_ptr = std::get_if<kee::ui::handle<kee::ui::slider>>(&game_bg_opacity_slider))
-        slider_ptr->ref.progress = game_bg.has_value() ? game_bg.value().ref.color.a / 255.f : 0.5f; /* TODO: what to do if no value */
-    
-    ui_rel_y.set(std::nullopt, 0.5f, 0.5f, kee::transition_type::exp);
+        if (game_bg_opacity.has_value())
+            slider_ptr->ref.progress = game_bg_opacity.value() / 255.f;
 
     take_keyboard_capture();
-    if (music.IsPlaying())
-        music.Pause();
-    else
-        load_time_paused = true;
+    beatmap_scene.pause();
+
+    ui_rel_y.set(std::nullopt, 0.5f, 0.5f, kee::transition_type::exp);
 }
 
 pause_menu::~pause_menu()
 {
-    if (load_time_paused.has_value())
-        load_time_paused = false;
-    else
-        music.Resume();
-
+    beatmap_scene.unpause();
     release_keyboard_capture();
 }
 
@@ -444,7 +432,7 @@ void pause_menu::update_element([[maybe_unused]] float dt)
 
     if (auto* slider_ptr = std::get_if<kee::ui::handle<kee::ui::slider>>(&game_bg_opacity_slider))
     {
-        game_bg.value().ref.color.a = 255 * slider_ptr->ref.progress;
+        beatmap_scene.set_bg_opacity(255 * slider_ptr->ref.progress);
         game_bg_opacity_text.ref.set_string(std::format("{}%", static_cast<int>(slider_ptr->ref.progress * 100)));
     }
 }
@@ -747,6 +735,50 @@ void beatmap::combo_lose(bool is_miss)
     }
 }
 
+void beatmap::pause()
+{
+    if (music.IsPlaying())
+        music.Pause();
+    else
+        load_time_paused = true;
+}
+
+void beatmap::unpause()
+{
+    if (load_time_paused.has_value())
+        load_time_paused = false;
+    else
+        music.Resume();
+}
+
+bool beatmap::has_game_bg() const
+{
+    return !std::holds_alternative<std::monostate>(game_bg);
+}
+
+std::optional<float> beatmap::get_bg_opacity() const
+{
+    std::optional<float> res = std::nullopt;
+    std::visit([&](auto&& ui)
+    {
+        using T = std::decay_t<decltype(ui)>;
+        if constexpr (std::is_same_v<T, kee::ui::handle<kee::ui::image>> || std::is_same_v<T, kee::ui::handle<kee::ui::video>>)
+            res = ui.ref.color.a;
+    }, game_bg);
+
+    return res;
+}
+
+void beatmap::set_bg_opacity(float opacity)
+{
+    if (std::holds_alternative<std::monostate>(game_bg))
+        return;
+    else if (auto* image_ptr = std::get_if<kee::ui::handle<kee::ui::image>>(&game_bg))
+        image_ptr->ref.color.a = opacity;
+    else if (auto* video_ptr = std::get_if<kee::ui::handle<kee::ui::video>>(&game_bg))
+        video_ptr->ref.color.a = opacity;
+}
+
 beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&& beatmap_info) :
     kee::scene::base(game, assets),
     beat_forgiveness(beatmap_info.beat_forgiveness),
@@ -765,17 +797,27 @@ beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&&
         ? std::make_optional(kee::image_texture(beatmap_info.dir_state.path / "img.png"))
         : std::nullopt
     ),
-    game_bg(game_bg_img.has_value() ?
-        std::make_optional(add_child<kee::ui::image>(0, /* TODO: increment by 1 */
-            game_bg_img.value(),
-            kee::color(255, 255, 255, 255 * kee::game_start_bg_opacity),
-            pos(pos::type::rel, 0.5f),
-            pos(pos::type::rel, 0.5f),
-            border(border::type::abs, 0),
-            true, ui::image::display::extend_to_fit, false, false, 0.0f
-        )) :
-        std::nullopt
-    ),
+    game_bg([&]() -> std::variant<std::monostate, kee::ui::handle<kee::ui::image>, kee::ui::handle<kee::ui::video>>
+    {
+        if (beatmap_info.dir_state.has_video)
+            return add_child<kee::ui::video>(0,
+                pos(pos::type::rel, 0.5f),
+                pos(pos::type::rel, 0.5f),
+                border(border::type::abs, 0),
+                true
+            );
+        else if (game_bg_img.has_value())
+            return add_child<kee::ui::image>(0,
+                game_bg_img.value(),
+                kee::color(255, 255, 255, 255 * kee::game_start_bg_opacity),
+                pos(pos::type::rel, 0.5f),
+                pos(pos::type::rel, 0.5f),
+                border(border::type::abs, 0),
+                true, ui::image::display::extend_to_fit, false, false, 0.0f
+            );
+        else
+            return std::monostate();
+    }()),
     progress_bg(add_child<kee::ui::rect>(2,
         kee::color(20, 20, 20),
         pos(pos::type::beg, 0),
@@ -935,7 +977,7 @@ bool beatmap::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
             return true;
 
         if (!pause_menu_ui.has_value())
-            pause_menu_ui.emplace(add_child<pause_menu>(10, load_time_paused, game_bg, music));
+            pause_menu_ui.emplace(add_child<pause_menu>(10, *this));
 
         return true;
     }

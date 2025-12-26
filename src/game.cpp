@@ -4,7 +4,6 @@
 
 namespace kee {
 
-
 window::window()
 {
 #ifdef __APPLE__

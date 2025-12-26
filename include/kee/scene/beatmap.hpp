@@ -8,6 +8,7 @@
 #include "kee/ui/rect.hpp"
 #include "kee/ui/slider.hpp"
 #include "kee/ui/text.hpp"
+#include "kee/ui/video.hpp"
 
 namespace kee {
 namespace scene {
@@ -65,12 +66,7 @@ private:
 class pause_menu final : public kee::ui::rect
 {
 public:
-    pause_menu(
-        const kee::ui::required& reqs, 
-        std::optional<bool>& load_time_paused, 
-        std::optional<kee::ui::handle<kee::ui::image>>& game_bg,
-        raylib::Music& music
-    );
+    pause_menu(const kee::ui::required& reqs, beatmap& beatmap_scene);
 
     pause_menu(const pause_menu&) = delete;
     pause_menu(pause_menu&&) = delete;
@@ -87,9 +83,7 @@ private:
 
     void update_element(float dt) override;
 
-    std::optional<bool>& load_time_paused;
-    std::optional<kee::ui::handle<kee::ui::image>>& game_bg;
-    raylib::Music& music;
+    beatmap& beatmap_scene;
 
     kee::transition<float>& ui_rel_y;
     kee::transition<kee::color>& go_back_color;
@@ -175,6 +169,13 @@ public:
     void combo_increment(bool play_sfx);
     void combo_lose(bool is_miss);
 
+    void pause();
+    void unpause();
+    
+    bool has_game_bg() const;
+    std::optional<float> get_bg_opacity() const;
+    void set_bg_opacity(float opacity);
+
     const float beat_forgiveness;
     const float approach_beats;
 
@@ -208,7 +209,11 @@ private:
     kee::transition<float>& end_fade_out_alpha;
 
     std::optional<kee::image_texture> game_bg_img;
-    std::optional<kee::ui::handle<kee::ui::image>> game_bg;
+    std::variant<
+        std::monostate,
+        kee::ui::handle<kee::ui::image>,
+        kee::ui::handle<kee::ui::video>
+    > game_bg;
     std::optional<kee::ui::handle<kee::ui::rect>> load_rect;
 
     kee::ui::handle<kee::ui::rect> progress_bg;

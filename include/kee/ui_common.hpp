@@ -221,6 +221,7 @@ public:
 
     std::filesystem::path path;
     bool has_image;
+    bool has_video;
 };
 
 class beatmap_dir_info

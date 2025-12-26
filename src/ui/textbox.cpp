@@ -96,7 +96,7 @@ bool textbox::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
          */
         return true;
     case KeyboardKey::KEY_BACKSPACE: {
-        if (!selection_ui.has_value())
+        if (std::holds_alternative<std::monostate>(selection_ui))
             return false;
         
         std::optional<cursor_idx> cursor_ctor_param;
@@ -125,12 +125,12 @@ bool textbox::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
                 cursor_ctor_param = cursor_idx(cursor_char_idx, this->char_idx_to_pos_x(cursor_char_idx));
             }
         }, 
-        selection_ui.value());
+        selection_ui);
 
         if (cursor_ctor_param.has_value())
-            selection_ui.emplace(cursor(*this, cursor_ctor_param.value()));
+            selection_ui.emplace<cursor>(cursor(*this, cursor_ctor_param.value()));
 
-        cursor& cursor_ui = std::get<cursor>(selection_ui.value());
+        cursor& cursor_ui = std::get<cursor>(selection_ui);
         const float new_char_pos_x = cursor_ui.ui.get_raw_rect().x;
         const std::size_t curr_idx = cursor_ui.char_idx;
 
@@ -170,12 +170,12 @@ bool textbox::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
             else if constexpr (std::is_same_v<T, multiselect>)
                 cursor_ctor_param = cursor_idx(ui.end_char_idx, this->char_idx_to_pos_x(ui.end_char_idx));
         }, 
-        selection_ui.value());
+        selection_ui);
 
         if (cursor_ctor_param.has_value())
-            selection_ui.emplace(cursor(*this, cursor_ctor_param.value()));
+            selection_ui.emplace<cursor>(cursor(*this, cursor_ctor_param.value()));
 
-        cursor& cursor_ui = std::get<cursor>(selection_ui.value());
+        cursor& cursor_ui = std::get<cursor>(selection_ui);
         const raylib::Rectangle cursor_rect = cursor_ui.ui.get_raw_rect();
         const raylib::Rectangle text_rect = textbox_text_frame.get_raw_rect();
         
@@ -205,12 +205,12 @@ bool textbox::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
             else if constexpr (std::is_same_v<T, multiselect>)
                 cursor_ctor_param = cursor_idx(ui.beg_char_idx, this->char_idx_to_pos_x(ui.beg_char_idx));
         }, 
-        selection_ui.value());
+        selection_ui);
 
         if (cursor_ctor_param.has_value())
-            selection_ui.emplace(cursor(*this, cursor_ctor_param.value()));
+            selection_ui.emplace<cursor>(cursor(*this, cursor_ctor_param.value()));
 
-        cursor& cursor_ui = std::get<cursor>(selection_ui.value());
+        cursor& cursor_ui = std::get<cursor>(selection_ui);
         const raylib::Rectangle cursor_rect = cursor_ui.ui.get_raw_rect();
         const float textbox_frame_x = textbox_text_frame.get_raw_rect().x;
 
@@ -229,7 +229,7 @@ bool textbox::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
 
 bool textbox::on_element_char_press(char c)
 {
-    if (!selection_ui.has_value())
+    if (std::holds_alternative<std::monostate>(selection_ui))
         return false;
 
     std::optional<cursor_idx> cursor_ctor_param;
@@ -257,12 +257,12 @@ bool textbox::on_element_char_press(char c)
             cursor_ctor_param = cursor_idx(ui.beg_char_idx + 1, this->char_idx_to_pos_x(ui.beg_char_idx + 1));
         }
     }, 
-    selection_ui.value());
+    selection_ui);
 
     if (cursor_ctor_param.has_value())
-        selection_ui.emplace(cursor(*this, cursor_ctor_param.value()));
+        selection_ui.emplace<cursor>(cursor(*this, cursor_ctor_param.value()));
 
-    cursor& cursor_ui = std::get<cursor>(selection_ui.value());
+    cursor& cursor_ui = std::get<cursor>(selection_ui);
     const raylib::Rectangle cursor_rect = cursor_ui.ui.get_raw_rect();
     const raylib::Rectangle text_rect = textbox_text_frame.get_raw_rect();
     
@@ -311,22 +311,22 @@ void textbox::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[maybe_un
 
         if (char_idxs.value().beg.char_idx != char_idxs.value().end.char_idx)
         {
-            if (std::holds_alternative<multiselect>(selection_ui.value()))
+            if (std::holds_alternative<multiselect>(selection_ui))
             {
                 const cursor_idx& beg = (char_idxs.value().beg.pos_x < char_idxs.value().end.pos_x) ? char_idxs.value().beg : char_idxs.value().end;
                 const cursor_idx& end = (char_idxs.value().beg.pos_x > char_idxs.value().end.pos_x) ? char_idxs.value().beg : char_idxs.value().end;
 
-                multiselect& multi = std::get<multiselect>(selection_ui.value());
+                multiselect& multi = std::get<multiselect>(selection_ui);
                 std::get<kee::dims>(multi.ui.dimensions).w.val = end.pos_x - beg.pos_x;
                 multi.ui.x.val = beg.pos_x;
                 multi.beg_char_idx = beg.char_idx;
                 multi.end_char_idx = end.char_idx;
             }
             else
-                selection_ui.emplace(multiselect(*this, char_idxs.value().beg, char_idxs.value().end));
+                selection_ui.emplace<multiselect>(multiselect(*this, char_idxs.value().beg, char_idxs.value().end));
         }
-        else if (char_idxs.value().beg.char_idx == char_idxs.value().end.char_idx && !std::holds_alternative<cursor>(selection_ui.value()))
-            selection_ui.emplace(cursor(*this, char_idxs.value().beg));
+        else if (char_idxs.value().beg.char_idx == char_idxs.value().end.char_idx && !std::holds_alternative<cursor>(selection_ui))
+            selection_ui.emplace<cursor>(cursor(*this, char_idxs.value().beg));
     }
     else if (is_mouse_on_textbox && textbox_state == mouse_state::off)
     {
@@ -362,7 +362,7 @@ bool textbox::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mo
             textbox_text.set_string(old_str);
         }
 
-        selection_ui.reset();
+        selection_ui = std::monostate();
         release_render_priority();
         has_render_priority = false;
 
@@ -386,7 +386,7 @@ bool textbox::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mo
         }
 
         char_idxs = on_down_idxs(pos_x_to_char_idx(mouse_pos.x, std::nullopt));
-        selection_ui.emplace(cursor(*this, char_idxs.value().beg));
+        selection_ui.emplace<cursor>(cursor(*this, char_idxs.value().beg));
 
         textbox_state = mouse_state::down;
         return true;
@@ -407,16 +407,16 @@ void textbox::update_element([[maybe_unused]] float dt)
 {
     textbox_rect.outline.value().color = textbox_outline_color.get();
 
-    if (selection_ui.has_value() && std::holds_alternative<cursor>(selection_ui.value()) && textbox_state != mouse_state::down)
+    if (std::holds_alternative<cursor>(selection_ui) && textbox_state != mouse_state::down)
     {
-        float& blink_timer = std::get<cursor>(selection_ui.value()).blink_timer;
+        float& blink_timer = std::get<cursor>(selection_ui).blink_timer;
         blink_timer -= dt;
 
         if (blink_timer <= 0.0f)
         {
-            const float cur_alpha = std::get<cursor>(selection_ui.value()).ui.color.a;
+            const float cur_alpha = std::get<cursor>(selection_ui).ui.color.a;
             const float new_alpha = (cur_alpha == 0.f) ? 255.f : 0.f;
-            std::get<cursor>(selection_ui.value()).ui.color = kee::color(255, 140, 0, new_alpha);
+            std::get<cursor>(selection_ui).ui.color = kee::color(255, 140, 0, new_alpha);
 
             blink_timer = cursor::blink_time;
         }
@@ -475,12 +475,13 @@ void textbox::render_element() const
         static_cast<int>(text_frame_rect.width),
         static_cast<int>(text_frame_rect.height)
     );
-    textbox_text.render();
 
-    if (selection_ui.has_value())
-        std::visit([](const auto& ui) {
-            ui.ui.render();
-        }, selection_ui.value());
+    textbox_text.render();
+    if (auto* cursor_ptr = std::get_if<cursor>(&selection_ui))
+        cursor_ptr->ui.render();
+    else if (auto* multiselect_ptr = std::get_if<multiselect>(&selection_ui))
+        multiselect_ptr->ui.render();
+
     EndScissorMode();
 }
 

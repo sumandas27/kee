@@ -73,7 +73,8 @@ kee::color color::operator+(const kee::color& other) const
 
 beatmap_dir_state::beatmap_dir_state(const std::filesystem::path& path) :
     path(path),
-    has_image(std::filesystem::exists(path / "img.png"))
+    has_image(std::filesystem::exists(path / "img.png")),
+    has_video(std::filesystem::exists(path / "vid.mp4"))
 { }
 
 const std::filesystem::path beatmap_dir_info::app_data_dir = "test_app_data/";
