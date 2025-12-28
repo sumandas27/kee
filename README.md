@@ -12,8 +12,7 @@
 1. Clone the repository and navigate to the root directory.
 2. Run `git submodule update --init --recursive`
 
-    > [!NOTE]
-    > See `NOTE:` comment in `CMakeLists.txt` for why git submodules are used in conjunction with `vcpkg`.
+    > **_NOTE:_** See `NOTE:` comment in `CMakeLists.txt` for why git submodules are used in conjunction with `vcpkg`.
 
 3. Follow further installation steps below depending on your platform:
 
