@@ -1,5 +1,9 @@
 #pragma once
 
+#include <avcpp/codeccontext.h>
+#include <avcpp/formatcontext.h>
+#include <avcpp/videorescaler.h>
+
 #include "kee/ui/base.hpp"
 
 namespace kee {
@@ -18,10 +22,26 @@ public:
         bool centered
     );
 
+    void set_time(double sec);
+
 private:
+    static constexpr unsigned int frame_seek_tolerance = 10;
+
     void render_element() const override;
 
+    std::optional<av::VideoFrame> get_next_frame();
+
+    std::size_t video_stream_idx;
+    double frame_rate;
+
+    av::FormatContext video_input;
+    av::VideoDecoderContext video_decoder;
+    av::VideoRescaler video_rescaler;
+
+    double curr_ts;
     raylib::Texture curr_texture;
+
+    std::optional<av::VideoFrame> next_video_frame;
 };
 
 } // namespace ui

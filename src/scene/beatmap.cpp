@@ -706,6 +706,8 @@ float beatmap::get_beat() const
         ? game_time - load_time
         : music.GetTimePlayed();
 
+    if (music_time > 100.f)
+        std::println("{}: {}", load_time_paused.has_value(), music_time);
     return (music_time - music_start_offset) * music_bpm / 60.0f;
 }
 
@@ -953,6 +955,7 @@ void beatmap::reset_level()
             end_beat = back.beat + back.duration;
     }
 
+    music.Stop();
     music.SetLooping(false);
     music.SetVolume(0.1f);
     music.Seek(0.0f);
@@ -1066,6 +1069,12 @@ void beatmap::update_element(float dt)
     }
     else
         music.Update();
+
+    if (auto* video_player_ptr = std::get_if<kee::ui::handle<kee::ui::video_player>>(&game_bg))
+    {
+        const double video_time = !load_time_paused.has_value() ? music.GetTimePlayed() : 0;
+        video_player_ptr->ref.set_time(video_time);
+    }
 
     if (pause_menu_ui.has_value() && pause_menu_ui.value().ref.destruct_else_restart().has_value())
     {
