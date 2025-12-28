@@ -940,13 +940,15 @@ const std::unordered_map<int, int> compose_tab::key_to_prio = []
 compose_tab_info::compose_tab_info(
     const kee::image_texture& arrow_png,
     const std::optional<beatmap_dir_state>& dir_state,
-    const std::optional<boost::json::object>& keys_json_obj
+    const std::optional<boost::json::object>& keys_json_obj,
+    std::optional<std::filesystem::path>& vid_path
 ) :
     arrow_png(arrow_png),
     bg_img(dir_state.has_value() && dir_state.value().has_image
         ? std::make_optional(kee::image_texture(dir_state.value().path / "img.png"))
         : std::nullopt    
     ),
+    vid_path(vid_path),
     hitsound("assets/sfx/hitsound.wav"),
     is_beat_snap(true),
     is_key_locked(true),
@@ -1191,36 +1193,39 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         ),
         false, std::nullopt, std::nullopt
     )),
-    game_display_frame(game_display_frame_raw.ref.add_child<kee::ui::base>(std::nullopt,
+    game_display_frame(game_display_frame_raw.ref.add_child<kee::ui::rect>(std::nullopt,
+        kee::color::black,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         dims(
             dim(dim::type::aspect, kee::window_w),
             dim(dim::type::aspect, kee::window_h)
         ),
-        true
+        true, std::nullopt, std::nullopt
     )),
-    game_bg(compose_info.bg_img.has_value() ?
-        std::variant<kee::ui::handle<kee::ui::rect>, kee::ui::handle<kee::ui::image>>(
-            game_display_frame.ref.add_child<kee::ui::image>(std::nullopt,
+    game_bg([&]() -> std::variant<std::monostate, kee::ui::handle<kee::ui::image>, kee::ui::handle<kee::ui::video_player>>
+    {  
+        if (compose_info.vid_path.has_value())
+            return game_display_frame.ref.add_child<kee::ui::video_player>(std::nullopt,
+                compose_info.vid_path.value(),
+                kee::color(255, 255, 255, 255 * kee::game_start_bg_opacity),
+                pos(pos::type::rel, 0.5f),
+                pos(pos::type::rel, 0.5f),
+                border(border::type::abs, 0),
+                true
+            );
+        else if (compose_info.bg_img.has_value())
+            return game_display_frame.ref.add_child<kee::ui::image>(std::nullopt,
                 compose_info.bg_img.value(),
                 kee::color(255, 255, 255, 255 * kee::game_start_bg_opacity),
                 pos(pos::type::rel, 0.5f),
                 pos(pos::type::rel, 0.5f),
                 border(border::type::abs, 0),
                 true, ui::image::display::extend_to_fit, false, false, 0.0f
-            )
-        ) :
-        std::variant<kee::ui::handle<kee::ui::rect>, kee::ui::handle<kee::ui::image>>(
-            game_display_frame.ref.add_child<kee::ui::rect>(std::nullopt,
-                kee::color::black,
-                pos(pos::type::rel, 0.5f),
-                pos(pos::type::rel, 0.5f),
-                border(border::type::abs, 0),
-                true, std::nullopt, std::nullopt
-            )
-        )
-    ),
+            );
+        else
+            return std::monostate();
+    }()),
     key_border(game_display_frame.ref.add_child<kee::ui::base>(1,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
@@ -1705,8 +1710,16 @@ void compose_tab::update_element([[maybe_unused]] float dt)
     if (auto* slider_ptr = std::get_if<kee::ui::handle<kee::ui::slider>>(&game_bg_opacity_slider))
     {
         game_bg_opacity_text.ref.set_string(std::format("{}%", static_cast<int>(slider_ptr->ref.progress * 100)));
-        std::visit([&](const auto& bg) {
-            bg.ref.color.a = 255 * slider_ptr->ref.progress;
+        std::visit([&](const auto& bg) 
+        {
+            using T = std::decay_t<decltype(bg)>;
+            if constexpr (std::is_same_v<T, kee::ui::handle<kee::ui::image>>)
+                bg.ref.color.a = 255 * slider_ptr->ref.progress;
+            else if constexpr (std::is_same_v<T, kee::ui::handle<kee::ui::video_player>>)
+            {
+                bg.ref.color.a = 255 * slider_ptr->ref.progress;
+                bg.ref.set_time(song_ui_elem.get_time());
+            }
         }, game_bg);   
     }
 }

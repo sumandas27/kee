@@ -10,6 +10,7 @@
 #include "kee/ui/slider.hpp"
 #include "kee/ui/text.hpp"
 #include "kee/ui/triangle.hpp"
+#include "kee/ui/video_player.hpp"
 
 namespace kee {
 namespace scene {
@@ -286,12 +287,14 @@ public:
     compose_tab_info(
         const kee::image_texture& arrow_png,
         const std::optional<beatmap_dir_state>& dir_state,
-        const std::optional<boost::json::object>& keys_json_obj
+        const std::optional<boost::json::object>& keys_json_obj,
+        std::optional<std::filesystem::path>& vid_path
     );
 
     const kee::image_texture& arrow_png;
 
     std::optional<kee::image_texture> bg_img;
+    std::optional<std::filesystem::path>& vid_path;
 
     raylib::Sound hitsound;
 
@@ -384,10 +387,11 @@ private:
     > game_bg_opacity_slider;
 
     kee::ui::handle<kee::ui::rect> game_display_frame_raw;
-    kee::ui::handle<kee::ui::base> game_display_frame;
+    kee::ui::handle<kee::ui::rect> game_display_frame;
     std::variant<
-        kee::ui::handle<kee::ui::rect>,
-        kee::ui::handle<kee::ui::image>
+        std::monostate,
+        kee::ui::handle<kee::ui::image>,
+        kee::ui::handle<kee::ui::video_player>
     > game_bg;
 
     kee::ui::handle<kee::ui::base> key_border;

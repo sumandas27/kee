@@ -609,6 +609,11 @@ const std::optional<float>& song_ui::get_prev_beat() const
     return prev_beat;
 }
 
+float song_ui::get_time() const
+{
+    return music_time;
+}
+
 float song_ui::get_beat() const
 {
     return (music_time - music_start_offset) * music_bpm / 60.0f;
@@ -686,7 +691,7 @@ bool root::needs_save() const
     if (!setup_info.img_path.has_value() && !save_info.value().dir_state.has_image)
         need_img_save = false;
     else if (setup_info.img_path.has_value() && save_info.value().dir_state.has_image)
-        need_img_save = std::filesystem::equivalent(setup_info.img_path.value(), save_info.value().dir_state.path / "img.png");
+        need_img_save = !std::filesystem::equivalent(setup_info.img_path.value(), save_info.value().dir_state.path / "img.png");
     else
         need_img_save = true;
 
@@ -720,7 +725,7 @@ void root::save_beatmap()
     if (!setup_info.img_path.has_value() && !save_info.value().dir_state.has_image)
         need_img_save = false;
     else if (setup_info.img_path.has_value() && save_info.value().dir_state.has_image)
-        need_img_save = std::filesystem::equivalent(setup_info.img_path.value(), save_info.value().dir_state.path / "img.png");
+        need_img_save = !std::filesystem::equivalent(setup_info.img_path.value(), save_info.value().dir_state.path / "img.png");
     else
         need_img_save = true;
 
@@ -859,8 +864,12 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
     error_png("assets/img/error.png"),
     exit_png("assets/img/exit.png"),
     info_png("assets/img/info.png"),
+    vid_path(dir_info.has_value() && dir_info.value().dir_state.has_video
+        ? std::make_optional(dir_info.value().dir_state.path / "vid.mp4")
+        : std::nullopt
+    ),
     approach_beats(dir_info.has_value() ? dir_info.value().approach_beats : 2.0f),
-    setup_info(dir_info, exit_png),
+    setup_info(dir_info, exit_png, vid_path),
     compose_info(
         arrow_png,
         save_info.has_value() 
@@ -868,7 +877,8 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
             : std::nullopt,
         dir_info.has_value()
             ? std::make_optional(dir_info.value().keys_json_obj) 
-            : std::nullopt
+            : std::nullopt,
+        vid_path
     ),
     active_tab_elem(add_child<setup_tab>(std::nullopt, *this, setup_info, approach_beats)),
     active_tab(root::tabs::setup),

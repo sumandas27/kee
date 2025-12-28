@@ -110,6 +110,7 @@ public:
     const raylib::Music& get_music() const;
     const std::optional<float>& get_prev_beat() const;
 
+    float get_time() const;
     float get_beat() const;
     void set_beat(float new_beat);
 
@@ -197,6 +198,7 @@ private:
     kee::image_texture exit_png;
     kee::image_texture info_png;
 
+    std::optional<std::filesystem::path> vid_path;
     float approach_beats;
 
     setup_tab_info setup_info;

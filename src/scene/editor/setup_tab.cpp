@@ -6,13 +6,14 @@ namespace kee {
 namespace scene {
 namespace editor {
 
-setup_tab_info::setup_tab_info(const std::optional<beatmap_dir_info>& dir_info, const kee::image_texture& exit_png) :
+setup_tab_info::setup_tab_info(const std::optional<beatmap_dir_info>& dir_info, const kee::image_texture& exit_png, std::optional<std::filesystem::path>& vid_path) :
     exit_png(exit_png),
     from_dir(dir_info.has_value()),
     img_path(dir_info.has_value() && dir_info.value().dir_state.has_image
         ? std::make_optional(dir_info.value().dir_state.path / "img.png")
         : std::nullopt
     ),
+    vid_path(vid_path),
     song_artist(dir_info.has_value() ? dir_info.value().song_artist : ""),
     song_name(dir_info.has_value() ? dir_info.value().song_name : ""),
     mapper(dir_info.has_value() ? dir_info.value().mapper : ""),
@@ -350,10 +351,9 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         std::vector<std::string_view>({".mp4"}),
         [&]() -> std::variant<std::string_view, std::filesystem::path>
         {
-            /* TODO: come back to */
-            //if (setup_info.img_path.has_value())
-            //    return setup_info.img_path.value();
-            //else
+            if (setup_info.vid_path.has_value())
+                return setup_info.vid_path.value();
+            else
                 return setup_tab::no_vid_message;
         }()
     )),

@@ -74,7 +74,16 @@ void video_player::set_time(double sec)
     if (curr_ts <= sec && less_than_next_ts)
         return;
 
+    bool should_seek = false;
     if (sec < curr_ts)
+        should_seek = true;
+    else
+    {
+        const unsigned int frames_to_shift = 1 + static_cast<unsigned int>((sec - next_video_frame.value().pts().seconds()) * frame_rate);
+        should_seek = frames_to_shift > video_player::frame_seek_tolerance;
+    }
+
+    if (should_seek)
     {
         const av::Stream video_stream = video_input.stream(video_stream_idx);
         const int64_t target_ts = static_cast<int64_t>(sec / video_stream.timeBase()());
@@ -95,11 +104,9 @@ void video_player::set_time(double sec)
         }
 
         curr_texture.Update(curr_video_frame.data(0));
-        return;
     }
-
-    const unsigned int frames_to_shift = 1 + static_cast<unsigned int>((sec - next_video_frame.value().pts().seconds()) * frame_rate);
-    if (frames_to_shift <= video_player::frame_seek_tolerance)
+    else 
+    {
         while (next_video_frame.has_value() && sec > next_video_frame.value().pts().seconds())
         {
             curr_ts = next_video_frame.value().pts().seconds();
@@ -107,9 +114,6 @@ void video_player::set_time(double sec)
 
             next_video_frame = get_next_frame();
         }
-    else
-    {
-        // TODO: seek forward in the video 
     }
 }
 

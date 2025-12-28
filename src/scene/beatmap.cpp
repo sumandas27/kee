@@ -955,7 +955,6 @@ void beatmap::reset_level()
             end_beat = back.beat + back.duration;
     }
 
-    music.Stop();
     music.SetLooping(false);
     music.SetVolume(0.1f);
     music.Seek(0.0f);
@@ -1073,6 +1072,7 @@ void beatmap::update_element(float dt)
     if (auto* video_player_ptr = std::get_if<kee::ui::handle<kee::ui::video_player>>(&game_bg))
     {
         const double video_time = !load_time_paused.has_value() ? music.GetTimePlayed() : 0;
+        std::println("{}", video_time);
         video_player_ptr->ref.set_time(video_time);
     }
 

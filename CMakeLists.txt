@@ -5,14 +5,18 @@ project(kee)
 find_package(avcpp CONFIG REQUIRED)
 find_package(boost_json CONFIG REQUIRED)
 find_package(boost_optional CONFIG REQUIRED)
-# Linker emits undefined `glfw` symbols on macOS from Raylib source code, so we
-# include `glfw3` directly to resolve them. Seems to be a macOS issue only, other
-# people online have this exact issue, could be an issue from Raylib.
+# NOTE: Linker emits undefined `glfw` symbols on macOS from Raylib source code, so we
+# include `glfw3` directly to resolve them. Seems to be a macOS issue only, other people 
+# online have this exact issue, could be an issue from Raylib.
 find_package(glfw3 CONFIG REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
 find_package(nfd CONFIG REQUIRED)
-find_package(raylib CONFIG REQUIRED)
-find_path(RAYLIB_CPP_INCLUDE_DIRS "raylib-cpp.hpp")
+# NOTE: Ideally these are brought in with `vcpkg`, however the latest `raylib` port version
+# on `vcpkg` has an audio error, see https://github.com/raysan5/raylib/issues/4521. We
+# explicity bring over a later version via. git submodules. Tentatively to be removed when
+# `raylib` port gets upgraded in `vcpkg`.
+add_subdirectory(externals/raylib)
+add_subdirectory(externals/raylib-cpp)
 
 file(GLOB_RECURSE KEE_SRC CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 add_executable(${PROJECT_NAME} ${KEE_SRC})
@@ -27,12 +31,7 @@ else()
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/opt/homebrew/opt/llvm/lib/c++ -Wl,-rpath,/opt/homebrew/opt/llvm/lib/c++")
 endif()
 
-target_include_directories(${PROJECT_NAME} 
-PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include 
-    ${RAYLIB_CPP_INCLUDE_DIRS}
-)
-
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(${PROJECT_NAME} 
 PRIVATE 
     avcpp::avcpp 
@@ -43,4 +42,5 @@ PRIVATE
     magic_enum::magic_enum 
     nfd::nfd 
     raylib
+    raylib_cpp
 )

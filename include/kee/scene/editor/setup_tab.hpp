@@ -13,12 +13,13 @@ class root;
 class setup_tab_info
 {
 public:
-    setup_tab_info(const std::optional<beatmap_dir_info>& dir_info, const kee::image_texture& exit_png);
+    setup_tab_info(const std::optional<beatmap_dir_info>& dir_info, const kee::image_texture& exit_png, std::optional<std::filesystem::path>& vid_path);
 
     const kee::image_texture& exit_png;
 
     std::optional<std::filesystem::path> new_song_path;
     std::optional<std::filesystem::path> img_path;
+    std::optional<std::filesystem::path>& vid_path;
 
     bool from_dir;
     std::string song_artist;

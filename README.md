@@ -8,14 +8,22 @@
 * `cmake`
 * `vcpkg` & its relevant setup.
 
+**Steps:**
+1. Clone the repository and navigate to the root directory.
+2. Run `git submodule update --init --recursive`
+
+    > [!NOTE]
+    > See `NOTE:` comment in `CMakeLists.txt` for why git submodules are used in conjunction with `vcpkg`.
+
+3. Follow further installation steps below depending on your platform:
+
 ### **Windows:**
 
 **Additional prerequisites:**
 * `Visual Studio 2022`
 
-**Steps:**
-1. Clone the repository and navigate to the root directory.
-2. Run the following command (on one line):
+**Additional Steps:**
+4. Run the following command (on one line):
 
     ```sh
     cmake                                           
@@ -24,8 +32,8 @@
         -B build/
     ```
 
-3. Open the generated `.sln` file (should be `build/kee.sln`) with `Visual Studio 2022`.
-4. Set `kee` from your Solution Explorer as your Startup Project and run (`F5`).
+5. Open the generated `.sln` file (should be `build/kee.sln`) with `Visual Studio 2022`.
+6. Set `kee` from your Solution Explorer as your Startup Project and run (`F5`).
 
 ### **macOS:**
 
@@ -33,8 +41,8 @@
 * `make`
 
 **Steps:**
-1. Clone the repository and navigate to the root directory.
-2. Run the following command (on one line):
+4. Clone the repository and navigate to the root directory.
+5. Run the following command (on one line):
 
     ```sh
     cmake 
@@ -48,7 +56,7 @@
         -B build/
     ```
 
-3. `cd build`
-4. Compile the program: `make`
-5. `cd ..`
-6. Run the program: `build/kee`
+6. `cd build`
+7. Compile the program: `make`
+8. `cd ..`
+9. Run the program: `build/kee`
