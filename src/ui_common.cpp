@@ -77,6 +77,9 @@ beatmap_dir_state::beatmap_dir_state(const std::filesystem::path& path) :
     has_video(std::filesystem::exists(path / "vid.mp4"))
 { }
 
+const std::string_view beatmap_dir_info::standard_img_filename = "img.png";
+const std::string_view beatmap_dir_info::standard_vid_filename = "vid.mp4";
+
 const std::filesystem::path beatmap_dir_info::app_data_dir = "test_app_data/";
 
 beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_name) :

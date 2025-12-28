@@ -167,21 +167,38 @@ public:
     float duration;
 };
 
+class beatmap_save_info
+{
+private:
+    friend class root;
+
+    beatmap_save_info(bool need_save_metadata, bool need_save_song, bool need_save_img, bool need_save_vid, bool need_save_hit_objs);
+
+    const bool need_save_metadata;
+    const bool need_save_song;
+    const bool need_save_img;
+    const bool need_save_vid;
+    const bool need_save_hit_objs;
+};
+
 class root final : public kee::scene::base
 {
 public:
     root(kee::game& game, kee::global_assets& assets, const std::optional<std::filesystem::path>& beatmap_dir_name);
 
-    bool needs_save() const;
-    void save_beatmap();
+    std::optional<beatmap_save_info> get_save_info() const;
+    bool needs_save(const std::optional<beatmap_save_info>& save_info) const;
+
+    void save();
+    void save_existing_beatmap();
 
     void set_error(std::string_view error_str, bool from_file_dialog);
     void set_info(std::string_view info_str);
 
     void set_song(const std::filesystem::path& song_path);
-    void set_bg(const std::optional<std::filesystem::path>& bg_path);
+    void set_image(const std::optional<std::filesystem::path>& image_path);
 
-    std::optional<beatmap_file> save_info;
+    std::optional<beatmap_file> save_state;
 
 private:
     static constexpr float error_transition_time = 0.5f;

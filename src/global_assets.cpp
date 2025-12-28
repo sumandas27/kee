@@ -43,7 +43,7 @@ raylib::Font global_assets::gen_sdf_font(const std::filesystem::path& font_path)
     res.recs = nullptr;
 
     const raylib::FileData font_file(font_path.string());
-    res.glyphs = LoadFontData(font_file.GetData(), font_file.GetBytesRead(), res.baseSize, nullptr, res.glyphCount, FontType::FONT_SDF, &res.glyphCount);
+    res.glyphs = LoadFontData(font_file.GetData(), font_file.GetBytesRead(), res.baseSize, nullptr, res.glyphCount, FontType::FONT_SDF);
 
     const raylib::Image font_atlas = GenImageFontAtlas(res.glyphs, &res.recs, res.glyphCount, res.baseSize, res.glyphPadding, 1);
     res.SetTexture(font_atlas.LoadTexture());

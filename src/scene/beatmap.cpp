@@ -796,14 +796,14 @@ beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&&
     combo_gain(add_transition<float>(0.0f)),
     end_fade_out_alpha(add_transition<float>(0.0f)),
     game_bg_img(beatmap_info.dir_state.has_image
-        ? std::make_optional(kee::image_texture(beatmap_info.dir_state.path / "img.png"))
+        ? std::make_optional(kee::image_texture(beatmap_info.dir_state.path / beatmap_dir_info::standard_img_filename))
         : std::nullopt
     ),
     game_bg([&]() -> std::variant<std::monostate, kee::ui::handle<kee::ui::image>, kee::ui::handle<kee::ui::video_player>>
     {
         if (beatmap_info.dir_state.has_video)
             return add_child<kee::ui::video_player>(0,
-                beatmap_info.dir_state.path / "vid.mp4",
+                beatmap_info.dir_state.path / beatmap_dir_info::standard_vid_filename,
                 kee::color(255, 255, 255, 255 * kee::game_start_bg_opacity),
                 pos(pos::type::rel, 0.5f),
                 pos(pos::type::rel, 0.5f),

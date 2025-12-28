@@ -13,8 +13,6 @@
 namespace kee {
 namespace scene {
 
-/* TODO: half beat forgiveness for ts beatmap */
-
 class beatmap;
 
 class beatmap_hit_object

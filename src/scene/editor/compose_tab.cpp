@@ -945,7 +945,7 @@ compose_tab_info::compose_tab_info(
 ) :
     arrow_png(arrow_png),
     bg_img(dir_state.has_value() && dir_state.value().has_image
-        ? std::make_optional(kee::image_texture(dir_state.value().path / "img.png"))
+        ? std::make_optional(kee::image_texture(dir_state.value().path / beatmap_dir_info::standard_img_filename))
         : std::nullopt    
     ),
     vid_path(vid_path),

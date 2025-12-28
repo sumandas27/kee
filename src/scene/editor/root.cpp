@@ -137,7 +137,7 @@ confirm_save_ui::confirm_save_ui(const kee::ui::required& reqs, const kee::image
 
     save_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        this->root_elem.save_beatmap();
+        this->root_elem.save();
         this->game_ref.queue_game_exit();
     };
 
@@ -261,7 +261,7 @@ confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, root& root_elem,
         if (this->destroy_timer.has_value())
             return;
 
-        if (this->root_elem.needs_save())
+        if (this->root_elem.needs_save(this->root_elem.get_save_info()))
             this->confirm_save.emplace(this->root_elem.add_child<confirm_save_ui>(2, this->error_png, this->root_elem, *this));
         else
             this->game_ref.queue_game_exit();
@@ -669,6 +669,14 @@ void song_ui::update_element([[maybe_unused]] float dt)
     playback_r_img.ref.color = (playback_speed_idx < song_ui::playback_speeds.size() - 1) ? playback_r_img_color.get() : kee::color(255, 255, 255, 80);
 }
 
+beatmap_save_info::beatmap_save_info(bool need_save_metadata, bool need_save_song, bool need_save_img, bool need_save_vid, bool need_save_hit_objs) :
+    need_save_metadata(need_save_metadata),
+    need_save_song(need_save_song),
+    need_save_img(need_save_img),
+    need_save_vid(need_save_vid),
+    need_save_hit_objs(need_save_hit_objs)
+{ }
+
 root::root(kee::game& game, kee::global_assets& assets, const std::optional<std::filesystem::path>& beatmap_dir_name) :
     root(game, assets, beatmap_dir_name.has_value() 
         ? std::make_optional(beatmap_dir_info(beatmap_dir_name.value()))
@@ -676,39 +684,84 @@ root::root(kee::game& game, kee::global_assets& assets, const std::optional<std:
     )
 { }
 
-/* TODO: these two functions seem sort of redundant on first glance 
-maybe create a "save class" storing what needs to be saved ???
-reduce duplicate calculations somehow 
-*/
-
-bool root::needs_save() const
+std::optional<beatmap_save_info> root::get_save_info() const
 {
     const bool save_hit_objs_needed = (!compose_info.events_since_save.has_value() || compose_info.events_since_save.value() != 0);
-    if (!save_info.has_value())
-        return false;
+    if (!save_state.has_value())
+        return std::nullopt;
 
     bool need_img_save;
-    if (!setup_info.img_path.has_value() && !save_info.value().dir_state.has_image)
+    if (!setup_info.img_path.has_value() && !save_state.value().dir_state.has_image)
         need_img_save = false;
-    else if (setup_info.img_path.has_value() && save_info.value().dir_state.has_image)
-        need_img_save = !std::filesystem::equivalent(setup_info.img_path.value(), save_info.value().dir_state.path / "img.png");
+    else if (setup_info.img_path.has_value() && save_state.value().dir_state.has_image)
+        need_img_save = !std::filesystem::equivalent(setup_info.img_path.value(), save_state.value().dir_state.path / beatmap_dir_info::standard_img_filename);
     else
         need_img_save = true;
 
-    return save_info.value().save_metadata_needed || setup_info.new_song_path.has_value() || need_img_save || save_hit_objs_needed;
+    bool need_vid_save;
+    if (!vid_path.has_value() && !save_state.value().dir_state.has_video)
+        need_vid_save = false;
+    else if (vid_path.has_value() && save_state.value().dir_state.has_video)
+        need_vid_save = !std::filesystem::equivalent(vid_path.value(), save_state.value().dir_state.path / beatmap_dir_info::standard_vid_filename);
+    else
+        need_vid_save = true;
+
+    return beatmap_save_info(save_state.value().save_metadata_needed, setup_info.new_song_path.has_value(), need_img_save, need_vid_save, save_hit_objs_needed);
 }
 
-void root::save_beatmap()
+bool root::needs_save(const std::optional<beatmap_save_info>& save_info) const
 {
+    return !save_info.has_value() || (
+        save_info.value().need_save_metadata ||
+        save_info.value().need_save_song ||
+        save_info.value().need_save_img ||
+        save_info.value().need_save_vid ||
+        save_info.value().need_save_hit_objs
+    );
+}
+
+void root::save()
+{
+    if (this->save_state.has_value())
+    {
+        this->save_existing_beatmap();
+        return;
+    }
+
+    if (!setup_info.new_song_path.has_value())
+    {
+        this->set_error("Choose a song before saving!", false);
+        return;
+    }
+
+    std::error_code ec;
+    const std::filesystem::path new_path = beatmap_dir_info::app_data_dir / "local_0";
+    const bool success = std::filesystem::create_directory(new_path, ec);
+
+    if (ec)
+    {
+        this->set_error(std::format("Error saving: {}", ec.message()), false);
+        return;
+    }
+
+    if (!success)
+        throw std::runtime_error("Directory already exists");
+
+    this->save_state.emplace(beatmap_dir_state(new_path), true);
+    this->save_existing_beatmap();
+}
+
+void root::save_existing_beatmap()
+{
+    const std::optional<beatmap_save_info> save_info = get_save_info();
     if (!save_info.has_value())
         throw std::runtime_error("Saving beatmap when no directory for it exists.");
 
-    bool any_saved = false;
-    if (setup_info.new_song_path.has_value())
+    if (save_info.value().need_save_song)
     {
         std::error_code ec;
         const std::filesystem::path& src = setup_info.new_song_path.value();
-        const std::filesystem::path dst = save_info.value().dir_state.path / "song.mp3";
+        const std::filesystem::path dst = save_state.value().dir_state.path / "song.mp3";
         
         std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, ec);
         if (ec)
@@ -718,48 +771,63 @@ void root::save_beatmap()
         }
 
         setup_info.new_song_path.reset();
-        any_saved = true;
     }
 
-    bool need_img_save;
-    if (!setup_info.img_path.has_value() && !save_info.value().dir_state.has_image)
-        need_img_save = false;
-    else if (setup_info.img_path.has_value() && save_info.value().dir_state.has_image)
-        need_img_save = !std::filesystem::equivalent(setup_info.img_path.value(), save_info.value().dir_state.path / "img.png");
-    else
-        need_img_save = true;
-
-    if (need_img_save)
+    if (save_info.value().need_save_img)
     {
         if (setup_info.img_path.has_value())
         {
             std::error_code ec;
             const std::filesystem::path& src = setup_info.img_path.value();
-            const std::filesystem::path dst = save_info.value().dir_state.path / "img.png";
+            const std::filesystem::path dst = save_state.value().dir_state.path / beatmap_dir_info::standard_img_filename;
 
             std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, ec);
             if (ec)
             {
-                set_error(std::format("Error saving background image: {}", ec.message()), false);
+                set_error(std::format("Error saving beatmap image: {}", ec.message()), false);
                 return;
             }
 
-            save_info.value().dir_state.has_image = true; /* TODO: code in videos as well */
+            save_state.value().dir_state.has_image = true;
             setup_info.img_path = dst;
         }
         else 
         {
-            if (!std::filesystem::remove(save_info.value().dir_state.path / "img.png"))
-                throw std::runtime_error("Failed to remove beatmap's background file!");
+            if (!std::filesystem::remove(save_state.value().dir_state.path / beatmap_dir_info::standard_img_filename))
+                throw std::runtime_error("Failed to remove beatmap's image file!");
 
-            save_info.value().dir_state.has_image = false;
+            save_state.value().dir_state.has_image = false;
         }
-
-        any_saved = true;
     }
 
-    const bool save_hit_objs_needed = (!compose_info.events_since_save.has_value() || compose_info.events_since_save.value() != 0);
-    if (save_info.value().save_metadata_needed || save_hit_objs_needed)
+    if (save_info.value().need_save_vid)
+    {
+        if (vid_path.has_value())
+        {
+            std::error_code ec;
+            const std::filesystem::path& src = vid_path.value();
+            const std::filesystem::path dst = save_state.value().dir_state.path / beatmap_dir_info::standard_vid_filename;
+
+            std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, ec);
+            if (ec)
+            {
+                set_error(std::format("Error saving beatmap video: {}", ec.message()), false);
+                return;
+            }
+
+            save_state.value().dir_state.has_video = true;
+            vid_path = dst;
+        }
+        else
+        {
+            if (!std::filesystem::remove(save_state.value().dir_state.path / beatmap_dir_info::standard_vid_filename))
+                throw std::runtime_error("Failed to remove beatmap's video file!");
+        
+            save_state.value().dir_state.has_video = false;
+        }
+    }
+
+    if (save_info.value().need_save_metadata || save_info.value().need_save_hit_objs)
     {
         boost::json::object output;
         output["song_artist"] = setup_info.song_artist;
@@ -791,7 +859,7 @@ void root::save_beatmap()
             hit_objects[key_str] = std::move(key_hit_objs);
         }
 
-        const std::filesystem::path metadata_path = save_info.value().dir_state.path / "metadata.json";
+        const std::filesystem::path metadata_path = save_state.value().dir_state.path / "metadata.json";
         std::ofstream metadata_file = std::ofstream(metadata_path, std::ios::binary | std::ios::trunc);
         if (!metadata_file)
         {
@@ -802,12 +870,11 @@ void root::save_beatmap()
         const std::string json_serialized = boost::json::serialize(output);
         metadata_file << json_serialized;
 
-        save_info.value().save_metadata_needed = false;
+        save_state.value().save_metadata_needed = false;
         compose_info.events_since_save = 0;
-        any_saved = true;
     }
 
-    if (any_saved)
+    if (needs_save(save_info))
         set_info("Beatmap saved");
 }
 
@@ -846,17 +913,17 @@ void root::set_song(const std::filesystem::path& song_path)
     playback_ui.emplace<kee::ui::handle<song_ui>>(playback_ui_frame.ref.add_child<song_ui>(std::nullopt, arrow_png, song_path));
 }
 
-void root::set_bg(const std::optional<std::filesystem::path>& bg_path)
+void root::set_image(const std::optional<std::filesystem::path>& image_path)
 {
-    if (bg_path.has_value())
-        compose_info.bg_img.emplace(bg_path.value());
+    if (image_path.has_value())
+        compose_info.bg_img.emplace(image_path.value());
     else
         compose_info.bg_img.reset();
 }
 
 root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_dir_info> dir_info) :
     kee::scene::base(game, assets),
-    save_info(dir_info.has_value() 
+    save_state(dir_info.has_value() 
         ? std::make_optional(beatmap_file(dir_info.value().dir_state, false)) 
         : std::nullopt
     ),
@@ -865,15 +932,15 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
     exit_png("assets/img/exit.png"),
     info_png("assets/img/info.png"),
     vid_path(dir_info.has_value() && dir_info.value().dir_state.has_video
-        ? std::make_optional(dir_info.value().dir_state.path / "vid.mp4")
+        ? std::make_optional(dir_info.value().dir_state.path / beatmap_dir_info::standard_vid_filename)
         : std::nullopt
     ),
     approach_beats(dir_info.has_value() ? dir_info.value().approach_beats : 2.0f),
     setup_info(dir_info, exit_png, vid_path),
     compose_info(
         arrow_png,
-        save_info.has_value() 
-            ? std::optional(save_info.value().dir_state)
+        save_state.has_value() 
+            ? std::optional(save_state.value().dir_state)
             : std::nullopt,
         dir_info.has_value()
             ? std::make_optional(dir_info.value().keys_json_obj) 
@@ -1146,33 +1213,7 @@ bool root::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::
         if (!mods.test(kee::mods::ctrl))
             return false;
 
-        if (this->save_info.has_value())
-        {
-            this->save_beatmap();
-            return true;
-        }
-
-        if (!std::holds_alternative<kee::ui::handle<song_ui>>(this->playback_ui))
-        {
-            this->set_error("Choose a song before saving!", false);
-            return true;
-        }
-
-        std::error_code ec;
-        const std::filesystem::path new_path = beatmap_dir_info::app_data_dir / "local_0";
-        const bool success = std::filesystem::create_directory(new_path, ec);
-
-        if (ec)
-        {
-            this->set_error(std::format("Error saving: {}", ec.message()), false);
-            return true;
-        }
-
-        if (!success)
-            throw std::runtime_error("Directory already exists");
-
-        this->save_info.emplace(beatmap_dir_state(new_path), true);
-        this->save_beatmap();
+        this->save();
         return true;
     }
     default:

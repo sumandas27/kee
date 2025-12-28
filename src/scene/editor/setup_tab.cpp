@@ -10,7 +10,7 @@ setup_tab_info::setup_tab_info(const std::optional<beatmap_dir_info>& dir_info, 
     exit_png(exit_png),
     from_dir(dir_info.has_value()),
     img_path(dir_info.has_value() && dir_info.value().dir_state.has_image
-        ? std::make_optional(dir_info.value().dir_state.path / "img.png")
+        ? std::make_optional(dir_info.value().dir_state.path / beatmap_dir_info::standard_img_filename)
         : std::nullopt
     ),
     vid_path(vid_path),
@@ -35,6 +35,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     setup_info(setup_info),
     approach_beats(approach_beats),
     image_remove_button_color(add_transition<kee::color>(setup_info.img_path.has_value() ? kee::color::white : kee::color::dark_gray)),
+    video_remove_button_color(add_transition<kee::color>(setup_info.vid_path.has_value() ? kee::color::white : kee::color::dark_gray)),
     l_side_frame(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.05f),
@@ -83,7 +84,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
             if (setup_info.new_song_path.has_value())
                 return setup_info.new_song_path.value().filename();
             else if (setup_info.from_dir)
-                return root_elem.save_info.value().dir_state.path / "song.mp3";
+                return root_elem.save_state.value().dir_state.path / "song.mp3";
             else
                 return std::string_view("Select a song");
         }()
@@ -389,8 +390,8 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     artist_textbox.ref.on_string_input = [&](std::string_view new_str) -> bool
     {
         this->setup_info.song_artist = new_str;
-        if (this->root_elem.save_info.has_value())
-            this->root_elem.save_info.value().save_metadata_needed = true;
+        if (this->root_elem.save_state.has_value())
+            this->root_elem.save_state.value().save_metadata_needed = true;
 
         return true;
     };
@@ -398,8 +399,8 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     song_name_textbox.ref.on_string_input = [&](std::string_view new_str) -> bool
     {
         this->setup_info.song_name = new_str;
-        if (this->root_elem.save_info.has_value())
-            this->root_elem.save_info.value().save_metadata_needed = true;
+        if (this->root_elem.save_state.has_value())
+            this->root_elem.save_state.value().save_metadata_needed = true;
 
         return true;
     };
@@ -407,8 +408,8 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     mapper_textbox.ref.on_string_input = [&](std::string_view new_str) -> bool
     {
         this->setup_info.mapper = new_str;
-        if (this->root_elem.save_info.has_value())
-            this->root_elem.save_info.value().save_metadata_needed = true;
+        if (this->root_elem.save_state.has_value())
+            this->root_elem.save_state.value().save_metadata_needed = true;
 
         return true;
     };
@@ -416,8 +417,8 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     level_name_textbox.ref.on_string_input = [&](std::string_view new_str) -> bool
     {
         this->setup_info.level_name = new_str;
-        if (this->root_elem.save_info.has_value())
-            this->root_elem.save_info.value().save_metadata_needed = true;
+        if (this->root_elem.save_state.has_value())
+            this->root_elem.save_state.value().save_metadata_needed = true;
 
         return true;
     };
@@ -439,8 +440,8 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         if (this->approach_beats != text_float)
         {
             this->approach_beats = text_float;
-            if (this->root_elem.save_info.has_value())
-                this->root_elem.save_info.value().save_metadata_needed = true;
+            if (this->root_elem.save_state.has_value())
+                this->root_elem.save_state.value().save_metadata_needed = true;
         }
 
         return true;
@@ -463,23 +464,33 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         if (this->setup_info.beat_forgiveness != text_float)
         {
             this->setup_info.beat_forgiveness = text_float;
-            if (this->root_elem.save_info.has_value())
-                this->root_elem.save_info.value().save_metadata_needed = true;
+            if (this->root_elem.save_state.has_value())
+                this->root_elem.save_state.value().save_metadata_needed = true;
         }
 
         return true;
     };
 
+    //key_color_dialog.ref.on_success = [&](const std::filesystem::path& song_path)
+    //{
+    //    /* TODO: implement */
+    //};
+
+    key_color_dialog.ref.on_filter_mismatch = [&]()
+    {
+        this->root_elem.set_error("Not a JSON file!", true);
+    };
+
     image_dialog.ref.on_success = [&](const std::filesystem::path& img_path)
     {
-        this->root_elem.set_bg(img_path);
+        this->root_elem.set_image(img_path);
         this->setup_info.img_path = img_path;
         this->image_remove_button_color.set(kee::color::white);
     };
 
     image_dialog.ref.on_filter_mismatch = [&]()
     {
-        this->root_elem.set_error("Not an image or a video!", true);
+        this->root_elem.set_error("Not a `.png` image!", true);
     };
 
     image_remove_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -503,19 +514,45 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     image_remove_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
         this->image_dialog.ref.set_message(setup_tab::no_img_message);
-        this->root_elem.set_bg(std::nullopt);
+        this->root_elem.set_image(std::nullopt);
         this->setup_info.img_path.reset();
         this->image_remove_button_color.set(kee::color::dark_gray);
+    }; 
+
+    video_dialog.ref.on_success = [&](const std::filesystem::path& vid_path)
+    {
+        this->setup_info.vid_path = vid_path;
+        this->video_remove_button_color.set(kee::color::white);
     };
 
-    //key_color_dialog.ref.on_success = [&](const std::filesystem::path& song_path)
-    //{
-    //    /* TODO: implement */
-    //};
-
-    key_color_dialog.ref.on_filter_mismatch = [&]()
+    video_dialog.ref.on_filter_mismatch = [&]()
     {
-        this->root_elem.set_error("Not a JSON file!", true);
+        this->root_elem.set_error("Not an `.mp4` video!", true);
+    };
+
+    video_remove_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        if (!setup_info.vid_path.has_value())
+            return;
+
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            this->video_remove_button_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            this->video_remove_button_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    video_remove_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        this->video_dialog.ref.set_message(setup_tab::no_vid_message);
+        this->setup_info.vid_path.reset();
+        this->video_remove_button_color.set(kee::color::dark_gray);
     };
 }
 
@@ -525,6 +562,7 @@ const std::string_view setup_tab::no_vid_message = "Select a `.mp4` video";
 void setup_tab::update_element([[maybe_unused]] float dt)
 {
     image_remove_img.ref.color = image_remove_button_color.get();
+    video_remove_img.ref.color = video_remove_button_color.get();
 }
 
 } // namespace editor

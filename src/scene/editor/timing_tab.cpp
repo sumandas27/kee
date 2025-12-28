@@ -171,8 +171,8 @@ timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem, song_ui& 
         if (this->song_ui_elem.music_bpm != text_float)
         {
             this->song_ui_elem.music_bpm = text_float;
-            if (this->root_elem.save_info.has_value())
-                this->root_elem.save_info.value().save_metadata_needed = true;
+            if (this->root_elem.save_state.has_value())
+                this->root_elem.save_state.value().save_metadata_needed = true;
         }
         
         return true;
@@ -195,8 +195,8 @@ timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem, song_ui& 
         if (this->song_ui_elem.music_start_offset != text_float)
         {
             this->song_ui_elem.music_start_offset = text_float;
-            if (this->root_elem.save_info.has_value())
-                this->root_elem.save_info.value().save_metadata_needed = true;
+            if (this->root_elem.save_state.has_value())
+                this->root_elem.save_state.value().save_metadata_needed = true;
         }
         
         return true;

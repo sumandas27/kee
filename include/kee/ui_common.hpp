@@ -227,6 +227,9 @@ public:
 class beatmap_dir_info
 {
 public:
+    static const std::string_view standard_img_filename;
+    static const std::string_view standard_vid_filename;
+
     static const std::filesystem::path app_data_dir; /* TODO: temp */
 
     beatmap_dir_info(const std::filesystem::path& beatmap_dir_name);

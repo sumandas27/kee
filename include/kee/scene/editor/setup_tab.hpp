@@ -46,7 +46,7 @@ private:
     float& approach_beats;
 
     kee::transition<kee::color>& image_remove_button_color;
-    /* TODO: add video_remove_button_color and all its coding */
+    kee::transition<kee::color>& video_remove_button_color;
 
     kee::ui::handle<kee::ui::base> l_side_frame;
     kee::ui::handle<kee::ui::rect> audio_bg;

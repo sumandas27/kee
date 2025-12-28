@@ -45,6 +45,7 @@
 4. Clone the repository and navigate to the root directory.
 5. Run the following command (on one line):
 
+    **TODO: can move some of this in `CMakeLists.txt` itself**
     ```sh
     cmake 
         -DCMAKE_C_COMPILER=/opt/homebrew/opt/llvm/bin/clang 
