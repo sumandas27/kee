@@ -22,6 +22,7 @@
 * `Visual Studio 2022`
 
 **Additional Steps:**
+
 4. Run the following command (on one line):
 
     ```sh
@@ -39,7 +40,8 @@
 **Additional prerequisites:**
 * `make`
 
-**Steps:**
+**Additional Steps:**
+
 4. Clone the repository and navigate to the root directory.
 5. Run the following command (on one line):
 
