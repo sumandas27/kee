@@ -71,6 +71,14 @@ kee::color color::operator+(const kee::color& other) const
     return kee::color(r + other.r, g + other.g, b + other.b, a + other.a);
 }
 
+key_decoration::key_decoration(float start_beat, float end_beat, const kee::color& start_color, const kee::color& end_color, kee::transition_type interpolation) :
+    start_beat(start_beat),
+    end_beat(end_beat),
+    start_color(start_color),
+    end_color(end_color),
+    interpolation(interpolation)
+{ }
+
 beatmap_dir_state::beatmap_dir_state(const std::filesystem::path& path) :
     path(path),
     has_key_colors(std::filesystem::exists(path / beatmap_dir_info::standard_key_colors_filename)),
@@ -105,6 +113,7 @@ std::expected<boost::json::object, std::string> beatmap_dir_info::parse_key_colo
         if (!res.contains(key_str) || !res.at(key_str).is_array())
             return std::unexpected(std::format("Missing '{}' key.", key_str));
     
+        /*TODO: bounds checking*/
         const boost::json::array& key_color_array = res.at(key_str).as_array();
         for (const boost::json::value& key_deco : key_color_array)
         {
@@ -151,6 +160,38 @@ std::expected<boost::json::object, std::string> beatmap_dir_info::parse_key_colo
             if (!magic_enum::enum_cast<kee::transition_type>(interpolation_type_str).has_value())
                 return std::unexpected(std::format("'{}': Malformed 'interpolation_type' key", key_str));
         }
+    }
+
+    return res;
+}
+
+std::vector<key_decoration> beatmap_dir_info::get_key_decorations(const boost::json::array& key_color_decos)
+{
+    std::vector<key_decoration> res;
+    for (const boost::json::value& key_color_deco : key_color_decos)
+    {
+        const boost::json::object& key_color_deco_obj = key_color_deco.as_object();
+        const float deco_start_beat = static_cast<float>(key_color_deco_obj.at("start_beat").as_double());
+        const float deco_end_beat = static_cast<float>(key_color_deco_obj.at("end_beat").as_double());
+
+        const boost::json::object& start_color_json = key_color_deco_obj.at("start_color").as_object();
+        const kee::color start_color(
+            static_cast<float>(start_color_json.at("r").as_double()),
+            static_cast<float>(start_color_json.at("g").as_double()),
+            static_cast<float>(start_color_json.at("b").as_double())
+        );
+
+        const boost::json::object& end_color_json = key_color_deco_obj.at("end_color").as_object();
+        const kee::color end_color(
+            static_cast<float>(end_color_json.at("r").as_double()),
+            static_cast<float>(end_color_json.at("g").as_double()),
+            static_cast<float>(end_color_json.at("b").as_double())
+        );
+
+        const std::string interpolation_str = static_cast<std::string>(key_color_deco_obj.at("interpolation_type").as_string());
+        kee::transition_type interpolation = magic_enum::enum_cast<kee::transition_type>(interpolation_str).value();
+
+        res.emplace_back(deco_start_beat, deco_end_beat, start_color, end_color, interpolation);
     }
 
     return res;

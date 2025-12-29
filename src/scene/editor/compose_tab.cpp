@@ -132,6 +132,7 @@ compose_tab_key::compose_tab_key(
     compose_tab& compose_tab_scene,
     song_ui& song_ui_elem,
     std::map<float, editor_hit_object>& hit_objects,
+    const std::vector<key_decoration>& key_colors,
     int key_id
 ) :
     kee::ui::button(reqs,
@@ -161,6 +162,7 @@ compose_tab_key::compose_tab_key(
         std::nullopt, true, assets.font_light, std::string(), false
     )),
     is_selected(false),
+    key_colors(key_colors),
     compose_tab_scene(compose_tab_scene),
     song_ui_elem(song_ui_elem),
     key_id(key_id)
@@ -206,6 +208,8 @@ compose_tab_key::compose_tab_key(
         : "___";
 
     key_text.ref.set_string(key_str);
+
+    /* TODO: initialize decorations */
 }
 
 void compose_tab_key::update_element([[maybe_unused]] float dt)
@@ -940,14 +944,16 @@ compose_tab_info::compose_tab_info(
     const kee::image_texture& arrow_png,
     const std::optional<beatmap_dir_state>& dir_state,
     const std::optional<boost::json::object>& keys_json_obj,
-    std::optional<video_state>& vid_state
+    const std::optional<video_state>& vid_state,
+    const key_color_state& key_colors
 ) :
     arrow_png(arrow_png),
+    vid_state(vid_state),
+    key_colors(key_colors),
     bg_img(dir_state.has_value() && dir_state.value().has_image
         ? std::make_optional(kee::image_texture(dir_state.value().path / beatmap_dir_info::standard_img_filename))
         : std::nullopt    
     ),
-    vid_state(vid_state),
     hitsound("assets/sfx/hitsound.wav"),
     is_beat_snap(true),
     is_key_locked(true),
@@ -1413,7 +1419,8 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
             true
         ));
 
-        keys.emplace(id, key_holders.back().ref.add_child<compose_tab_key>(std::nullopt, *this, song_ui_elem, compose_info.hit_objs[id], id));
+        const std::string key_str(1, static_cast<char>(id));
+        keys.emplace(id, key_holders.back().ref.add_child<compose_tab_key>(std::nullopt, *this, song_ui_elem, compose_info.hit_objs[id], compose_info.key_colors.decorations.at(key_str), id));
     }
 
     unselect();

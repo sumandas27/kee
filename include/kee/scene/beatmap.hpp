@@ -32,24 +32,10 @@ public:
     std::optional<float> hold_next_combo;
 };
 
-class key_decoration
-{
-public:
-    key_decoration(float start_beat, float end_beat, const kee::color& start_color, const kee::color& end_color, kee::transition_type interpolation);
-
-    const float start_beat;
-    const float end_beat;
-
-    const kee::color start_color;
-    const kee::color end_color;
-
-    const kee::transition_type interpolation;
-};
-
 class beatmap_key final : public kee::ui::base
 {
 public:
-    beatmap_key(const kee::ui::required& reqs, kee::scene::beatmap& beatmap_scene, int key_id, const raylib::Vector2& relative_pos);
+    beatmap_key(const kee::ui::required& reqs, kee::scene::beatmap& beatmap_scene, int key_id, const raylib::Vector2& relative_pos, const std::vector<key_decoration>& key_colors);
 
     const std::deque<beatmap_hit_object>& get_hit_objects() const;
 
@@ -59,8 +45,6 @@ public:
     void push(const beatmap_hit_object& object);
     void pop();
 
-    void push_decoration(const key_decoration& deco);
-
     bool is_down;
 
 private:
@@ -68,8 +52,9 @@ private:
     void render_element() const override;
 
     kee::scene::beatmap& beatmap_scene;
-
     kee::transition<float>& combo_lost_alpha;
+
+    const std::vector<key_decoration> key_colors;
 
     std::vector<kee::ui::rect> hit_obj_rects;
     kee::ui::handle<kee::ui::rect> frame;
@@ -77,7 +62,6 @@ private:
     kee::ui::handle<kee::ui::text> key_text;
 
     std::deque<beatmap_hit_object> hit_objects;
-    std::vector<key_decoration> key_colors;
     std::size_t key_colors_idx;
 };
 

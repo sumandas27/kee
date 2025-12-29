@@ -6,10 +6,15 @@ namespace kee {
 namespace scene {
 namespace editor {
 
-setup_tab_info::setup_tab_info(const std::optional<beatmap_dir_info>& dir_info, const kee::image_texture& exit_png, std::optional<key_color_state>& key_colors, std::optional<video_state>& vid_state) :
+setup_tab_info::setup_tab_info(
+    const std::optional<beatmap_dir_info>& dir_info, 
+    const kee::image_texture& exit_png, 
+    std::optional<video_state>& vid_state,
+    key_color_state& key_colors
+) :
     exit_png(exit_png),
-    key_colors(key_colors),
     vid_state(vid_state),
+    key_colors(key_colors),
     from_dir(dir_info.has_value()),
     img_path(dir_info.has_value() && dir_info.value().dir_state.has_image
         ? std::make_optional(dir_info.value().dir_state.path / beatmap_dir_info::standard_img_filename)
@@ -64,7 +69,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     root_elem(root_elem),
     setup_info(setup_info),
     approach_beats(approach_beats),
-    key_color_remove_button_color(add_transition<kee::color>(setup_info.key_colors.has_value() ? kee::color::white : kee::color::dark_gray)),
+    key_color_remove_button_color(add_transition<kee::color>(setup_info.key_colors.path.has_value() ? kee::color::white : kee::color::dark_gray)),
     image_remove_button_color(add_transition<kee::color>(setup_info.img_path.has_value() ? kee::color::white : kee::color::dark_gray)),
     video_remove_button_color(add_transition<kee::color>(setup_info.vid_state.has_value() ? kee::color::white : kee::color::dark_gray)),
     l_side_frame(add_child<kee::ui::base>(std::nullopt,
@@ -306,8 +311,8 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         std::vector<std::string_view>({".json"}),
         [&]() -> std::variant<std::string_view, std::filesystem::path>
         {
-            if (setup_info.key_colors.has_value())
-                return setup_info.key_colors.value().path;
+            if (setup_info.key_colors.path.has_value())
+                return setup_info.key_colors.path.value();
             else
                 return setup_tab::no_key_colors_message;
         }()
@@ -541,7 +546,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
 
     key_color_remove_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        if (!setup_info.key_colors.has_value())
+        if (!setup_info.key_colors.path.has_value())
             return;
 
         switch (button_event)
@@ -560,7 +565,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     key_color_remove_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
         this->key_color_dialog.ref.reset(setup_tab::no_key_colors_message);
-        this->setup_info.key_colors.reset();
+        this->setup_info.key_colors = key_color_state();
         this->key_color_remove_button_color.set(kee::color::dark_gray);
     }; 
 

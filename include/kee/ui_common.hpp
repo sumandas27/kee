@@ -217,6 +217,20 @@ constexpr color::color(float r, float g, float b, float a) :
     a(a)
 { }
 
+class key_decoration
+{
+public:
+    key_decoration(float start_beat, float end_beat, const kee::color& start_color, const kee::color& end_color, kee::transition_type interpolation);
+
+    float start_beat;
+    float end_beat;
+
+    kee::color start_color;
+    kee::color end_color;
+
+    kee::transition_type interpolation;
+};
+
 class beatmap_dir_state
 {
 public:
@@ -239,6 +253,7 @@ public:
     static const std::filesystem::path app_data_dir; /* TODO: temp */
 
     static std::expected<boost::json::object, std::string> parse_key_colors(const std::filesystem::path& key_color_json_path);
+    static std::vector<key_decoration> get_key_decorations(const boost::json::array& key_color_decos);
 
     beatmap_dir_info(const std::filesystem::path& beatmap_dir_name);
 

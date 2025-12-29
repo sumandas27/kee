@@ -16,12 +16,17 @@ class setup_tab;
 class setup_tab_info
 {
 public:
-    setup_tab_info(const std::optional<beatmap_dir_info>& dir_info, const kee::image_texture& exit_png, std::optional<key_color_state>& key_colors, std::optional<video_state>& vid_state);
+    setup_tab_info(
+        const std::optional<beatmap_dir_info>& dir_info, 
+        const kee::image_texture& exit_png, 
+        std::optional<video_state>& vid_state,
+        key_color_state& key_colors
+    );
 
     const kee::image_texture& exit_png;
 
-    std::optional<key_color_state>& key_colors;
     std::optional<video_state>& vid_state;
+    key_color_state& key_colors;
 
     std::optional<std::filesystem::path> new_song_path; /* TODO: change pattern to match other assets */
     std::optional<std::filesystem::path> img_path; /* TODO: prob best to merge path with image texture imo, same w/ vid + key color state */

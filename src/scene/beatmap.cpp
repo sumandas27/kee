@@ -16,15 +16,7 @@ beatmap_hit_object::beatmap_hit_object(float beat, float duration) :
         hold_next_combo = std::floor(beat + 1.0f);
 }
 
-key_decoration::key_decoration(float start_beat, float end_beat, const kee::color& start_color, const kee::color& end_color, kee::transition_type interpolation) :
-    start_beat(start_beat),
-    end_beat(end_beat),
-    start_color(start_color),
-    end_color(end_color),
-    interpolation(interpolation)
-{ }
-
-beatmap_key::beatmap_key(const kee::ui::required& reqs, kee::scene::beatmap& beatmap_scene, int key_id, const raylib::Vector2& relative_pos) :
+beatmap_key::beatmap_key(const kee::ui::required& reqs, kee::scene::beatmap& beatmap_scene, int key_id, const raylib::Vector2& relative_pos, const std::vector<key_decoration>& key_colors) :
     kee::ui::base(reqs,
         pos(pos::type::rel, relative_pos.x),
         pos(pos::type::rel, relative_pos.y),
@@ -37,6 +29,7 @@ beatmap_key::beatmap_key(const kee::ui::required& reqs, kee::scene::beatmap& bea
     is_down(false),
     beatmap_scene(beatmap_scene),
     combo_lost_alpha(add_transition<float>(0.0f)),
+    key_colors(key_colors),
     frame(add_child<kee::ui::rect>(-1,
         kee::color::blank,
         pos(pos::type::rel, 0.5),
@@ -99,11 +92,6 @@ void beatmap_key::push(const beatmap_hit_object& object)
 void beatmap_key::pop()
 {
     hit_objects.pop_front();
-}
-
-void beatmap_key::push_decoration(const key_decoration& deco)
-{
-    key_colors.push_back(deco);
 }
 
 void beatmap_key::update_element([[maybe_unused]] float dt)
@@ -954,59 +942,28 @@ void beatmap::reset_level()
     
     keys.clear();
     for (const auto& [id, rel_pos] : kee::key_ui_data)
-        keys.emplace(id, key_frame.ref.add_child<beatmap_key>(std::nullopt, *this, id, rel_pos));
-
-    for (const auto& [keycode, _] : kee::key_ui_data)
     {
-        const std::string key_str = std::string(1, static_cast<char>(keycode));
+        const std::string key_str = std::string(1, static_cast<char>(id));
+        const std::vector<key_decoration> key_decos = (key_color_json_obj.has_value())
+            ? beatmap_dir_info::get_key_decorations(key_color_json_obj.value().at(key_str).as_array())
+            : std::vector<key_decoration>();
+
+        keys.emplace(id, key_frame.ref.add_child<beatmap_key>(std::nullopt, *this, id, rel_pos, key_decos));
+
         const boost::json::array& key_hit_objs = keys_json_obj.at(key_str).as_array();
-        
         for (const boost::json::value& key_hit_obj : key_hit_objs)
         {
             const boost::json::object& key_hit_obj_json = key_hit_obj.as_object();
             const float beat = static_cast<float>(key_hit_obj_json.at("beat").as_double());
             const float duration = static_cast<float>(key_hit_obj_json.at("duration").as_double());
-            
-            keys.at(keycode).ref.push(beatmap_hit_object(beat, duration));
+
+            keys.at(id).ref.push(beatmap_hit_object(beat, duration));
         }
 
-        if (key_color_json_obj.has_value())
-        {
-            const boost::json::array& key_color_decos = key_color_json_obj.value().at(key_str).as_array();
-            for (const boost::json::value& key_color_deco : key_color_decos)
-            {
-                const boost::json::object& key_color_deco_obj = key_color_deco.as_object();
-                const float deco_start_beat = static_cast<float>(key_color_deco_obj.at("start_beat").as_double());
-                const float deco_end_beat = static_cast<float>(key_color_deco_obj.at("end_beat").as_double());
-
-                const boost::json::object& start_color_json = key_color_deco_obj.at("start_color").as_object();
-                const kee::color start_color(
-                    static_cast<float>(start_color_json.at("r").as_double()),
-                    static_cast<float>(start_color_json.at("g").as_double()),
-                    static_cast<float>(start_color_json.at("b").as_double())
-                );
-
-                const boost::json::object& end_color_json = key_color_deco_obj.at("end_color").as_object();
-                const kee::color end_color(
-                    static_cast<float>(end_color_json.at("r").as_double()),
-                    static_cast<float>(end_color_json.at("g").as_double()),
-                    static_cast<float>(end_color_json.at("b").as_double())
-                );
-
-                const std::string interpolation_str = static_cast<std::string>(key_color_deco_obj.at("interpolation_type").as_string());
-                kee::transition_type interpolation = magic_enum::enum_cast<kee::transition_type>(interpolation_str).value();
-
-                keys.at(keycode).ref.push_decoration(key_decoration(deco_start_beat, deco_end_beat, start_color, end_color, interpolation));
-            }
-        }
-    }
-
-    for (const auto& [keycode, _] : kee::key_ui_data)
-    {
-        if (keys.at(keycode).ref.get_hit_objects().empty())
+        if (keys.at(id).ref.get_hit_objects().empty())
             continue;
 
-        const beatmap_hit_object& back = keys.at(keycode).ref.get_hit_objects().back();
+        const beatmap_hit_object& back = keys.at(id).ref.get_hit_objects().back();
         if (end_beat < back.beat + back.duration)
             end_beat = back.beat + back.duration;
     }

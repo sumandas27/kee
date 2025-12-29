@@ -18,6 +18,7 @@ namespace editor {
 
 /* TODO: add beatmap ui elements to editor down the line i.e. progress bar/combo/etc */
 
+class key_color_state;
 class video_state;
 class song_ui;
 class compose_tab;
@@ -107,6 +108,7 @@ public:
         compose_tab& compose_tab_scene,
         song_ui& song_ui_elem,
         std::map<float, editor_hit_object>& hit_objects,
+        const std::vector<key_decoration>& key_colors,
         int key_id
     );
 
@@ -121,6 +123,8 @@ public:
 private:
     void update_element(float dt) override;
     void render_element() const override;
+
+    const std::vector<key_decoration>& key_colors;
 
     compose_tab& compose_tab_scene;
     song_ui& song_ui_elem;
@@ -289,14 +293,15 @@ public:
         const kee::image_texture& arrow_png,
         const std::optional<beatmap_dir_state>& dir_state,
         const std::optional<boost::json::object>& keys_json_obj,
-        std::optional<video_state>& vid_state
+        const std::optional<video_state>& vid_state,
+        const key_color_state& key_colors
     );
 
     const kee::image_texture& arrow_png;
+    const std::optional<video_state>& vid_state;
+    const key_color_state& key_colors;
 
-    /* TODO: make these optional i think is correct */
     std::optional<kee::image_texture> bg_img;
-    std::optional<video_state>& vid_state;
 
     raylib::Sound hitsound;
 

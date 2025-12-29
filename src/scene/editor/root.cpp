@@ -683,17 +683,29 @@ video_state::video_state(const std::filesystem::path& path, float offset) :
     offset(offset)
 { }
 
+key_color_state::key_color_state()
+{
+    for (const key_pos_data& key_data : kee::key_ui_data)
+    {
+        const std::string key_str = std::string(1, static_cast<char>(key_data.raylib_key));
+        decorations[key_str] = std::vector<key_decoration>();
+    }
+}
+
 key_color_state::key_color_state(const std::filesystem::path& path, const boost::json::object& json) :
-    path(path),
-    json(json)
-{ }
+    path(path)
+{ 
+    for (const auto& [key, val] : json)
+        decorations[key] = beatmap_dir_info::get_key_decorations(val.as_array());
+}
 
 key_color_state::key_color_state(const std::filesystem::path& path, root& root_elem) :
     path(path)
 { 
     const auto parsed_json = beatmap_dir_info::parse_key_colors(path);
     if (parsed_json.has_value())
-        json = parsed_json.value();
+        for (const auto& [key, val] : parsed_json.value())
+            decorations[key] = beatmap_dir_info::get_key_decorations(val.as_array());
     else
         root_elem.set_error(parsed_json.error(), true);
 }
@@ -959,16 +971,16 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
     error_png("assets/img/error.png"),
     exit_png("assets/img/exit.png"),
     info_png("assets/img/info.png"),
-    key_colors(dir_info.has_value() && dir_info.value().key_colors_json_obj.has_value()
-        ? std::make_optional(key_color_state(dir_info.value().dir_state.path / beatmap_dir_info::standard_key_colors_filename, dir_info.value().key_colors_json_obj.value()))
-        : std::nullopt
-    ),
     vid_state(dir_info.has_value() && dir_info.value().dir_state.video_dir_info.has_value()
         ? std::make_optional(video_state(dir_info.value().dir_state.path / beatmap_dir_info::standard_vid_filename, dir_info.value().dir_state.video_dir_info.value()))
         : std::nullopt
     ),
+    key_colors(dir_info.has_value() && dir_info.value().key_colors_json_obj.has_value()
+        ? key_color_state(dir_info.value().dir_state.path / beatmap_dir_info::standard_key_colors_filename, dir_info.value().key_colors_json_obj.value())
+        : key_color_state()
+    ),
     approach_beats(dir_info.has_value() ? dir_info.value().approach_beats : 2.0f),
-    setup_info(dir_info, exit_png, key_colors, vid_state),
+    setup_info(dir_info, exit_png, vid_state, key_colors),
     compose_info(
         arrow_png,
         save_state.has_value() 
@@ -977,7 +989,7 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
         dir_info.has_value()
             ? std::make_optional(dir_info.value().keys_json_obj) 
             : std::nullopt,
-        vid_state
+        vid_state, key_colors
     ),
     active_tab_elem(add_child<setup_tab>(std::nullopt, *this, setup_info, approach_beats)),
     active_tab(root::tabs::setup),

@@ -195,14 +195,15 @@ public:
 class key_color_state
 {
 public:
+    key_color_state();
     /**
      * If you already have `boost::json::object` to pass in instead of reparsing.
      */
     key_color_state(const std::filesystem::path& path, const boost::json::object& json);
     key_color_state(const std::filesystem::path& path, root& root_elem);
 
-    std::filesystem::path path;
-    boost::json::object json;
+    std::optional<std::filesystem::path> path;
+    std::unordered_map<std::string, std::vector<key_decoration>> decorations;
 };
 
 class root final : public kee::scene::base
@@ -239,8 +240,8 @@ private:
     kee::image_texture exit_png;
     kee::image_texture info_png;
 
-    std::optional<key_color_state> key_colors;
     std::optional<video_state> vid_state;
+    key_color_state key_colors;
     float approach_beats;
 
     setup_tab_info setup_info;
