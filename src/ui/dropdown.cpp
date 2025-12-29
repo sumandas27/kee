@@ -51,7 +51,7 @@ dropdown::dropdown(
         pos(pos::type::rel, 0.05f),
         pos(pos::type::beg, 0),
         text_size(text_size::type::rel_h, 1),
-        false, assets.font_regular, options[start_idx], false
+        std::nullopt, false, assets.font_regular, options[start_idx], false
     )),
     dropdown_img_frame(make_temp_child<kee::ui::base>(
         pos(pos::type::end, 0),
@@ -150,7 +150,7 @@ dropdown::dropdown(
             pos(pos::type::rel, 0.05f),
             pos(pos::type::beg, 0),
             text_size(text_size::type::rel_h, 1),
-            false, assets.font_regular, options[i], false
+            std::nullopt, false, assets.font_regular, options[i], false
         ));
     }
 

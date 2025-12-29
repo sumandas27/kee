@@ -16,6 +16,14 @@ beatmap_hit_object::beatmap_hit_object(float beat, float duration) :
         hold_next_combo = std::floor(beat + 1.0f);
 }
 
+key_decoration::key_decoration(float start_beat, float end_beat, const kee::color& start_color, const kee::color& end_color, kee::transition_type interpolation) :
+    start_beat(start_beat),
+    end_beat(end_beat),
+    start_color(start_color),
+    end_color(end_color),
+    interpolation(interpolation)
+{ }
+
 beatmap_key::beatmap_key(const kee::ui::required& reqs, kee::scene::beatmap& beatmap_scene, int key_id, const raylib::Vector2& relative_pos) :
     kee::ui::base(reqs,
         pos(pos::type::rel, relative_pos.x),
@@ -26,6 +34,7 @@ beatmap_key::beatmap_key(const kee::ui::required& reqs, kee::scene::beatmap& bea
         ),
         true
     ),
+    is_down(false),
     beatmap_scene(beatmap_scene),
     combo_lost_alpha(add_transition<float>(0.0f)),
     frame(add_child<kee::ui::rect>(-1,
@@ -49,8 +58,9 @@ beatmap_key::beatmap_key(const kee::ui::required& reqs, kee::scene::beatmap& bea
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         ui::text_size(ui::text_size::type::rel_h, 0.5 * (1.0f - 2 * kee::key_border_parent_h)),
-        true, assets.font_light, std::string(), false
-    ))
+        std::nullopt, true, assets.font_light, std::string(), false
+    )),
+    key_colors_idx(0)
 {
     color = kee::color::white;
 
@@ -91,8 +101,38 @@ void beatmap_key::pop()
     hit_objects.pop_front();
 }
 
+void beatmap_key::push_decoration(const key_decoration& deco)
+{
+    key_colors.push_back(deco);
+}
+
 void beatmap_key::update_element([[maybe_unused]] float dt)
 {
+    if (!is_down)
+    {
+        while (key_colors_idx < key_colors.size() && beatmap_scene.get_beat() > key_colors[key_colors_idx].end_beat)
+            key_colors_idx++;
+
+        if (key_colors_idx >= key_colors.size())
+            color = kee::color::white;
+        else if (beatmap_scene.get_beat() > key_colors[key_colors_idx].start_beat)
+        {
+            const float deco_duration = key_colors[key_colors_idx].end_beat - key_colors[key_colors_idx].start_beat;
+            const float deco_transition_progress = (beatmap_scene.get_beat() - key_colors[key_colors_idx].start_beat) / deco_duration;
+            
+            color = kee::transition<kee::color>::calculate(
+                key_colors[key_colors_idx].start_color, 
+                key_colors[key_colors_idx].end_color, 
+                deco_transition_progress, 
+                key_colors[key_colors_idx].interpolation
+            );
+        }
+        else if (beatmap_scene.get_beat() < key_colors[key_colors_idx].end_beat)
+            color = kee::color::white;
+    }
+    else
+        color = kee::color::green_raylib;
+
     frame.ref.outline.value().color = color;
     key_text.ref.color = color;
 
@@ -200,7 +240,7 @@ pause_menu::pause_menu(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.25f),
         ui::text_size(ui::text_size::type::rel_h, 0.06f),
-        true, assets.font_semi_bold, "PAUSE MENU", false
+        std::nullopt, true, assets.font_semi_bold, "PAUSE MENU", false
     )),
     go_back_button(ui_frame.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0),
@@ -223,7 +263,7 @@ pause_menu::pause_menu(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.7f),
-        true, assets.font_semi_bold, "GO BACK", false
+        std::nullopt, true, assets.font_semi_bold, "GO BACK", false
     )),
     restart_button(ui_frame.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0),
@@ -246,7 +286,7 @@ pause_menu::pause_menu(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.7f),
-        true, assets.font_semi_bold, "RESTART", false
+        std::nullopt, true, assets.font_semi_bold, "RESTART", false
     )),
     exit_button(ui_frame.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0),
@@ -269,7 +309,7 @@ pause_menu::pause_menu(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.7f),
-        true, assets.font_semi_bold, "EXIT", false
+        std::nullopt, true, assets.font_semi_bold, "EXIT", false
     )),
     game_bg_opacity_frame(ui_frame.ref.add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0),
@@ -291,14 +331,14 @@ pause_menu::pause_menu(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
-        false, assets.font_semi_bold, "BG OPACITY", false
+        std::nullopt, false, assets.font_semi_bold, "BG OPACITY", false
     )),
     game_bg_opacity_text(game_bg_opacity_frame_inner.ref.add_child<kee::ui::text>(std::nullopt,
         beatmap_scene.has_game_bg() ? kee::color::white : kee::color(125, 125, 125),
         pos(pos::type::end, 0),
         pos(pos::type::beg, 0),
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
-        false, assets.font_semi_bold, beatmap_scene.has_game_bg() ? std::format("{}%", static_cast<int>(beatmap_scene.get_bg_opacity().value() / 255.f)) : "--", false
+        std::nullopt, false, assets.font_semi_bold, beatmap_scene.has_game_bg() ? std::format("{}%", static_cast<int>(beatmap_scene.get_bg_opacity().value() / 255.f)) : "--", false
     )),
     game_bg_opacity_slider(beatmap_scene.has_game_bg() ?
         std::variant<kee::ui::handle<kee::ui::slider>, kee::ui::handle<kee::ui::rect>>(
@@ -437,6 +477,8 @@ void pause_menu::update_element([[maybe_unused]] float dt)
     }
 }
 
+/* TODO: some of these texts aren't nullopt */
+
 end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
     kee::ui::rect(reqs,
         kee::color(30, 30, 30),
@@ -452,14 +494,14 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         pos(pos::type::rel, 0.25f),
         pos(pos::type::rel, 0.55f),
         ui::text_size(ui::text_size::type::rel_h, 0.15f),
-        true, assets.font_semi_bold, std::string(), false
+        std::nullopt, true, assets.font_semi_bold, std::string(), false
     )),
     rank_misses_text(add_child<kee::ui::text>(std::nullopt,
         kee::color::blank,
         pos(pos::type::rel, 0.25f),
         pos(pos::type::rel, 0.625f),
         ui::text_size(ui::text_size::type::rel_h, 0.05f),
-        true, assets.font_semi_bold, std::string(), false
+        std::nullopt, true, assets.font_semi_bold, std::string(), false
     )),
     ui_frame(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.5f),
@@ -472,6 +514,7 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
+        kee::dim(kee::dim::type::rel, 0.45f),
         false, assets.font_semi_bold, beatmap_scene.song_name, false
     )),
     artist_name(ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
@@ -479,6 +522,7 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.11f),
         ui::text_size(ui::text_size::type::rel_h, 0.04f),
+        kee::dim(kee::dim::type::rel, 0.45f),
         false, assets.font_semi_bold, beatmap_scene.song_artist, false
     )),
     level_name(ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
@@ -486,6 +530,7 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.17f),
         ui::text_size(ui::text_size::type::rel_h, 0.04f),
+        kee::dim(kee::dim::type::rel, 0.45f),
         false, assets.font_semi_bold, std::format("{}'s {}", beatmap_scene.mapper, beatmap_scene.level_name), false
     )),
     exit_button(ui_frame.ref.add_child<kee::ui::button>(std::nullopt,
@@ -509,14 +554,14 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
-        true, assets.font_semi_bold, "EXIT", false
+        std::nullopt, true, assets.font_semi_bold, "EXIT", false
     )),
     performance_text(ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
         pos(pos::type::rel, 0.75f),
         pos(pos::type::rel, 0.04f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        true, assets.font_semi_bold, "PERFORMANCE", false
+        std::nullopt, true, assets.font_semi_bold, "PERFORMANCE", false
     )),
     label_frame(ui_frame.ref.add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.5f),
@@ -532,28 +577,28 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.3f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        false, assets.font_semi_bold, "ACCURACY", false
+        std::nullopt, false, assets.font_semi_bold, "ACCURACY", false
     )),
     missed_text(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.45f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        false, assets.font_semi_bold, "MISSED", false
+        std::nullopt, false, assets.font_semi_bold, "MISSED", false
     )),
     combo_text(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.6f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        false, assets.font_semi_bold, "COMBO", false
+        std::nullopt, false, assets.font_semi_bold, "COMBO", false
     )),
     highest_combo_text(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.75f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        false, assets.font_semi_bold, "HIGHEST COMBO", false
+        std::nullopt, false, assets.font_semi_bold, "HIGHEST COMBO", false
     )),
     results_frame(ui_frame.ref.add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 1),
@@ -569,34 +614,30 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         pos(pos::type::end, 0),
         pos(pos::type::rel, 0.3f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        false, assets.font_regular, std::string(), false
+        std::nullopt, false, assets.font_regular, std::string(), false
     )),
     missed_result(results_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
         pos(pos::type::end, 0),
         pos(pos::type::rel, 0.45f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        false, assets.font_regular, std::to_string(beatmap_scene.misses), false
+        std::nullopt, false, assets.font_regular, std::to_string(beatmap_scene.misses), false
     )),
     combo_result(results_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
         pos(pos::type::end, 0),
         pos(pos::type::rel, 0.6f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        false, assets.font_regular, std::string(), false
+        std::nullopt, false, assets.font_regular, std::string(), false
     )),
     highest_combo_result(results_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
         pos(pos::type::end, 0),
         pos(pos::type::rel, 0.75f),
         ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        false, assets.font_regular, std::string(), false
+        std::nullopt, false, assets.font_regular, std::string(), false
     ))
 {
-    truncate_name_str(song_name);
-    truncate_name_str(artist_name);
-    truncate_name_str(level_name);
-
     const unsigned int curr_combo = beatmap_scene.combo + beatmap_scene.prev_total_combo;
     const unsigned int highest_combo = std::max(beatmap_scene.combo, beatmap_scene.prev_highest_combo);
 
@@ -681,21 +722,6 @@ void end_screen::update_element([[maybe_unused]] float dt)
     exit_text.ref.color = exit_text_color.get();
 }
 
-void end_screen::truncate_name_str(kee::ui::handle<kee::ui::text>& name_ui)
-{
-    if (name_ui.ref.get_raw_rect().width <= 0.45f * ui_frame.ref.get_raw_rect().width)
-        return;
-
-    for (std::size_t str_end_char = name_ui.ref.get_string().size(); str_end_char > 0; str_end_char--)
-    {
-        const std::string new_str = name_ui.ref.get_string().substr(0, str_end_char) + "...";
-        name_ui.ref.set_string(new_str);
-
-        if (name_ui.ref.get_raw_rect().width <= 0.45f * ui_frame.ref.get_raw_rect().width)
-            return;
-    }
-}
-
 beatmap::beatmap(kee::game& game, kee::global_assets& assets, const std::filesystem::path& beatmap_dir_name) :
     beatmap(game, assets, beatmap_dir_info(beatmap_dir_name))
 { }
@@ -706,8 +732,6 @@ float beatmap::get_beat() const
         ? game_time - load_time
         : music.GetTimePlayed();
 
-    if (music_time > 100.f)
-        std::println("{}: {}", load_time_paused.has_value(), music_time);
     return (music_time - music_start_offset) * music_bpm / 60.0f;
 }
 
@@ -790,6 +814,8 @@ beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&&
     mapper(beatmap_info.mapper),
     level_name(beatmap_info.level_name),
     keys_json_obj(beatmap_info.keys_json_obj),
+    key_color_json_obj(beatmap_info.key_colors_json_obj),
+    video_offset(beatmap_info.dir_state.video_dir_info),
     load_time(2.0f),
     music_start_offset(beatmap_info.song_start_offset),
     music_bpm(beatmap_info.song_bpm),
@@ -801,7 +827,7 @@ beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&&
     ),
     game_bg([&]() -> std::variant<std::monostate, kee::ui::handle<kee::ui::image>, kee::ui::handle<kee::ui::video_player>>
     {
-        if (beatmap_info.dir_state.has_video)
+        if (beatmap_info.dir_state.video_dir_info.has_value())
             return add_child<kee::ui::video_player>(0,
                 beatmap_info.dir_state.path / beatmap_dir_info::standard_vid_filename,
                 kee::color(255, 255, 255, 255 * kee::game_start_bg_opacity),
@@ -862,28 +888,28 @@ beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&&
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         ui::text_size(ui::text_size::type::rel_h, 1),
-        false, assets.font_regular, "100.00", false
+        std::nullopt, false, assets.font_regular, "100.00", false
     )),
     fc_text(performance_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::gold,
         pos(pos::type::end, 0),
         pos(pos::type::beg, 0),
         ui::text_size(ui::text_size::type::rel_h, 1),
-        false, assets.font_semi_bold, "FC", false
+        std::nullopt, false, assets.font_semi_bold, "FC", false
     )),
     combo_text(add_child<kee::ui::text>(3,
         kee::color::white,
         pos(pos::type::beg, 40),
         pos(pos::type::end, 40),
         ui::text_size(ui::text_size::type::rel_h, 0.1f),
-        false, assets.font_light, "0x", true
+        std::nullopt, false, assets.font_light, "0x", true
     )),
     combo_text_bg(add_child<kee::ui::text>(2,
         kee::color(255, 255, 255, 0),
         pos(pos::type::beg, 40),
         pos(pos::type::end, 40),
         ui::text_size(ui::text_size::type::rel_h, 0.1f),
-        false, assets.font_light, "0x", true
+        std::nullopt, false, assets.font_light, "0x", true
     )),
     window_border(add_child<kee::ui::base>(2,
         pos(pos::type::rel, 0.5),
@@ -943,6 +969,36 @@ void beatmap::reset_level()
             
             keys.at(keycode).ref.push(beatmap_hit_object(beat, duration));
         }
+
+        if (key_color_json_obj.has_value())
+        {
+            const boost::json::array& key_color_decos = key_color_json_obj.value().at(key_str).as_array();
+            for (const boost::json::value& key_color_deco : key_color_decos)
+            {
+                const boost::json::object& key_color_deco_obj = key_color_deco.as_object();
+                const float deco_start_beat = static_cast<float>(key_color_deco_obj.at("start_beat").as_double());
+                const float deco_end_beat = static_cast<float>(key_color_deco_obj.at("end_beat").as_double());
+
+                const boost::json::object& start_color_json = key_color_deco_obj.at("start_color").as_object();
+                const kee::color start_color(
+                    static_cast<float>(start_color_json.at("r").as_double()),
+                    static_cast<float>(start_color_json.at("g").as_double()),
+                    static_cast<float>(start_color_json.at("b").as_double())
+                );
+
+                const boost::json::object& end_color_json = key_color_deco_obj.at("end_color").as_object();
+                const kee::color end_color(
+                    static_cast<float>(end_color_json.at("r").as_double()),
+                    static_cast<float>(end_color_json.at("g").as_double()),
+                    static_cast<float>(end_color_json.at("b").as_double())
+                );
+
+                const std::string interpolation_str = static_cast<std::string>(key_color_deco_obj.at("interpolation_type").as_string());
+                kee::transition_type interpolation = magic_enum::enum_cast<kee::transition_type>(interpolation_str).value();
+
+                keys.at(keycode).ref.push_decoration(key_decoration(deco_start_beat, deco_end_beat, start_color, end_color, interpolation));
+            }
+        }
     }
 
     for (const auto& [keycode, _] : kee::key_ui_data)
@@ -986,7 +1042,7 @@ bool beatmap::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
         return true;
     }
 
-    keys.at(keycode).ref.color = kee::color::green_raylib;
+    keys.at(keycode).ref.is_down = true;
     if (keys.at(keycode).ref.get_hit_objects().empty())
         return true;
 
@@ -1020,7 +1076,7 @@ bool beatmap::on_element_key_up(int keycode, [[maybe_unused]] magic_enum::contai
     if (!keys.contains(keycode))
         return true;
 
-    keys.at(keycode).ref.color = kee::color::white;
+    keys.at(keycode).ref.is_down = false;
     if (keys.at(keycode).ref.get_hit_objects().empty())
         return true;
 
@@ -1072,8 +1128,9 @@ void beatmap::update_element(float dt)
     if (auto* video_player_ptr = std::get_if<kee::ui::handle<kee::ui::video_player>>(&game_bg))
     {
         const double video_time = !load_time_paused.has_value() ? music.GetTimePlayed() : 0;
-        std::println("{}", video_time);
-        video_player_ptr->ref.set_time(video_time);
+        
+        assert(video_offset.has_value());
+        video_player_ptr->ref.set_time(video_time - video_offset.value());
     }
 
     if (pause_menu_ui.has_value() && pause_menu_ui.value().ref.destruct_else_restart().has_value())
@@ -1083,10 +1140,8 @@ void beatmap::update_element(float dt)
             pause_menu_ui.reset();
             for (auto& [keycode, key_ui] : keys)
             {
-                const bool is_key_ui_down = (key_ui.ref.color == kee::color::green_raylib);
                 const bool is_key_really_down = game_ref.is_key_down(keycode);
-                
-                if (is_key_really_down != is_key_ui_down)
+                if (key_ui.ref.is_down != is_key_really_down)
                 {
                     if (is_key_really_down)
                         on_element_key_down(keycode, magic_enum::containers::bitset<kee::mods>());

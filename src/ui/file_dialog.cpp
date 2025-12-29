@@ -64,7 +64,7 @@ file_dialog::file_dialog(
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         text_size(text_size::type::rel_h, 1),
-        false, assets.font_regular, std::holds_alternative<std::string_view>(initial_msg)
+        std::nullopt, false, assets.font_regular, std::holds_alternative<std::string_view>(initial_msg)
             ? std::get<std::string_view>(initial_msg)
             : std::get<std::filesystem::path>(initial_msg).filename().string(), 
         false
@@ -132,9 +132,10 @@ file_dialog::file_dialog(
     };
 }
 
-void file_dialog::set_message(std::string_view message)
+void file_dialog::reset(std::string_view message)
 {
     fd_text.set_string(message);
+    old_path.reset();
 }
 
 void file_dialog::on_element_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods)

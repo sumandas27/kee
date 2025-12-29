@@ -32,6 +32,20 @@ public:
     std::optional<float> hold_next_combo;
 };
 
+class key_decoration
+{
+public:
+    key_decoration(float start_beat, float end_beat, const kee::color& start_color, const kee::color& end_color, kee::transition_type interpolation);
+
+    const float start_beat;
+    const float end_beat;
+
+    const kee::color start_color;
+    const kee::color end_color;
+
+    const kee::transition_type interpolation;
+};
+
 class beatmap_key final : public kee::ui::base
 {
 public:
@@ -44,6 +58,10 @@ public:
     beatmap_hit_object& front();
     void push(const beatmap_hit_object& object);
     void pop();
+
+    void push_decoration(const key_decoration& deco);
+
+    bool is_down;
 
 private:
     void update_element(float dt) override;
@@ -59,6 +77,8 @@ private:
     kee::ui::handle<kee::ui::text> key_text;
 
     std::deque<beatmap_hit_object> hit_objects;
+    std::vector<key_decoration> key_colors;
+    std::size_t key_colors_idx;
 };
 
 class pause_menu final : public kee::ui::rect
@@ -125,8 +145,6 @@ private:
     bool on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
 
     void update_element(float dt) override;
-
-    void truncate_name_str(kee::ui::handle<kee::ui::text>& name_ui);
 
     kee::transition<float>& ui_rel_x;
     kee::transition<kee::color>& exit_text_color;
@@ -199,6 +217,9 @@ private:
     void reset_level();
 
     const boost::json::object keys_json_obj;
+    const std::optional<boost::json::object> key_color_json_obj;
+
+    const std::optional<float> video_offset;
     const float load_time;
     const float music_start_offset;
     const float music_bpm;

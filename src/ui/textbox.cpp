@@ -79,7 +79,7 @@ textbox::textbox(
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         text_size(text_size::type::rel_h, 1),
-        false, assets.font_regular, initial_str, false
+        std::nullopt, false, assets.font_regular, initial_str, false
     )),
     textbox_state(mouse_state::off),
     old_str(initial_str),

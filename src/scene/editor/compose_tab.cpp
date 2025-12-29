@@ -158,7 +158,7 @@ compose_tab_key::compose_tab_key(
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
-        true, assets.font_light, std::string(), false
+        std::nullopt, true, assets.font_light, std::string(), false
     )),
     is_selected(false),
     compose_tab_scene(compose_tab_scene),
@@ -428,7 +428,7 @@ void object_editor::reset_render_hit_objs()
                 pos(pos::type::rel, 0.5f),
                 pos(pos::type::rel, rel_y),
                 ui::text_size(ui::text_size::type::rel_h, 0.1f),
-                true, assets.font_semi_bold, key_str, false
+                std::nullopt, true, assets.font_semi_bold, key_str, false
             ));
         }
 }
@@ -528,7 +528,6 @@ void object_editor::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[ma
             if (std::holds_alternative<selection_obj_info>(selection.value().variant) && std::abs(std::fmod(selected_reference_beat, 1.0f / compose_tab_scene.get_ticks_per_beat())) > compose_tab_scene.beat_lock_threshold && compose_tab_scene.is_beat_snap_enabled())
                 selected_reference_beat = std::round(selected_reference_beat * compose_tab_scene.get_ticks_per_beat()) / compose_tab_scene.get_ticks_per_beat();
 
-            std::println("{}", selected_reference_beat);
             selection.value().has_moved = true;
         }
 
@@ -747,7 +746,7 @@ void object_editor::update_element([[maybe_unused]] float dt)
                 pos(pos::type::rel, render_rel_x),
                 pos(pos::type::rel, 0.9f),
                 ui::text_size(ui::text_size::type::rel_h, 0.15f),
-                true, assets.font_semi_bold, std::to_string(whole_beat), true
+                std::nullopt, true, assets.font_semi_bold, std::to_string(whole_beat), true
             ));
         }
     }
@@ -941,14 +940,14 @@ compose_tab_info::compose_tab_info(
     const kee::image_texture& arrow_png,
     const std::optional<beatmap_dir_state>& dir_state,
     const std::optional<boost::json::object>& keys_json_obj,
-    std::optional<std::filesystem::path>& vid_path
+    std::optional<video_state>& vid_state
 ) :
     arrow_png(arrow_png),
     bg_img(dir_state.has_value() && dir_state.value().has_image
         ? std::make_optional(kee::image_texture(dir_state.value().path / beatmap_dir_info::standard_img_filename))
         : std::nullopt    
     ),
-    vid_path(vid_path),
+    vid_state(vid_state),
     hitsound("assets/sfx/hitsound.wav"),
     is_beat_snap(true),
     is_key_locked(true),
@@ -1017,7 +1016,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.08f),
         ui::text_size(ui::text_size::type::rel_h, 0.07f),
-        true, assets.font_semi_bold, "1 / " + std::to_string(get_ticks_per_beat()), false
+        std::nullopt, true, assets.font_semi_bold, "1 / " + std::to_string(get_ticks_per_beat()), false
     )),
     tick_l_button(inspector_rect.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0.2f),
@@ -1103,7 +1102,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         pos(pos::type::rel, 0.23f),
         pos(pos::type::rel, 0.245f),
         ui::text_size(ui::text_size::type::rel_h, 0.035f),
-        false, assets.font_semi_bold, "BEAT SNAP", false
+        std::nullopt, false, assets.font_semi_bold, "BEAT SNAP", false
     )),
     key_lock_button(inspector_rect.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0.1f),
@@ -1131,7 +1130,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         pos(pos::type::rel, 0.23f),
         pos(pos::type::rel, 0.315f),
         ui::text_size(ui::text_size::type::rel_h, 0.035f),
-        false, assets.font_semi_bold, "KEY LOCK", false
+        std::nullopt, false, assets.font_semi_bold, "KEY LOCK", false
     )),
     game_bg_opacity_frame(inspector_rect.ref.add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.1f),
@@ -1147,14 +1146,14 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
-        false, assets.font_semi_bold, "BG OPACITY", false
+        std::nullopt, false, assets.font_semi_bold, "BG OPACITY", false
     )),
     game_bg_opacity_text(game_bg_opacity_frame.ref.add_child<kee::ui::text>(std::nullopt,
         compose_info.bg_img.has_value() ? kee::color::white : kee::color(125, 125, 125),
         pos(pos::type::end, 0),
         pos(pos::type::beg, 0),
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
-        false, assets.font_semi_bold, compose_info.bg_img.has_value() ? std::format("{}%", static_cast<int>(kee::game_start_bg_opacity * 100)) : "--", false
+        std::nullopt, false, assets.font_semi_bold, compose_info.bg_img.has_value() ? std::format("{}%", static_cast<int>(kee::game_start_bg_opacity * 100)) : "--", false
     )),
     game_bg_opacity_slider(compose_info.bg_img.has_value() ?
         std::variant<kee::ui::handle<kee::ui::slider>, kee::ui::handle<kee::ui::rect>>(
@@ -1205,9 +1204,9 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
     )),
     game_bg([&]() -> std::variant<std::monostate, kee::ui::handle<kee::ui::image>, kee::ui::handle<kee::ui::video_player>>
     {  
-        if (compose_info.vid_path.has_value())
+        if (compose_info.vid_state.has_value())
             return game_display_frame.ref.add_child<kee::ui::video_player>(std::nullopt,
-                compose_info.vid_path.value(),
+                compose_info.vid_state.value().path,
                 kee::color(255, 255, 255, 255 * kee::game_start_bg_opacity),
                 pos(pos::type::rel, 0.5f),
                 pos(pos::type::rel, 0.5f),
@@ -1253,7 +1252,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
             pos(pos::type::rel, static_cast<float>(i * 2 + 1) / (compose_tab_info::tick_freq_count * 2)),
             pos(pos::type::rel, 0.5f),
             ui::text_size(ui::text_size::type::rel_h, 0.7f),
-            true, assets.font_regular, std::to_string(compose_tab_info::tick_freqs[i]), false
+            std::nullopt, true, assets.font_regular, std::to_string(compose_tab_info::tick_freqs[i]), false
         ));
 
         tick_frame_buttons.push_back(tick_frame.ref.add_child<kee::ui::button>(std::nullopt,
@@ -1717,8 +1716,9 @@ void compose_tab::update_element([[maybe_unused]] float dt)
                 bg.ref.color.a = 255 * slider_ptr->ref.progress;
             else if constexpr (std::is_same_v<T, kee::ui::handle<kee::ui::video_player>>)
             {
+                assert(compose_info.vid_state.has_value());
                 bg.ref.color.a = 255 * slider_ptr->ref.progress;
-                bg.ref.set_time(song_ui_elem.get_time());
+                bg.ref.set_time(song_ui_elem.get_time() - compose_info.vid_state.value().offset);
             }
         }, game_bg);   
     }

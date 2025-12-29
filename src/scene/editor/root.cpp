@@ -46,7 +46,7 @@ confirm_save_ui::confirm_save_ui(const kee::ui::required& reqs, const kee::image
         pos(pos::type::rel, 0.06f),
         pos(pos::type::rel, 0),
         ui::text_size(ui::text_size::type::rel_h, 0.2f),
-        false, assets.font_regular, "You have unsaved changes! Are you sure you want to exit?", false
+        std::nullopt, false, assets.font_regular, "You have unsaved changes! Are you sure you want to exit?", false
     )),
     leave_button(confirm_save_ui_base.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0.0f),
@@ -71,7 +71,7 @@ confirm_save_ui::confirm_save_ui(const kee::ui::required& reqs, const kee::image
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.6f),
-        true, assets.font_semi_bold, "LEAVE", false
+        std::nullopt, true, assets.font_semi_bold, "LEAVE", false
     )),
     save_button(confirm_save_ui_base.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0.55f),
@@ -96,7 +96,7 @@ confirm_save_ui::confirm_save_ui(const kee::ui::required& reqs, const kee::image
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.6f),
-        true, assets.font_semi_bold, "SAVE", false
+        std::nullopt, true, assets.font_semi_bold, "SAVE", false
     )),
     destruct_flag(false)
 {
@@ -211,7 +211,7 @@ confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, root& root_elem,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.75f),
-        true, assets.font_semi_bold, "CONFIRM", false
+        std::nullopt, true, assets.font_semi_bold, "CONFIRM", false
     )),
     go_back_button(add_child<kee::ui::button>(-1,
         pos(pos::type::rel, 0),
@@ -234,7 +234,7 @@ confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, root& root_elem,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.75f),
-        true, assets.font_semi_bold, "GO BACK", false
+        std::nullopt, true, assets.font_semi_bold, "GO BACK", false
     )),
     root_elem(root_elem)
 {
@@ -401,7 +401,7 @@ song_ui::song_ui(
         pos(pos::type::end, 0),
         pos(pos::type::end, 0),
         ui::text_size(ui::text_size::type::rel_h, 0.75f),
-        false, assets.font_regular, std::string(), false
+        std::nullopt, false, assets.font_regular, std::string(), false
     )),
     playback_l_button(add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0.05f),
@@ -442,7 +442,7 @@ song_ui::song_ui(
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.7f),
-        true, assets.font_semi_bold, std::format("{:.2f}x", song_ui::playback_speeds[playback_speed_idx]), false
+        std::nullopt, true, assets.font_semi_bold, std::format("{:.2f}x", song_ui::playback_speeds[playback_speed_idx]), false
     )),
     playback_r_button(add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::rel, 0.13f),
@@ -669,13 +669,34 @@ void song_ui::update_element([[maybe_unused]] float dt)
     playback_r_img.ref.color = (playback_speed_idx < song_ui::playback_speeds.size() - 1) ? playback_r_img_color.get() : kee::color(255, 255, 255, 80);
 }
 
-beatmap_save_info::beatmap_save_info(bool need_save_metadata, bool need_save_song, bool need_save_img, bool need_save_vid, bool need_save_hit_objs) :
+beatmap_save_info::beatmap_save_info(bool need_save_metadata, bool need_save_song, bool need_save_img, bool need_save_vid, bool need_save_vid_offset, bool need_save_hit_objs) :
     need_save_metadata(need_save_metadata),
     need_save_song(need_save_song),
     need_save_img(need_save_img),
     need_save_vid(need_save_vid),
+    need_save_vid_offset(need_save_vid_offset),
     need_save_hit_objs(need_save_hit_objs)
 { }
+
+video_state::video_state(const std::filesystem::path& path, float offset) :
+    path(path),
+    offset(offset)
+{ }
+
+key_color_state::key_color_state(const std::filesystem::path& path, const boost::json::object& json) :
+    path(path),
+    json(json)
+{ }
+
+key_color_state::key_color_state(const std::filesystem::path& path, root& root_elem) :
+    path(path)
+{ 
+    const auto parsed_json = beatmap_dir_info::parse_key_colors(path);
+    if (parsed_json.has_value())
+        json = parsed_json.value();
+    else
+        root_elem.set_error(parsed_json.error(), true);
+}
 
 root::root(kee::game& game, kee::global_assets& assets, const std::optional<std::filesystem::path>& beatmap_dir_name) :
     root(game, assets, beatmap_dir_name.has_value() 
@@ -699,14 +720,15 @@ std::optional<beatmap_save_info> root::get_save_info() const
         need_img_save = true;
 
     bool need_vid_save;
-    if (!vid_path.has_value() && !save_state.value().dir_state.has_video)
+    if (!vid_state.has_value() && !save_state.value().dir_state.video_dir_info.has_value())
         need_vid_save = false;
-    else if (vid_path.has_value() && save_state.value().dir_state.has_video)
-        need_vid_save = !std::filesystem::equivalent(vid_path.value(), save_state.value().dir_state.path / beatmap_dir_info::standard_vid_filename);
+    else if (vid_state.has_value() && save_state.value().dir_state.video_dir_info.has_value())
+        need_vid_save = !std::filesystem::equivalent(vid_state.value().path, save_state.value().dir_state.path / beatmap_dir_info::standard_vid_filename);
     else
         need_vid_save = true;
 
-    return beatmap_save_info(save_state.value().save_metadata_needed, setup_info.new_song_path.has_value(), need_img_save, need_vid_save, save_hit_objs_needed);
+    const bool need_save_vid_offset = need_vid_save || (vid_state.has_value() && save_state.value().dir_state.video_dir_info.has_value() && vid_state.value().offset != save_state.value().dir_state.video_dir_info.value());
+    return beatmap_save_info(save_state.value().save_metadata_needed, setup_info.new_song_path.has_value(), need_img_save, need_vid_save, need_save_vid_offset, save_hit_objs_needed);
 }
 
 bool root::needs_save(const std::optional<beatmap_save_info>& save_info) const
@@ -716,6 +738,7 @@ bool root::needs_save(const std::optional<beatmap_save_info>& save_info) const
         save_info.value().need_save_song ||
         save_info.value().need_save_img ||
         save_info.value().need_save_vid ||
+        save_info.value().need_save_vid_offset ||
         save_info.value().need_save_hit_objs
     );
 }
@@ -802,10 +825,10 @@ void root::save_existing_beatmap()
 
     if (save_info.value().need_save_vid)
     {
-        if (vid_path.has_value())
+        if (vid_state.has_value())
         {
             std::error_code ec;
-            const std::filesystem::path& src = vid_path.value();
+            const std::filesystem::path& src = vid_state.value().path;
             const std::filesystem::path dst = save_state.value().dir_state.path / beatmap_dir_info::standard_vid_filename;
 
             std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, ec);
@@ -815,19 +838,21 @@ void root::save_existing_beatmap()
                 return;
             }
 
-            save_state.value().dir_state.has_video = true;
-            vid_path = dst;
+            save_state.value().dir_state.video_dir_info = vid_state.value().offset;
+            vid_state.value().path = dst;
         }
         else
         {
             if (!std::filesystem::remove(save_state.value().dir_state.path / beatmap_dir_info::standard_vid_filename))
                 throw std::runtime_error("Failed to remove beatmap's video file!");
         
-            save_state.value().dir_state.has_video = false;
+            save_state.value().dir_state.video_dir_info.reset();
         }
     }
+    else if (save_info.value().need_save_vid_offset)
+        save_state.value().dir_state.video_dir_info = vid_state.value().offset;
 
-    if (save_info.value().need_save_metadata || save_info.value().need_save_hit_objs)
+    if (save_info.value().need_save_metadata || save_info.value().need_save_hit_objs || save_info.value().need_save_vid_offset)
     {
         boost::json::object output;
         output["song_artist"] = setup_info.song_artist;
@@ -841,6 +866,9 @@ void root::save_existing_beatmap()
         const song_ui& song_info = std::get<kee::ui::handle<song_ui>>(playback_ui).ref;
         output["song_bpm"] = song_info.music_bpm;
         output["song_start_offset"] = song_info.music_start_offset;
+
+        if (save_state.value().dir_state.video_dir_info.has_value())
+            output["video_offset"] = save_state.value().dir_state.video_dir_info.value();
 
         boost::json::object& hit_objects = output["hit_objects"].emplace_object();
         for (int key : compose_tab::prio_to_key)
@@ -931,12 +959,16 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
     error_png("assets/img/error.png"),
     exit_png("assets/img/exit.png"),
     info_png("assets/img/info.png"),
-    vid_path(dir_info.has_value() && dir_info.value().dir_state.has_video
-        ? std::make_optional(dir_info.value().dir_state.path / beatmap_dir_info::standard_vid_filename)
+    key_colors(dir_info.has_value() && dir_info.value().key_colors_json_obj.has_value()
+        ? std::make_optional(key_color_state(dir_info.value().dir_state.path / beatmap_dir_info::standard_key_colors_filename, dir_info.value().key_colors_json_obj.value()))
+        : std::nullopt
+    ),
+    vid_state(dir_info.has_value() && dir_info.value().dir_state.video_dir_info.has_value()
+        ? std::make_optional(video_state(dir_info.value().dir_state.path / beatmap_dir_info::standard_vid_filename, dir_info.value().dir_state.video_dir_info.value()))
         : std::nullopt
     ),
     approach_beats(dir_info.has_value() ? dir_info.value().approach_beats : 2.0f),
-    setup_info(dir_info, exit_png, vid_path),
+    setup_info(dir_info, exit_png, key_colors, vid_state),
     compose_info(
         arrow_png,
         save_state.has_value() 
@@ -945,7 +977,7 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
         dir_info.has_value()
             ? std::make_optional(dir_info.value().keys_json_obj) 
             : std::nullopt,
-        vid_path
+        vid_state
     ),
     active_tab_elem(add_child<setup_tab>(std::nullopt, *this, setup_info, approach_beats)),
     active_tab(root::tabs::setup),
@@ -1034,7 +1066,7 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
                 pos(pos::type::rel, 0),
                 pos(pos::type::rel, 0),
                 ui::text_size(ui::text_size::type::rel_h, 0.5f),
-                false, assets.font_semi_bold, "NO SONG SELECTED", false
+                std::nullopt, false, assets.font_semi_bold, "NO SONG SELECTED", false
             )
         )
     ),
@@ -1071,6 +1103,7 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
         pos(pos::type::rel, 0.13f),
         pos(pos::type::rel, 0.3f),
         ui::text_size(ui::text_size::type::rel_h, 0.4f),
+        kee::dim(kee::dim::type::rel, 0.82f),
         false, assets.font_semi_bold, std::string(), false
     )),
     notif_timer(0.0f)
@@ -1185,7 +1218,7 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
             pos(pos::type::rel, 0.5f),
             pos(pos::type::rel, 0.5f),
             ui::text_size(ui::text_size::type::rel_h, 0.6f),
-            true, assets.font_semi_bold, enum_name, false
+            std::nullopt, true, assets.font_semi_bold, enum_name, false
         ));
     }
 }

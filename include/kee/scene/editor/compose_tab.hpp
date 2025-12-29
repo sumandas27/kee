@@ -18,6 +18,7 @@ namespace editor {
 
 /* TODO: add beatmap ui elements to editor down the line i.e. progress bar/combo/etc */
 
+class video_state;
 class song_ui;
 class compose_tab;
 class editor_hit_object;
@@ -288,13 +289,14 @@ public:
         const kee::image_texture& arrow_png,
         const std::optional<beatmap_dir_state>& dir_state,
         const std::optional<boost::json::object>& keys_json_obj,
-        std::optional<std::filesystem::path>& vid_path
+        std::optional<video_state>& vid_state
     );
 
     const kee::image_texture& arrow_png;
 
+    /* TODO: make these optional i think is correct */
     std::optional<kee::image_texture> bg_img;
-    std::optional<std::filesystem::path>& vid_path;
+    std::optional<video_state>& vid_state;
 
     raylib::Sound hitsound;
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <expected>
 #include <fstream>
 #include <optional>
 #include <print>
@@ -135,6 +136,8 @@ template <typename T>
 class transition final : public transition_base
 {
 public:
+    static T calculate(T start, T end, float transition_progress, kee::transition_type type);
+
     transition(const T& default_val);
 
     T get() const;
@@ -220,17 +223,22 @@ public:
     beatmap_dir_state(const std::filesystem::path& path);
 
     std::filesystem::path path;
+    std::optional<float> video_dir_info;
+
+    bool has_key_colors;
     bool has_image;
-    bool has_video;
 };
 
 class beatmap_dir_info
 {
 public:
+    static const std::string_view standard_key_colors_filename;
     static const std::string_view standard_img_filename;
     static const std::string_view standard_vid_filename;
 
     static const std::filesystem::path app_data_dir; /* TODO: temp */
+
+    static std::expected<boost::json::object, std::string> parse_key_colors(const std::filesystem::path& key_color_json_path);
 
     beatmap_dir_info(const std::filesystem::path& beatmap_dir_name);
 
@@ -249,6 +257,7 @@ public:
     float beat_forgiveness;
 
     boost::json::object keys_json_obj;
+    std::optional<boost::json::object> key_colors_json_obj;
 };
 
 class key_pos_data

@@ -6,19 +6,49 @@ namespace kee {
 namespace scene {
 namespace editor {
 
-setup_tab_info::setup_tab_info(const std::optional<beatmap_dir_info>& dir_info, const kee::image_texture& exit_png, std::optional<std::filesystem::path>& vid_path) :
+setup_tab_info::setup_tab_info(const std::optional<beatmap_dir_info>& dir_info, const kee::image_texture& exit_png, std::optional<key_color_state>& key_colors, std::optional<video_state>& vid_state) :
     exit_png(exit_png),
+    key_colors(key_colors),
+    vid_state(vid_state),
     from_dir(dir_info.has_value()),
     img_path(dir_info.has_value() && dir_info.value().dir_state.has_image
         ? std::make_optional(dir_info.value().dir_state.path / beatmap_dir_info::standard_img_filename)
         : std::nullopt
     ),
-    vid_path(vid_path),
     song_artist(dir_info.has_value() ? dir_info.value().song_artist : ""),
     song_name(dir_info.has_value() ? dir_info.value().song_name : ""),
     mapper(dir_info.has_value() ? dir_info.value().mapper : ""),
     level_name(dir_info.has_value() ? dir_info.value().level_name : ""),
     beat_forgiveness(dir_info.has_value() ? dir_info.value().beat_forgiveness : 0.25f)
+{ }
+
+video_offset_ui::video_offset_ui(kee::ui::base& r_side_frame, const raylib::Font& font_semi_bold, setup_tab& setup_tab_elem, float video_offset) :
+    setup_tab_elem(setup_tab_elem),
+    video_offset_label(r_side_frame.add_child<kee::ui::text>(1,
+        kee::color::white,
+        pos(pos::type::rel, 0.1f),
+        pos(pos::type::rel, 0.8075f),
+        ui::text_size(ui::text_size::type::rel_h, 0.03f),
+        std::nullopt, false, font_semi_bold, "VIDEO OFFSET", false
+    )),
+    video_offset_frame(r_side_frame.add_child<kee::ui::base>(1,
+        pos(pos::type::rel, 0.45f),
+        pos(pos::type::rel, 0.8075f),
+        dims(
+            dim(dim::type::rel, 0.45f),
+            dim(dim::type::rel, 0.03f)
+        ),
+        false
+    )),
+    video_offset_textbox(video_offset_frame.ref.add_child<kee::ui::textbox>(1,
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 0.88f),
+            dim(dim::type::rel, 1)
+        ),
+        false, setup_tab_elem, std::format("{:.2f}", video_offset)
+    ))
 { }
 
 setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_info& setup_info, float& approach_beats) :
@@ -34,8 +64,9 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     root_elem(root_elem),
     setup_info(setup_info),
     approach_beats(approach_beats),
+    key_color_remove_button_color(add_transition<kee::color>(setup_info.key_colors.has_value() ? kee::color::white : kee::color::dark_gray)),
     image_remove_button_color(add_transition<kee::color>(setup_info.img_path.has_value() ? kee::color::white : kee::color::dark_gray)),
-    video_remove_button_color(add_transition<kee::color>(setup_info.vid_path.has_value() ? kee::color::white : kee::color::dark_gray)),
+    video_remove_button_color(add_transition<kee::color>(setup_info.vid_state.has_value() ? kee::color::white : kee::color::dark_gray)),
     l_side_frame(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.05f),
@@ -61,14 +92,14 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.05f),
         ui::text_size(ui::text_size::type::rel_h, 0.05f),
-        true, assets.font_semi_bold, "AUDIO", true
+        std::nullopt, true, assets.font_semi_bold, "AUDIO", true
     )),
     audio_text(l_side_frame.ref.add_child<kee::ui::text>(1,
         kee::color::white,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.12f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
-        false, assets.font_semi_bold, "FILE", false
+        std::nullopt, false, assets.font_semi_bold, "FILE", false
     )),
     audio_file_dialog(l_side_frame.ref.add_child<kee::ui::file_dialog>(1,
         pos(pos::type::rel, 0.45f),
@@ -94,7 +125,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.1825f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
-        false, assets.font_semi_bold, "ARTIST", false
+        std::nullopt, false, assets.font_semi_bold, "ARTIST", false
     )),
     artist_textbox(l_side_frame.ref.add_child<kee::ui::textbox>(1,
         pos(pos::type::rel, 0.45f),
@@ -110,7 +141,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.245f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
-        false, assets.font_semi_bold, "SONG NAME", false
+        std::nullopt, false, assets.font_semi_bold, "SONG NAME", false
     )),
     song_name_textbox(l_side_frame.ref.add_child<kee::ui::textbox>(1,
         pos(pos::type::rel, 0.45f),
@@ -137,14 +168,14 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.55f),
         ui::text_size(ui::text_size::type::rel_h, 0.05f),
-        true, assets.font_semi_bold, "METADATA", true
+        std::nullopt, true, assets.font_semi_bold, "METADATA", true
     )),
     mapper_text(l_side_frame.ref.add_child<kee::ui::text>(1,
         kee::color::white,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.62f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
-        false, assets.font_semi_bold, "MAPPER", false
+        std::nullopt, false, assets.font_semi_bold, "MAPPER", false
     )),
     mapper_textbox(l_side_frame.ref.add_child<kee::ui::textbox>(1,
         pos(pos::type::rel, 0.45f),
@@ -160,7 +191,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.6825f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
-        false, assets.font_semi_bold, "LEVEL NAME", false
+        std::nullopt, false, assets.font_semi_bold, "LEVEL NAME", false
     )),
     level_name_textbox(l_side_frame.ref.add_child<kee::ui::textbox>(1,
         pos(pos::type::rel, 0.45f),
@@ -196,14 +227,14 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.05f),
         ui::text_size(ui::text_size::type::rel_h, 0.05f),
-        true, assets.font_semi_bold, "DIFFICULTY", true
+        std::nullopt, true, assets.font_semi_bold, "DIFFICULTY", true
     )),
     approach_text(r_side_frame.ref.add_child<kee::ui::text>(1,
         kee::color::white,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.12f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
-        false, assets.font_semi_bold, "APPROACH BEATS", false
+        std::nullopt, false, assets.font_semi_bold, "APPROACH BEATS", false
     )),
     approach_textbox(r_side_frame.ref.add_child<kee::ui::textbox>(1,
         pos(pos::type::rel, 0.65f),
@@ -219,7 +250,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.1825f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
-        false, assets.font_semi_bold, "BEAT FORGIVENESS", false
+        std::nullopt, false, assets.font_semi_bold, "BEAT FORGIVENESS", false
     )),
     forgiveness_textbox(r_side_frame.ref.add_child<kee::ui::textbox>(1,
         pos(pos::type::rel, 0.65f),
@@ -246,14 +277,14 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.55f),
         ui::text_size(ui::text_size::type::rel_h, 0.05f),
-        true, assets.font_semi_bold, "DECORATION", true
+        std::nullopt, true, assets.font_semi_bold, "DECORATION", true
     )),
     key_color_text(r_side_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.62f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
-        false, assets.font_semi_bold, "KEY COLORS", false
+        std::nullopt, false, assets.font_semi_bold, "KEY COLORS", false
     )),
     key_color_frame(r_side_frame.ref.add_child<kee::ui::base>(1,
         pos(pos::type::rel, 0.45f),
@@ -273,14 +304,37 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         ),
         false,
         std::vector<std::string_view>({".json"}),
-        std::string_view("Select a valid JSON file")
+        [&]() -> std::variant<std::string_view, std::filesystem::path>
+        {
+            if (setup_info.key_colors.has_value())
+                return setup_info.key_colors.value().path;
+            else
+                return setup_tab::no_key_colors_message;
+        }()
+    )),
+    key_color_remove_button(key_color_frame.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::end, 0),
+        pos(pos::type::beg, 0),
+        dims(
+            dim(dim::type::aspect, 1),
+            dim(dim::type::rel, 1)
+        ),
+        false
+    )),
+    key_color_remove_image(key_color_remove_button.ref.add_child<kee::ui::image>(std::nullopt,
+        setup_info.exit_png,
+        key_color_remove_button_color.get(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_h, 0.2f),
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
     )),
     image_text(r_side_frame.ref.add_child<kee::ui::text>(1,
         kee::color::white,
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.6825f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
-        false, assets.font_semi_bold, "IMAGE", false
+        std::nullopt, false, assets.font_semi_bold, "IMAGE", false
     )),
     image_frame(r_side_frame.ref.add_child<kee::ui::base>(1,
         pos(pos::type::rel, 0.45f),
@@ -330,7 +384,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         pos(pos::type::rel, 0.1f),
         pos(pos::type::rel, 0.745f),
         ui::text_size(ui::text_size::type::rel_h, 0.03f),
-        false, assets.font_semi_bold, "VIDEO", false
+        std::nullopt, false, assets.font_semi_bold, "VIDEO", false
     )),
     video_frame(r_side_frame.ref.add_child<kee::ui::base>(1,
         pos(pos::type::rel, 0.45f),
@@ -352,8 +406,8 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         std::vector<std::string_view>({".mp4"}),
         [&]() -> std::variant<std::string_view, std::filesystem::path>
         {
-            if (setup_info.vid_path.has_value())
-                return setup_info.vid_path.value();
+            if (setup_info.vid_state.has_value())
+                return setup_info.vid_state.value().path;
             else
                 return setup_tab::no_vid_message;
         }()
@@ -376,6 +430,9 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         true, ui::image::display::shrink_to_fit, false, false, 0.0f
     ))
 {
+    if (setup_info.vid_state.has_value())
+        init_video_offset_ui();
+
     audio_file_dialog.ref.on_success = [&](const std::filesystem::path& song_path)
     {
         this->root_elem.set_song(song_path);
@@ -471,15 +528,41 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         return true;
     };
 
-    //key_color_dialog.ref.on_success = [&](const std::filesystem::path& song_path)
-    //{
-    //    /* TODO: implement */
-    //};
+    key_color_dialog.ref.on_success = [&](const std::filesystem::path& key_colors_path)
+    {
+        this->setup_info.key_colors = key_color_state(key_colors_path, root_elem);
+        this->key_color_remove_button_color.set(kee::color::white);
+    };
 
     key_color_dialog.ref.on_filter_mismatch = [&]()
     {
         this->root_elem.set_error("Not a JSON file!", true);
     };
+
+    key_color_remove_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        if (!setup_info.key_colors.has_value())
+            return;
+
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            this->key_color_remove_button_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            this->key_color_remove_button_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    key_color_remove_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        this->key_color_dialog.ref.reset(setup_tab::no_key_colors_message);
+        this->setup_info.key_colors.reset();
+        this->key_color_remove_button_color.set(kee::color::dark_gray);
+    }; 
 
     image_dialog.ref.on_success = [&](const std::filesystem::path& img_path)
     {
@@ -513,7 +596,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
 
     image_remove_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        this->image_dialog.ref.set_message(setup_tab::no_img_message);
+        this->image_dialog.ref.reset(setup_tab::no_img_message);
         this->root_elem.set_image(std::nullopt);
         this->setup_info.img_path.reset();
         this->image_remove_button_color.set(kee::color::dark_gray);
@@ -521,7 +604,10 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
 
     video_dialog.ref.on_success = [&](const std::filesystem::path& vid_path)
     {
-        this->setup_info.vid_path = vid_path;
+        this->setup_info.vid_state = video_state(vid_path, 0.f);
+        this->root_elem.save_state.value().save_metadata_needed = true;
+        init_video_offset_ui();
+
         this->video_remove_button_color.set(kee::color::white);
     };
 
@@ -532,7 +618,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
 
     video_remove_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        if (!setup_info.vid_path.has_value())
+        if (!setup_info.vid_state.has_value())
             return;
 
         switch (button_event)
@@ -550,17 +636,46 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
 
     video_remove_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        this->video_dialog.ref.set_message(setup_tab::no_vid_message);
-        this->setup_info.vid_path.reset();
+        this->video_offset.reset();
+        this->setup_info.vid_state.reset();
+        this->root_elem.save_state.value().save_metadata_needed = true;
+
+        this->video_dialog.ref.reset(setup_tab::no_vid_message);
         this->video_remove_button_color.set(kee::color::dark_gray);
     };
 }
 
+const std::string_view setup_tab::no_key_colors_message = "Select a valid JSON file";
 const std::string_view setup_tab::no_img_message = "Select a `.png` image";
 const std::string_view setup_tab::no_vid_message = "Select a `.mp4` video";
 
+void setup_tab::init_video_offset_ui()
+{
+    assert(setup_info.vid_state.has_value());
+    video_offset.emplace(r_side_frame.ref, assets.font_semi_bold, *this, setup_info.vid_state.value().offset);
+    
+    video_offset.value().video_offset_textbox.ref.on_string_input = [&](std::string_view new_str) -> bool
+    {
+        float text_float;
+
+        auto [ptr, ec] = std::from_chars(new_str.data(), new_str.data() + new_str.size(), text_float);
+        if (ec != std::errc() || ptr != new_str.data() + new_str.size())
+            return false;
+
+        if (setup_info.vid_state.value().offset != text_float)
+        {
+            setup_info.vid_state.value().offset = text_float;
+            if (root_elem.save_state.has_value())
+                root_elem.save_state.value().save_metadata_needed = true;
+        }
+
+        return true;
+    };
+}
+
 void setup_tab::update_element([[maybe_unused]] float dt)
 {
+    key_color_remove_image.ref.color = key_color_remove_button_color.get();
     image_remove_img.ref.color = image_remove_button_color.get();
     video_remove_img.ref.color = video_remove_button_color.get();
 }

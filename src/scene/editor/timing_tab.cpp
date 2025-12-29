@@ -49,7 +49,7 @@ timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem, song_ui& 
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.05f),
-        true, assets.font_semi_bold, "WORK IN PROGRESS", false
+        std::nullopt, true, assets.font_semi_bold, "WORK IN PROGRESS", false
     )),
     timing_slider(add_child<kee::ui::rect>(std::nullopt,
         timing_tab::timing_rect_color,
@@ -96,7 +96,7 @@ timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem, song_ui& 
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         ui::text_size(ui::text_size::type::rel_h, 0.4f),
-        false, assets.font_semi_bold, "BPM", false
+        std::nullopt, false, assets.font_semi_bold, "BPM", false
     )),
     bpm_textbox(bpm_offset_frame.ref.add_child<kee::ui::textbox>(std::nullopt,
         pos(pos::type::rel, 0.5f),
@@ -112,7 +112,7 @@ timing_tab::timing_tab(const kee::ui::required& reqs, root& root_elem, song_ui& 
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.6f),
         ui::text_size(ui::text_size::type::rel_h, 0.4f),
-        false, assets.font_semi_bold, "Offset", false
+        std::nullopt, false, assets.font_semi_bold, "Offset", false
     )),
     offset_textbox(bpm_offset_frame.ref.add_child<kee::ui::textbox>(std::nullopt,
         pos(pos::type::rel, 0.5f),

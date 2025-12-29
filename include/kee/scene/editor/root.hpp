@@ -4,6 +4,9 @@
 #include "kee/scene/editor/setup_tab.hpp"
 #include "kee/scene/editor/timing_tab.hpp"
 
+/* TODO: render key colors in editor */
+/* TODO: implement key color saving */
+
 namespace kee {
 namespace scene {
 namespace editor {
@@ -169,16 +172,37 @@ public:
 
 class beatmap_save_info
 {
-private:
-    friend class root;
-
-    beatmap_save_info(bool need_save_metadata, bool need_save_song, bool need_save_img, bool need_save_vid, bool need_save_hit_objs);
+public:
+    beatmap_save_info(bool need_save_metadata, bool need_save_song, bool need_save_img, bool need_save_vid, bool need_save_vid_offset, bool need_save_hit_objs);
 
     const bool need_save_metadata;
     const bool need_save_song;
     const bool need_save_img;
     const bool need_save_vid;
+    const bool need_save_vid_offset;
     const bool need_save_hit_objs;
+};
+
+class video_state
+{
+public:
+    video_state(const std::filesystem::path& path, float offset);
+
+    std::filesystem::path path;
+    float offset;
+};
+
+class key_color_state
+{
+public:
+    /**
+     * If you already have `boost::json::object` to pass in instead of reparsing.
+     */
+    key_color_state(const std::filesystem::path& path, const boost::json::object& json);
+    key_color_state(const std::filesystem::path& path, root& root_elem);
+
+    std::filesystem::path path;
+    boost::json::object json;
 };
 
 class root final : public kee::scene::base
@@ -215,7 +239,8 @@ private:
     kee::image_texture exit_png;
     kee::image_texture info_png;
 
-    std::optional<std::filesystem::path> vid_path;
+    std::optional<key_color_state> key_colors;
+    std::optional<video_state> vid_state;
     float approach_beats;
 
     setup_tab_info setup_info;

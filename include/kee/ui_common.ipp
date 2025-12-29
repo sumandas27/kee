@@ -3,17 +3,8 @@
 namespace kee {
 
 template <typename T>
-transition<T>::transition(const T& default_val) :
-    default_val(default_val)
-{ }
-
-template <typename T>
-T transition<T>::get() const
+T transition<T>::calculate(T start, T end, float transition_progress, kee::transition_type type)
 {
-    if (!duration.has_value() || timer == 0.0f)
-        return default_val;
-
-    const float transition_progress = 1.0f - (timer / duration.value());
     float interpolation = 0.0f;
 
     switch (type)
@@ -27,6 +18,21 @@ T transition<T>::get() const
     }
 
     return end * interpolation + start * (1.0f - interpolation);
+}
+
+template <typename T>
+transition<T>::transition(const T& default_val) :
+    default_val(default_val)
+{ }
+
+template <typename T>
+T transition<T>::get() const
+{
+    if (!duration.has_value() || timer == 0.0f)
+        return default_val;
+
+    const float transition_progress = 1.0f - (timer / duration.value());
+    return transition<T>::calculate(start, end, transition_progress, type);
 }
 
 template <typename T>

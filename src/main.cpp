@@ -1,5 +1,8 @@
 #include "kee/game.hpp"
 
+/* TODO: add key color decorations (this is big addition) */
+/* TODO: start marketing (set up steam page + trailer + maybe devlog) */
+
 int main()
 {
     if constexpr (!magic_enum::is_magic_enum_supported)
@@ -13,11 +16,11 @@ int main()
     std::println(stderr, "backed by OpenGL, a graphics API which Apple has deprecated.");
 #endif
 
-    try {
+    //try {
         kee::game game;
         game.begin_main_loop();
         return EXIT_SUCCESS;
-    }
+    /*}
     catch (const raylib::RaylibException& e) 
     {
         std::println(stderr, "Raylib Exception Caught: {}", e.what());
@@ -31,5 +34,5 @@ int main()
         std::println(stderr, "General Exception Caught");
     }
 
-    return EXIT_FAILURE;
+    return EXIT_FAILURE;*/
 }

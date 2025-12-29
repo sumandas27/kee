@@ -73,14 +73,88 @@ kee::color color::operator+(const kee::color& other) const
 
 beatmap_dir_state::beatmap_dir_state(const std::filesystem::path& path) :
     path(path),
-    has_image(std::filesystem::exists(path / beatmap_dir_info::standard_img_filename)),
-    has_video(std::filesystem::exists(path / beatmap_dir_info::standard_vid_filename))
+    has_key_colors(std::filesystem::exists(path / beatmap_dir_info::standard_key_colors_filename)),
+    has_image(std::filesystem::exists(path / beatmap_dir_info::standard_img_filename))
 { }
 
+const std::string_view beatmap_dir_info::standard_key_colors_filename = "key_colors.json";
 const std::string_view beatmap_dir_info::standard_img_filename = "img.png";
 const std::string_view beatmap_dir_info::standard_vid_filename = "vid.mp4";
 
 const std::filesystem::path beatmap_dir_info::app_data_dir = "test_app_data/";
+
+std::expected<boost::json::object, std::string> beatmap_dir_info::parse_key_colors(const std::filesystem::path& key_color_json_path)
+{
+    std::ifstream key_colors_json_stream = std::ifstream(key_color_json_path);
+    if (!key_colors_json_stream)
+        return std::unexpected("Failed to open key colors file");
+
+    const std::string key_colors_json_contents = std::string(
+        std::istreambuf_iterator<char>(key_colors_json_stream),
+        std::istreambuf_iterator<char>()
+    );
+
+    const boost::json::value& key_colors_json_root = boost::json::parse(key_colors_json_contents);
+    if (!key_colors_json_root.is_object())
+        return std::unexpected("`key_colors.json` root is not an object.");
+
+    const boost::json::object& res = key_colors_json_root.as_object();
+    for (const key_pos_data& key_data : kee::key_ui_data)
+    {
+        const std::string key_str = std::string(1, static_cast<char>(key_data.raylib_key));
+        if (!res.contains(key_str) || !res.at(key_str).is_array())
+            return std::unexpected(std::format("Missing '{}' key.", key_str));
+    
+        const boost::json::array& key_color_array = res.at(key_str).as_array();
+        for (const boost::json::value& key_deco : key_color_array)
+        {
+            if (!key_deco.is_object())
+                return std::unexpected("Not a JSON object.");
+
+            const boost::json::object& key_deco_obj = key_deco.as_object();
+            if (!key_deco_obj.contains("start_beat") || !key_deco_obj.at("start_beat").is_double())
+                return std::unexpected(std::format("'{}': Malformed 'start_beat' key", key_str));
+
+            if (!key_deco_obj.contains("end_beat") || !key_deco_obj.at("end_beat").is_double())
+                return std::unexpected(std::format("'{}': Malformed 'end_beat' key", key_str));
+
+            if (!key_deco_obj.contains("start_color") || !key_deco_obj.at("start_color").is_object())
+                return std::unexpected(std::format("'{}': Malformed 'start_color' key", key_str));
+
+            const boost::json::object& start_color_obj = key_deco_obj.at("start_color").as_object();
+            if (!start_color_obj.contains("r") || !start_color_obj.at("r").is_double())
+                return std::unexpected(std::format("'{}': 'start_color' has malformed 'r' key", key_str));
+
+            if (!start_color_obj.contains("g") || !start_color_obj.at("g").is_double())
+                return std::unexpected(std::format("'{}': 'start_color' has malformed 'g' key", key_str));
+
+            if (!start_color_obj.contains("b") || !start_color_obj.at("b").is_double())
+                return std::unexpected(std::format("'{}': 'start_color' has malformed 'b' key", key_str));
+
+            if (!key_deco_obj.contains("end_color") || !key_deco_obj.at("end_color").is_object())
+                return std::unexpected(std::format("'{}': Malformed 'end_color' key", key_str));
+
+            const boost::json::object& end_color_obj = key_deco_obj.at("end_color").as_object();
+            if (!end_color_obj.contains("r") || !end_color_obj.at("r").is_double())
+                return std::unexpected(std::format("'{}': 'end_color' has malformed 'r' key", key_str));
+
+            if (!end_color_obj.contains("g") || !end_color_obj.at("g").is_double())
+                return std::unexpected(std::format("'{}': 'end_color' has malformed 'g' key", key_str));
+
+            if (!end_color_obj.contains("b") || !end_color_obj.at("b").is_double())
+                return std::unexpected(std::format("'{}': 'end_color' has malformed 'b' key", key_str));
+        
+            if (!key_deco_obj.contains("interpolation_type") || !key_deco_obj.at("interpolation_type").is_string())
+                return std::unexpected(std::format("'{}': Malformed 'interpolation_type' key", key_str));
+
+            const std::string interpolation_type_str = static_cast<std::string>(key_deco_obj.at("interpolation_type").as_string());
+            if (!magic_enum::enum_cast<kee::transition_type>(interpolation_type_str).has_value())
+                return std::unexpected(std::format("'{}': Malformed 'interpolation_type' key", key_str));
+        }
+    }
+
+    return res;
+}
 
 beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_name) :
     dir_state(beatmap_dir_info::app_data_dir / beatmap_dir_name)
@@ -127,6 +201,14 @@ beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_name
     if (!json_object.contains("hit_objects") || !json_object.at("hit_objects").is_object())
         throw std::runtime_error("`metadata.json` has malformed `song_start_offset` key.");
 
+    if (std::filesystem::exists(beatmap_dir_info::app_data_dir / beatmap_dir_name / beatmap_dir_info::standard_vid_filename))
+    {
+        if (!json_object.contains("video_offset") || !json_object.at("video_offset").is_double())
+            throw std::runtime_error("`metadata.json` has malformed `video_offset` key while a video exists.");
+    
+        dir_state.video_dir_info = static_cast<float>(json_object.at("video_offset").as_double());    
+    }
+
     const boost::json::object& hit_objs = json_object.at("hit_objects").as_object();
     for (const key_pos_data& key_data : kee::key_ui_data)
     {
@@ -147,6 +229,16 @@ beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_name
             if (!key_hit_obj_json.contains("duration") || !key_hit_obj_json.at("duration").is_double())
                 throw std::runtime_error("`metadata.json` key hit object malformed `duration` key");
         }
+    }
+
+    if (dir_state.has_key_colors)
+    {
+        const std::filesystem::path key_colors_json_path = beatmap_dir_info::app_data_dir / beatmap_dir_name / beatmap_dir_info::standard_key_colors_filename;
+        const auto parsed_json = beatmap_dir_info::parse_key_colors(key_colors_json_path);
+        if (parsed_json.has_value())
+            key_colors_json_obj = parsed_json.value();
+        else
+            throw std::runtime_error(parsed_json.error());
     }
 
     const std::filesystem::path song_path = dir_state.path / "song.mp3";

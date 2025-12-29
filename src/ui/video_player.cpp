@@ -70,6 +70,8 @@ video_player::video_player(
 
 void video_player::set_time(double sec)
 {
+    sec = std::clamp(sec, 0., static_cast<double>(video_input.duration()));
+
     const bool less_than_next_ts = !next_video_frame.has_value() || sec <= next_video_frame.value().pts().seconds();
     if (curr_ts <= sec && less_than_next_ts)
         return;

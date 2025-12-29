@@ -31,8 +31,9 @@ public:
         const kee::ui::required& reqs, 
         const kee::color& color_param, 
         const kee::pos& p_x, 
-        const kee::pos& p_y, 
-        kee::ui::text_size p_str_size,
+        const kee::pos& p_y,
+        const kee::ui::text_size& p_str_size,
+        const std::optional<kee::dim>& clamped_width,
         bool centered,
         const raylib::Font& font,
         std::string_view p_string,
@@ -48,6 +49,8 @@ public:
     const raylib::Font& font;
 
 private:
+    static constexpr float font_cap_height_multiplier_approx = 0.9f;
+
     void render_element() const override;
 
     void update_dims(
@@ -56,7 +59,7 @@ private:
         std::optional<float> new_scale
     );
 
-    static constexpr float font_cap_height_multiplier_approx = 0.9f;
+    const std::optional<kee::dim> clamped_width;
     const bool font_cap_height_only;
 
     std::string str;

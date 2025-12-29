@@ -22,7 +22,7 @@ public:
         std::variant<std::string_view, std::filesystem::path> initial_msg
     );
 
-    void set_message(std::string_view message);
+    void reset(std::string_view message);
 
     std::function<void(const std::filesystem::path&)> on_success;
     std::function<void()> on_filter_mismatch;
