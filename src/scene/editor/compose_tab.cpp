@@ -208,8 +208,6 @@ compose_tab_key::compose_tab_key(
         : "___";
 
     key_text.ref.set_string(key_str);
-
-    /* TODO: initialize decorations */
 }
 
 void compose_tab_key::update_element([[maybe_unused]] float dt)

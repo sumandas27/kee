@@ -465,8 +465,6 @@ void pause_menu::update_element([[maybe_unused]] float dt)
     }
 }
 
-/* TODO: some of these texts aren't nullopt */
-
 end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
     kee::ui::rect(reqs,
         kee::color(30, 30, 30),
