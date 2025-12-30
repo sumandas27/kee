@@ -8,8 +8,9 @@ namespace kee {
 namespace scene {
 namespace editor {
 
-class key_color_state;
+class image_state;
 class video_state;
+class key_color_state;
 class root;
 class setup_tab;
 
@@ -19,17 +20,18 @@ public:
     setup_tab_info(
         const std::optional<beatmap_dir_info>& dir_info, 
         const kee::image_texture& exit_png, 
+        std::optional<image_state>& img_state,
         std::optional<video_state>& vid_state,
         key_color_state& key_colors
     );
 
     const kee::image_texture& exit_png;
 
+    std::optional<image_state>& img_state;
     std::optional<video_state>& vid_state;
     key_color_state& key_colors;
 
-    std::optional<std::filesystem::path> new_song_path; /* TODO: change pattern to match other assets */
-    std::optional<std::filesystem::path> img_path; /* TODO: prob best to merge path with image texture imo, same w/ vid + key color state */
+    std::optional<std::filesystem::path> new_song_path;
 
     bool from_dir;
     std::string song_artist;

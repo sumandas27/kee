@@ -250,7 +250,7 @@ public:
     static const std::string_view standard_img_filename;
     static const std::string_view standard_vid_filename;
 
-    static const std::filesystem::path app_data_dir; /* TODO: temp */
+    static const std::filesystem::path app_data_dir; /* TODO FAR: temp */
 
     static std::expected<boost::json::object, std::string> parse_key_colors(const std::filesystem::path& key_color_json_path);
     static std::vector<key_decoration> get_key_decorations(const boost::json::array& key_color_decos);

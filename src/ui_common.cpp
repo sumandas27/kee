@@ -113,7 +113,7 @@ std::expected<boost::json::object, std::string> beatmap_dir_info::parse_key_colo
         if (!res.contains(key_str) || !res.at(key_str).is_array())
             return std::unexpected(std::format("Missing '{}' key.", key_str));
     
-        /*TODO: bounds checking*/
+        /*TODO NEXT: bounds checking*/
         const boost::json::array& key_color_array = res.at(key_str).as_array();
         for (const boost::json::value& key_deco : key_color_array)
         {

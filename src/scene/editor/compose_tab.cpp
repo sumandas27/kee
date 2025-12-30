@@ -212,6 +212,22 @@ compose_tab_key::compose_tab_key(
 
 void compose_tab_key::update_element([[maybe_unused]] float dt)
 {
+    const auto it = std::lower_bound(key_colors.begin(), key_colors.end(), song_ui_elem.get_beat(),
+        [](const key_decoration& key_deco, float beat) -> bool
+        {
+            return key_deco.end_beat < beat;
+        }
+    );
+
+    if (it != key_colors.end() && song_ui_elem.get_beat() > it->start_beat)
+    {
+        const float deco_duration = it->end_beat - it->start_beat;
+        const float transition_progress = (song_ui_elem.get_beat() - it->start_beat) / deco_duration;
+        color = kee::transition<kee::color>::calculate(it->start_color, it->end_color, transition_progress, it->interpolation);
+    }
+    else
+        color = kee::color::white;
+
     frame.ref.outline.value().color = color;
     key_text.ref.color = color;
 
@@ -940,18 +956,15 @@ const std::unordered_map<int, int> compose_tab::key_to_prio = []
 
 compose_tab_info::compose_tab_info(
     const kee::image_texture& arrow_png,
-    const std::optional<beatmap_dir_state>& dir_state,
     const std::optional<boost::json::object>& keys_json_obj,
+    const std::optional<image_state>& img_state,
     const std::optional<video_state>& vid_state,
     const key_color_state& key_colors
 ) :
     arrow_png(arrow_png),
+    img_state(img_state),
     vid_state(vid_state),
     key_colors(key_colors),
-    bg_img(dir_state.has_value() && dir_state.value().has_image
-        ? std::make_optional(kee::image_texture(dir_state.value().path / beatmap_dir_info::standard_img_filename))
-        : std::nullopt    
-    ),
     hitsound("assets/sfx/hitsound.wav"),
     is_beat_snap(true),
     is_key_locked(true),
@@ -1146,20 +1159,20 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         false
     )),
     game_bg_opacity_label(game_bg_opacity_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        compose_info.bg_img.has_value() ? kee::color::white : kee::color(125, 125, 125),
+        compose_info.img_state.has_value() ? kee::color::white : kee::color(125, 125, 125),
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0),
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
         std::nullopt, false, assets.font_semi_bold, "BG OPACITY", false
     )),
     game_bg_opacity_text(game_bg_opacity_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        compose_info.bg_img.has_value() ? kee::color::white : kee::color(125, 125, 125),
+        compose_info.img_state.has_value() ? kee::color::white : kee::color(125, 125, 125),
         pos(pos::type::end, 0),
         pos(pos::type::beg, 0),
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
-        std::nullopt, false, assets.font_semi_bold, compose_info.bg_img.has_value() ? std::format("{}%", static_cast<int>(kee::game_start_bg_opacity * 100)) : "--", false
+        std::nullopt, false, assets.font_semi_bold, compose_info.img_state.has_value() ? std::format("{}%", static_cast<int>(kee::game_start_bg_opacity * 100)) : "--", false
     )),
-    game_bg_opacity_slider(compose_info.bg_img.has_value() ?
+    game_bg_opacity_slider(compose_info.img_state.has_value() ?
         std::variant<kee::ui::handle<kee::ui::slider>, kee::ui::handle<kee::ui::rect>>(
             game_bg_opacity_frame.ref.add_child<kee::ui::slider>(std::nullopt,
                 pos(pos::type::rel, 0),
@@ -1217,9 +1230,9 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
                 border(border::type::abs, 0),
                 true
             );
-        else if (compose_info.bg_img.has_value())
+        else if (compose_info.img_state.has_value())
             return game_display_frame.ref.add_child<kee::ui::image>(std::nullopt,
-                compose_info.bg_img.value(),
+                compose_info.img_state.value().texture,
                 kee::color(255, 255, 255, 255 * kee::game_start_bg_opacity),
                 pos(pos::type::rel, 0.5f),
                 pos(pos::type::rel, 0.5f),

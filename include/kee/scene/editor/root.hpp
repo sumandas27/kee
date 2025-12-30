@@ -4,9 +4,6 @@
 #include "kee/scene/editor/setup_tab.hpp"
 #include "kee/scene/editor/timing_tab.hpp"
 
-/* TODO: render key colors in editor */
-/* TODO: implement key color saving */
-
 namespace kee {
 namespace scene {
 namespace editor {
@@ -173,7 +170,7 @@ public:
 class beatmap_save_info
 {
 public:
-    beatmap_save_info(bool need_save_metadata, bool need_save_song, bool need_save_img, bool need_save_vid, bool need_save_vid_offset, bool need_save_hit_objs);
+    beatmap_save_info(bool need_save_metadata, bool need_save_song, bool need_save_img, bool need_save_vid, bool need_save_vid_offset, bool need_save_hit_objs, bool need_save_key_color);
 
     const bool need_save_metadata;
     const bool need_save_song;
@@ -181,6 +178,16 @@ public:
     const bool need_save_vid;
     const bool need_save_vid_offset;
     const bool need_save_hit_objs;
+    const bool need_save_key_color;
+};
+
+class image_state
+{
+public:
+    image_state(const std::filesystem::path& path);
+
+    std::filesystem::path path;
+    kee::image_texture texture;
 };
 
 class video_state
@@ -221,7 +228,6 @@ public:
     void set_info(std::string_view info_str);
 
     void set_song(const std::filesystem::path& song_path);
-    void set_image(const std::optional<std::filesystem::path>& image_path);
 
     std::optional<beatmap_file> save_state;
 
@@ -240,6 +246,7 @@ private:
     kee::image_texture exit_png;
     kee::image_texture info_png;
 
+    std::optional<image_state> img_state;
     std::optional<video_state> vid_state;
     key_color_state key_colors;
     float approach_beats;

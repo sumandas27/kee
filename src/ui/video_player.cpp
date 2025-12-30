@@ -95,7 +95,7 @@ void video_player::set_time(double sec)
 
         std::optional<av::VideoFrame> opt_curr_video_frame = get_next_frame();
         if (!opt_curr_video_frame.has_value())
-            throw std::runtime_error("Keyframe not decodable!"); // TODO: don't think this is correct just yet
+            throw std::runtime_error("Keyframe not decodable!"); // TODO SOON: don't think this is correct just yet
 
         av::VideoFrame curr_video_frame = std::move(opt_curr_video_frame.value());
         next_video_frame = get_next_frame();

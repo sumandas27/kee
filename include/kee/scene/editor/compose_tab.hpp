@@ -16,10 +16,11 @@ namespace kee {
 namespace scene {
 namespace editor {
 
-/* TODO: add beatmap ui elements to editor down the line i.e. progress bar/combo/etc */
+/* TODO MAYBE: add beatmap ui elements to editor down the line i.e. progress bar/combo/etc */
 
-class key_color_state;
+class image_state;
 class video_state;
+class key_color_state;
 class song_ui;
 class compose_tab;
 class editor_hit_object;
@@ -291,17 +292,16 @@ public:
 
     compose_tab_info(
         const kee::image_texture& arrow_png,
-        const std::optional<beatmap_dir_state>& dir_state,
         const std::optional<boost::json::object>& keys_json_obj,
+        const std::optional<image_state>& img_state,
         const std::optional<video_state>& vid_state,
         const key_color_state& key_colors
     );
 
     const kee::image_texture& arrow_png;
+    const std::optional<image_state>& img_state;
     const std::optional<video_state>& vid_state;
     const key_color_state& key_colors;
-
-    std::optional<kee::image_texture> bg_img;
 
     raylib::Sound hitsound;
 

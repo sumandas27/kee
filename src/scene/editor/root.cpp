@@ -669,13 +669,19 @@ void song_ui::update_element([[maybe_unused]] float dt)
     playback_r_img.ref.color = (playback_speed_idx < song_ui::playback_speeds.size() - 1) ? playback_r_img_color.get() : kee::color(255, 255, 255, 80);
 }
 
-beatmap_save_info::beatmap_save_info(bool need_save_metadata, bool need_save_song, bool need_save_img, bool need_save_vid, bool need_save_vid_offset, bool need_save_hit_objs) :
+beatmap_save_info::beatmap_save_info(bool need_save_metadata, bool need_save_song, bool need_save_img, bool need_save_vid, bool need_save_vid_offset, bool need_save_hit_objs, bool need_save_key_color) :
     need_save_metadata(need_save_metadata),
     need_save_song(need_save_song),
     need_save_img(need_save_img),
     need_save_vid(need_save_vid),
     need_save_vid_offset(need_save_vid_offset),
-    need_save_hit_objs(need_save_hit_objs)
+    need_save_hit_objs(need_save_hit_objs),
+    need_save_key_color(need_save_key_color)
+{ }
+
+image_state::image_state(const std::filesystem::path& path) :
+    path(path),
+    texture(kee::image_texture(path))
 { }
 
 video_state::video_state(const std::filesystem::path& path, float offset) :
@@ -724,10 +730,10 @@ std::optional<beatmap_save_info> root::get_save_info() const
         return std::nullopt;
 
     bool need_img_save;
-    if (!setup_info.img_path.has_value() && !save_state.value().dir_state.has_image)
+    if (!setup_info.img_state.has_value() && !save_state.value().dir_state.has_image)
         need_img_save = false;
-    else if (setup_info.img_path.has_value() && save_state.value().dir_state.has_image)
-        need_img_save = !std::filesystem::equivalent(setup_info.img_path.value(), save_state.value().dir_state.path / beatmap_dir_info::standard_img_filename);
+    else if (setup_info.img_state.has_value() && save_state.value().dir_state.has_image)
+        need_img_save = !std::filesystem::equivalent(setup_info.img_state.value().path, save_state.value().dir_state.path / beatmap_dir_info::standard_img_filename);
     else
         need_img_save = true;
 
@@ -739,8 +745,16 @@ std::optional<beatmap_save_info> root::get_save_info() const
     else
         need_vid_save = true;
 
+    bool need_save_key_color;
+    if (!key_colors.path.has_value() && !save_state.value().dir_state.has_key_colors)
+        need_save_key_color = false;
+    else if (key_colors.path.has_value() && save_state.value().dir_state.has_key_colors)
+        need_save_key_color = !std::filesystem::equivalent(key_colors.path.value(), save_state.value().dir_state.path / beatmap_dir_info::standard_key_colors_filename);
+    else
+        need_save_key_color = true;
+
     const bool need_save_vid_offset = need_vid_save || (vid_state.has_value() && save_state.value().dir_state.video_dir_info.has_value() && vid_state.value().offset != save_state.value().dir_state.video_dir_info.value());
-    return beatmap_save_info(save_state.value().save_metadata_needed, setup_info.new_song_path.has_value(), need_img_save, need_vid_save, need_save_vid_offset, save_hit_objs_needed);
+    return beatmap_save_info(save_state.value().save_metadata_needed, setup_info.new_song_path.has_value(), need_img_save, need_vid_save, need_save_vid_offset, save_hit_objs_needed, need_save_key_color);
 }
 
 bool root::needs_save(const std::optional<beatmap_save_info>& save_info) const
@@ -751,7 +765,8 @@ bool root::needs_save(const std::optional<beatmap_save_info>& save_info) const
         save_info.value().need_save_img ||
         save_info.value().need_save_vid ||
         save_info.value().need_save_vid_offset ||
-        save_info.value().need_save_hit_objs
+        save_info.value().need_save_hit_objs ||
+        save_info.value().need_save_key_color
     );
 }
 
@@ -810,10 +825,10 @@ void root::save_existing_beatmap()
 
     if (save_info.value().need_save_img)
     {
-        if (setup_info.img_path.has_value())
+        if (setup_info.img_state.has_value())
         {
             std::error_code ec;
-            const std::filesystem::path& src = setup_info.img_path.value();
+            const std::filesystem::path& src = setup_info.img_state.value().path;
             const std::filesystem::path dst = save_state.value().dir_state.path / beatmap_dir_info::standard_img_filename;
 
             std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, ec);
@@ -824,7 +839,7 @@ void root::save_existing_beatmap()
             }
 
             save_state.value().dir_state.has_image = true;
-            setup_info.img_path = dst;
+            setup_info.img_state.value().path = dst;
         }
         else 
         {
@@ -863,6 +878,33 @@ void root::save_existing_beatmap()
     }
     else if (save_info.value().need_save_vid_offset)
         save_state.value().dir_state.video_dir_info = vid_state.value().offset;
+
+    if (save_info.value().need_save_key_color)
+    {
+        if (key_colors.path.has_value())
+        {
+            std::error_code ec;
+            const std::filesystem::path& src = key_colors.path.value();
+            const std::filesystem::path dst = save_state.value().dir_state.path / beatmap_dir_info::standard_key_colors_filename;
+
+            std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, ec);
+            if (ec)
+            {
+                set_error(std::format("Error saving key colors: {}", ec.message()), false);
+                return;
+            }
+
+            save_state.value().dir_state.has_key_colors = true;
+            key_colors.path.value() = dst;
+        }
+        else
+        {
+            if (!std::filesystem::remove(save_state.value().dir_state.path / beatmap_dir_info::standard_key_colors_filename))
+                throw std::runtime_error("Failed to remove key color decoration file!");
+
+            save_state.value().dir_state.has_key_colors = false;
+        }
+    }
 
     if (save_info.value().need_save_metadata || save_info.value().need_save_hit_objs || save_info.value().need_save_vid_offset)
     {
@@ -953,14 +995,6 @@ void root::set_song(const std::filesystem::path& song_path)
     playback_ui.emplace<kee::ui::handle<song_ui>>(playback_ui_frame.ref.add_child<song_ui>(std::nullopt, arrow_png, song_path));
 }
 
-void root::set_image(const std::optional<std::filesystem::path>& image_path)
-{
-    if (image_path.has_value())
-        compose_info.bg_img.emplace(image_path.value());
-    else
-        compose_info.bg_img.reset();
-}
-
 root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_dir_info> dir_info) :
     kee::scene::base(game, assets),
     save_state(dir_info.has_value() 
@@ -971,6 +1005,10 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
     error_png("assets/img/error.png"),
     exit_png("assets/img/exit.png"),
     info_png("assets/img/info.png"),
+    img_state(dir_info.has_value() && dir_info.value().dir_state.has_image
+        ? std::make_optional(image_state(dir_info.value().dir_state.path / beatmap_dir_info::standard_img_filename))
+        : std::nullopt
+    ),
     vid_state(dir_info.has_value() && dir_info.value().dir_state.video_dir_info.has_value()
         ? std::make_optional(video_state(dir_info.value().dir_state.path / beatmap_dir_info::standard_vid_filename, dir_info.value().dir_state.video_dir_info.value()))
         : std::nullopt
@@ -980,16 +1018,13 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
         : key_color_state()
     ),
     approach_beats(dir_info.has_value() ? dir_info.value().approach_beats : 2.0f),
-    setup_info(dir_info, exit_png, vid_state, key_colors),
+    setup_info(dir_info, exit_png, img_state, vid_state, key_colors),
     compose_info(
         arrow_png,
-        save_state.has_value() 
-            ? std::optional(save_state.value().dir_state)
-            : std::nullopt,
         dir_info.has_value()
             ? std::make_optional(dir_info.value().keys_json_obj) 
             : std::nullopt,
-        vid_state, key_colors
+        img_state, vid_state, key_colors
     ),
     active_tab_elem(add_child<setup_tab>(std::nullopt, *this, setup_info, approach_beats)),
     active_tab(root::tabs::setup),

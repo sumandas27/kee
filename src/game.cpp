@@ -23,7 +23,7 @@ window::window()
         ConfigFlags::FLAG_WINDOW_HIGHDPI                /* Correct rendering on Apple machines */
     );
 
-    /* TODO: custom window size and fix ui so fun :D */
+    /* TODO FAR: custom window size and fix ui so fun :D */
     impl.Init(kee::window_w, kee::window_h);
     impl.SetTargetFPS(window_fps);
 }

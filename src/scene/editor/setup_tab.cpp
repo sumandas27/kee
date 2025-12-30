@@ -8,18 +8,16 @@ namespace editor {
 
 setup_tab_info::setup_tab_info(
     const std::optional<beatmap_dir_info>& dir_info, 
-    const kee::image_texture& exit_png, 
+    const kee::image_texture& exit_png,
+    std::optional<image_state>& img_state,
     std::optional<video_state>& vid_state,
     key_color_state& key_colors
 ) :
     exit_png(exit_png),
     vid_state(vid_state),
+    img_state(img_state),
     key_colors(key_colors),
     from_dir(dir_info.has_value()),
-    img_path(dir_info.has_value() && dir_info.value().dir_state.has_image
-        ? std::make_optional(dir_info.value().dir_state.path / beatmap_dir_info::standard_img_filename)
-        : std::nullopt
-    ),
     song_artist(dir_info.has_value() ? dir_info.value().song_artist : ""),
     song_name(dir_info.has_value() ? dir_info.value().song_name : ""),
     mapper(dir_info.has_value() ? dir_info.value().mapper : ""),
@@ -70,7 +68,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     setup_info(setup_info),
     approach_beats(approach_beats),
     key_color_remove_button_color(add_transition<kee::color>(setup_info.key_colors.path.has_value() ? kee::color::white : kee::color::dark_gray)),
-    image_remove_button_color(add_transition<kee::color>(setup_info.img_path.has_value() ? kee::color::white : kee::color::dark_gray)),
+    image_remove_button_color(add_transition<kee::color>(setup_info.img_state.has_value() ? kee::color::white : kee::color::dark_gray)),
     video_remove_button_color(add_transition<kee::color>(setup_info.vid_state.has_value() ? kee::color::white : kee::color::dark_gray)),
     l_side_frame(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.1f),
@@ -361,8 +359,8 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         std::vector<std::string_view>({".png"}),
         [&]() -> std::variant<std::string_view, std::filesystem::path>
         {
-            if (setup_info.img_path.has_value())
-                return setup_info.img_path.value();
+            if (setup_info.img_state.has_value())
+                return setup_info.img_state.value().path;
             else
                 return setup_tab::no_img_message;
         }()
@@ -571,8 +569,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
 
     image_dialog.ref.on_success = [&](const std::filesystem::path& img_path)
     {
-        this->root_elem.set_image(img_path);
-        this->setup_info.img_path = img_path;
+        this->setup_info.img_state.emplace(img_path);
         this->image_remove_button_color.set(kee::color::white);
     };
 
@@ -583,7 +580,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
 
     image_remove_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        if (!setup_info.img_path.has_value())
+        if (!setup_info.img_state.has_value())
             return;
 
         switch (button_event)
@@ -602,8 +599,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
     image_remove_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
         this->image_dialog.ref.reset(setup_tab::no_img_message);
-        this->root_elem.set_image(std::nullopt);
-        this->setup_info.img_path.reset();
+        this->setup_info.img_state.reset();
         this->image_remove_button_color.set(kee::color::dark_gray);
     }; 
 
