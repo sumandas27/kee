@@ -1,6 +1,7 @@
 #include "kee/game.hpp"
 
-/* TODO NEXT: start marketing (set up steam page + trailer + maybe devlog) */
+/* TODO NEXT: add ability to add hitsounds to hit objects */
+/* TODO NEAR: start marketing (set up steam page + trailer + maybe devlog) */
 
 int main()
 {

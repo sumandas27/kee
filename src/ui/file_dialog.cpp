@@ -9,8 +9,8 @@ file_dialog::file_dialog(
     const kee::pos& y,
     const std::variant<kee::dims, kee::border>& dimensions,
     bool centered,
-    std::vector<std::string_view> filters,
-    std::variant<std::string_view, std::filesystem::path> initial_msg
+    const std::optional<std::vector<std::string_view>>& filters,
+    const std::variant<std::string_view, std::filesystem::path>& initial_msg
 ) :
     kee::ui::base(reqs, x, y, dimensions, centered),
     on_success([]([[maybe_unused]] std::filesystem::path selected_file){}),
@@ -64,10 +64,7 @@ file_dialog::file_dialog(
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         text_size(text_size::type::rel_h, 1),
-        std::nullopt, false, assets.font_regular, std::holds_alternative<std::string_view>(initial_msg)
-            ? std::get<std::string_view>(initial_msg)
-            : std::get<std::filesystem::path>(initial_msg).filename().string(), 
-        false
+        std::nullopt, false, assets.font_regular, std::string(), false
     )),
     filters(filters),
     old_path(std::holds_alternative<std::filesystem::path>(initial_msg)
@@ -75,6 +72,11 @@ file_dialog::file_dialog(
         : std::nullopt
     )
 {
+    if (auto* sv_ptr = std::get_if<std::string_view>(&initial_msg))
+        reset(*sv_ptr);
+    else if (auto* fs_ptr = std::get_if<std::filesystem::path>(&initial_msg))
+        set_path(*fs_ptr);
+
     const raylib::Rectangle fd_raw_rect = get_raw_rect();
     std::get<kee::dims>(fd_text_area.dimensions).w.val = fd_raw_rect.width - fd_raw_rect.height;
 
@@ -96,7 +98,9 @@ file_dialog::file_dialog(
     fd_button.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
         NFD::UniquePath out_path;
-        nfdresult_t open_dialog_res = NFD::OpenDialog(out_path);
+        const nfdresult_t open_dialog_res = this->filters.has_value()
+            ? NFD::OpenDialog(out_path)
+            : NFD::PickFolder(out_path);
 
         switch (open_dialog_res)
         {
@@ -105,7 +109,7 @@ file_dialog::file_dialog(
             if (old_path.has_value() && std::filesystem::equivalent(old_path.value(), selected_path))
                 return;
 
-            const bool filter_match = std::any_of(this->filters.begin(), this->filters.end(), 
+            const bool filter_match = !this->filters.has_value() || std::any_of(this->filters.value().begin(), this->filters.value().end(), 
                 [&](std::string_view fd_filter)
                 {
                     return selected_path.extension() == fd_filter;
@@ -115,7 +119,7 @@ file_dialog::file_dialog(
             if (filter_match)
             {
                 this->on_success(std::filesystem::absolute(selected_path).string());
-                this->fd_text.set_string(selected_path.filename().string());
+                this->set_path(selected_path);
                 this->old_path = selected_path;
             }
             else
@@ -178,6 +182,15 @@ void file_dialog::render_element() const
     fd_text.render();
 
     EndScissorMode();
+}
+
+void file_dialog::set_path(const std::filesystem::path& path)
+{
+    std::string new_fd_text_str = path.filename().string();
+    if (!this->filters.has_value())
+        new_fd_text_str += '/';
+
+    this->fd_text.set_string(new_fd_text_str);
 }
 
 } // namespace ui

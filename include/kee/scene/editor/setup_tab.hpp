@@ -11,6 +11,7 @@ namespace editor {
 class image_state;
 class video_state;
 class key_color_state;
+class hitsound_state;
 class root;
 class setup_tab;
 
@@ -22,7 +23,8 @@ public:
         const kee::image_texture& exit_png, 
         std::optional<image_state>& img_state,
         std::optional<video_state>& vid_state,
-        key_color_state& key_colors
+        key_color_state& key_colors,
+        hitsound_state& hitsounds
     );
 
     const kee::image_texture& exit_png;
@@ -30,6 +32,7 @@ public:
     std::optional<image_state>& img_state;
     std::optional<video_state>& vid_state;
     key_color_state& key_colors;
+    hitsound_state& hitsounds;
 
     std::optional<std::filesystem::path> new_song_path;
 
@@ -63,6 +66,7 @@ private:
     static const std::string_view no_key_colors_message;
     static const std::string_view no_img_message;
     static const std::string_view no_vid_message;
+    static const std::string_view no_custom_hitsound_message;
 
     void init_video_offset_ui();
 
@@ -75,13 +79,14 @@ private:
     kee::transition<kee::color>& key_color_remove_button_color;
     kee::transition<kee::color>& image_remove_button_color;
     kee::transition<kee::color>& video_remove_button_color;
+    kee::transition<kee::color>& hitsounds_remove_button_color;
 
     kee::ui::handle<kee::ui::base> l_side_frame;
-    kee::ui::handle<kee::ui::rect> audio_bg;
-    kee::ui::handle<kee::ui::text> audio_label;
+    kee::ui::handle<kee::ui::rect> song_bg;
+    kee::ui::handle<kee::ui::text> song_label;
 
-    kee::ui::handle<kee::ui::text> audio_text;
-    kee::ui::handle<kee::ui::file_dialog> audio_file_dialog;
+    kee::ui::handle<kee::ui::text> song_text;
+    kee::ui::handle<kee::ui::file_dialog> song_file_dialog;
 
     kee::ui::handle<kee::ui::text> artist_text;
     kee::ui::handle<kee::ui::textbox> artist_textbox;
@@ -108,8 +113,14 @@ private:
     kee::ui::handle<kee::ui::text> forgiveness_text;
     kee::ui::handle<kee::ui::textbox> forgiveness_textbox;
 
-    kee::ui::handle<kee::ui::rect> decoration_bg;
-    kee::ui::handle<kee::ui::text> decoration_label;
+    kee::ui::handle<kee::ui::rect> customization_bg;
+    kee::ui::handle<kee::ui::text> customization_label;
+
+    kee::ui::handle<kee::ui::text> hitsounds_text;
+    kee::ui::handle<kee::ui::base> hitsounds_frame;
+    kee::ui::handle<kee::ui::file_dialog> hitsounds_dialog;
+    kee::ui::handle<kee::ui::button> hitsounds_remove_button;
+    kee::ui::handle<kee::ui::image> hitsounds_remove_image;
 
     kee::ui::handle<kee::ui::text> key_color_text;
     kee::ui::handle<kee::ui::base> key_color_frame;

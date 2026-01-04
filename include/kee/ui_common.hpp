@@ -234,6 +234,11 @@ public:
 class beatmap_dir_state
 {
 public:
+    static const std::string_view standard_key_colors_filename;
+    static const std::string_view standard_img_filename;
+    static const std::string_view standard_vid_filename;
+    static const std::string_view standard_custom_hitsound_dirname;
+
     beatmap_dir_state(const std::filesystem::path& path);
 
     std::filesystem::path path;
@@ -241,17 +246,15 @@ public:
 
     bool has_key_colors;
     bool has_image;
+    bool has_custom_hitsounds;
 };
 
 class beatmap_dir_info
 {
 public:
-    static const std::string_view standard_key_colors_filename;
-    static const std::string_view standard_img_filename;
-    static const std::string_view standard_vid_filename;
-
     static const std::filesystem::path app_data_dir; /* TODO FAR: temp */
 
+    static std::expected<std::unordered_map<std::string, raylib::Sound>, std::string> validate_custom_hitsounds(const std::filesystem::path& custom_hitsounds_path);
     static std::expected<boost::json::object, std::string> parse_key_colors(const std::filesystem::path& key_color_json_path);
     static std::vector<key_decoration> get_key_decorations(const boost::json::array& key_color_decos);
 
@@ -273,6 +276,8 @@ public:
 
     boost::json::object keys_json_obj;
     std::optional<boost::json::object> key_colors_json_obj;
+    
+    std::optional<std::unordered_map<std::string, raylib::Sound>>   custom_hitsounds;
 };
 
 class key_pos_data

@@ -808,14 +808,14 @@ beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&&
     combo_gain(add_transition<float>(0.0f)),
     end_fade_out_alpha(add_transition<float>(0.0f)),
     game_bg_img(beatmap_info.dir_state.has_image
-        ? std::make_optional(kee::image_texture(beatmap_info.dir_state.path / beatmap_dir_info::standard_img_filename))
+        ? std::make_optional(kee::image_texture(beatmap_info.dir_state.path / beatmap_dir_state::standard_img_filename))
         : std::nullopt
     ),
     game_bg([&]() -> std::variant<std::monostate, kee::ui::handle<kee::ui::image>, kee::ui::handle<kee::ui::video_player>>
     {
         if (beatmap_info.dir_state.video_dir_info.has_value())
             return add_child<kee::ui::video_player>(0,
-                beatmap_info.dir_state.path / beatmap_dir_info::standard_vid_filename,
+                beatmap_info.dir_state.path / beatmap_dir_state::standard_vid_filename,
                 kee::color(255, 255, 255, 255 * kee::game_start_bg_opacity),
                 pos(pos::type::rel, 0.5f),
                 pos(pos::type::rel, 0.5f),
@@ -917,7 +917,7 @@ beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&&
     )),
     end_beat(0.0f),
     music(std::move(beatmap_info.song)),
-    hitsound("assets/sfx/hitsound.wav"),
+    hitsound("assets/sfx/hitsound_default/normal.wav"),
     combo_lost_sfx("assets/sfx/combo_lost.wav")
 { 
     reset_level();

@@ -959,13 +959,14 @@ compose_tab_info::compose_tab_info(
     const std::optional<boost::json::object>& keys_json_obj,
     const std::optional<image_state>& img_state,
     const std::optional<video_state>& vid_state,
-    const key_color_state& key_colors
+    const key_color_state& key_colors,
+    hitsound_state& hitsounds
 ) :
     arrow_png(arrow_png),
     img_state(img_state),
     vid_state(vid_state),
     key_colors(key_colors),
-    hitsound("assets/sfx/hitsound.wav"),
+    hitsounds(hitsounds),
     is_beat_snap(true),
     is_key_locked(true),
     events_since_save(0), 
@@ -991,8 +992,6 @@ compose_tab_info::compose_tab_info(
             }
         }
     }
-
-    hitsound.SetVolume(0.01f);
 }
 
 compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_beats, song_ui& song_ui_elem, compose_tab_info& compose_info) :
@@ -1697,9 +1696,9 @@ void compose_tab::update_element([[maybe_unused]] float dt)
 
             it--;
             if (song_ui_elem.get_prev_beat().value() < it->first && it->first <= curr_beat)
-                compose_info.hitsound.Play();
+                compose_info.hitsounds.map.at("normal.wav").Play();
             if (it->second.duration > 0.0f && song_ui_elem.get_prev_beat().value() < it->first + it->second.duration && it->first + it->second.duration <= curr_beat)
-                compose_info.hitsound.Play();
+                compose_info.hitsounds.map.at("normal.wav").Play();
         }
     }
 

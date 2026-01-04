@@ -18,8 +18,11 @@ public:
         const kee::pos& y,
         const std::variant<kee::dims, kee::border>& dimensions,
         bool centered,
-        std::vector<std::string_view> filters,
-        std::variant<std::string_view, std::filesystem::path> initial_msg
+        /**
+         * `std::nullopt` to pick a directory, otherwise choose file extension filters while picking.
+         */
+        const std::optional<std::vector<std::string_view>>& filters,
+        const std::variant<std::string_view, std::filesystem::path>& initial_msg
     );
 
     void reset(std::string_view message);
@@ -35,6 +38,8 @@ private:
     void update_element(float dt) override;
     void render_element() const override;
 
+    void set_path(const std::filesystem::path& path);
+
     kee::transition<kee::color>& fd_outline_color;
 
     kee::ui::rect fd_rect;
@@ -45,7 +50,7 @@ private:
     kee::ui::base fd_text_frame;
     kee::ui::text fd_text;
 
-    std::vector<std::string_view> filters;
+    std::optional<std::vector<std::string_view>> filters;
     std::optional<std::filesystem::path> old_path;
 };
 

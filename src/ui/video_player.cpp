@@ -3,6 +3,8 @@
 namespace kee {
 namespace ui {
 
+/* WISHLIST: video texture/decoder init on every ctor instance, maybe store assets like `kee::image_texture` does */
+
 video_player::video_player(
     const kee::ui::required& reqs,
     const std::filesystem::path& mp4_path,

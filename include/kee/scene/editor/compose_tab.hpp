@@ -21,6 +21,7 @@ namespace editor {
 class image_state;
 class video_state;
 class key_color_state;
+class hitsound_state;
 class song_ui;
 class compose_tab;
 class editor_hit_object;
@@ -295,15 +296,16 @@ public:
         const std::optional<boost::json::object>& keys_json_obj,
         const std::optional<image_state>& img_state,
         const std::optional<video_state>& vid_state,
-        const key_color_state& key_colors
+        const key_color_state& key_colors,
+        hitsound_state& hitsounds
     );
 
     const kee::image_texture& arrow_png;
     const std::optional<image_state>& img_state;
     const std::optional<video_state>& vid_state;
     const key_color_state& key_colors;
-
-    raylib::Sound hitsound;
+    
+    hitsound_state& hitsounds;
 
     std::unordered_map<int, std::map<float, editor_hit_object>> hit_objs;
 

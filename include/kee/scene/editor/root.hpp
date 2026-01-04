@@ -4,6 +4,8 @@
 #include "kee/scene/editor/setup_tab.hpp"
 #include "kee/scene/editor/timing_tab.hpp"
 
+/* TODO: if file gets imported and editted before saved, could cause a crash or sm */
+
 namespace kee {
 namespace scene {
 namespace editor {
@@ -101,11 +103,8 @@ private:
 class song_ui : public kee::ui::base
 {
 public:
-    song_ui(
-        const kee::ui::required& reqs, 
-        const kee::image_texture& arrow_png, 
-        std::variant<std::filesystem::path, beatmap_dir_info> music_info
-    );
+    song_ui(const kee::ui::required& reqs, const kee::image_texture& arrow_png, const std::filesystem::path& music_path);
+    song_ui(const kee::ui::required& reqs, const kee::image_texture& arrow_png, raylib::Music&& music, float music_bpm, float music_start_offset);
 
     const raylib::Music& get_music() const;
     const std::optional<float>& get_prev_beat() const;
@@ -167,10 +166,11 @@ public:
     float duration;
 };
 
+/* WISHLIST: refactor save system... replace with magic_enum::bitset maybe ??? */
 class beatmap_save_info
 {
 public:
-    beatmap_save_info(bool need_save_metadata, bool need_save_song, bool need_save_img, bool need_save_vid, bool need_save_vid_offset, bool need_save_hit_objs, bool need_save_key_color);
+    beatmap_save_info(bool need_save_metadata, bool need_save_song, bool need_save_img, bool need_save_vid, bool need_save_vid_offset, bool need_save_hit_objs, bool need_save_key_color, bool need_save_hitsound);
 
     const bool need_save_metadata;
     const bool need_save_song;
@@ -179,6 +179,7 @@ public:
     const bool need_save_vid_offset;
     const bool need_save_hit_objs;
     const bool need_save_key_color;
+    const bool need_save_hitsound;
 };
 
 class image_state
@@ -211,6 +212,20 @@ public:
 
     std::optional<std::filesystem::path> path;
     std::unordered_map<std::string, std::vector<key_decoration>> decorations;
+};
+
+class hitsound_state
+{
+public:
+    hitsound_state();
+    /**
+     * If you already have a hitsound map to pass in instead of re-validating the directory.
+     */
+    hitsound_state(const std::filesystem::path& path, std::unordered_map<std::string, raylib::Sound>&& map);
+    hitsound_state(const std::filesystem::path& path, root& root_elem);
+
+    std::optional<std::filesystem::path> path;
+    std::unordered_map<std::string, raylib::Sound> map; 
 };
 
 class root final : public kee::scene::base
@@ -249,6 +264,8 @@ private:
     std::optional<image_state> img_state;
     std::optional<video_state> vid_state;
     key_color_state key_colors;
+    hitsound_state hitsounds;
+
     float approach_beats;
 
     setup_tab_info setup_info;

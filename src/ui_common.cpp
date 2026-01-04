@@ -79,17 +79,52 @@ key_decoration::key_decoration(float start_beat, float end_beat, const kee::colo
     interpolation(interpolation)
 { }
 
+const std::string_view beatmap_dir_state::standard_key_colors_filename = "key_colors.json";
+const std::string_view beatmap_dir_state::standard_img_filename = "img.png";
+const std::string_view beatmap_dir_state::standard_vid_filename = "vid.mp4";
+const std::string_view beatmap_dir_state::standard_custom_hitsound_dirname = "hitsounds";
+
 beatmap_dir_state::beatmap_dir_state(const std::filesystem::path& path) :
     path(path),
-    has_key_colors(std::filesystem::exists(path / beatmap_dir_info::standard_key_colors_filename)),
-    has_image(std::filesystem::exists(path / beatmap_dir_info::standard_img_filename))
+    has_key_colors(std::filesystem::exists(path / beatmap_dir_state::standard_key_colors_filename)),
+    has_image(std::filesystem::exists(path / beatmap_dir_state::standard_img_filename)),
+    has_custom_hitsounds(std::filesystem::is_directory(path / beatmap_dir_state::standard_custom_hitsound_dirname))
 { }
 
-const std::string_view beatmap_dir_info::standard_key_colors_filename = "key_colors.json";
-const std::string_view beatmap_dir_info::standard_img_filename = "img.png";
-const std::string_view beatmap_dir_info::standard_vid_filename = "vid.mp4";
-
 const std::filesystem::path beatmap_dir_info::app_data_dir = "test_app_data/";
+
+std::expected<std::unordered_map<std::string, raylib::Sound>, std::string> beatmap_dir_info::validate_custom_hitsounds(const std::filesystem::path& custom_hitsounds_path)
+{
+    if (!std::filesystem::is_directory(custom_hitsounds_path))
+        return std::unexpected("Not a directory!");
+
+    std::unordered_map<std::string, raylib::Sound> res;
+    for (const std::filesystem::directory_entry& hitsound_wav : std::filesystem::directory_iterator(custom_hitsounds_path))
+    {
+        if (!hitsound_wav.is_regular_file() || hitsound_wav.path().extension() != ".wav")
+            return std::unexpected(std::format("'{}' is not a '.wav' file", hitsound_wav.path().string()));
+
+        const std::string wav_filename = hitsound_wav.path().filename().string();
+        raylib::Sound& wav = res.insert_or_assign(wav_filename, raylib::Sound(hitsound_wav.path().string())).first->second;
+
+        const float wav_duration = static_cast<float>(wav.frameCount) / wav.stream.sampleRate;
+        if (wav_duration >= 1.f)
+            return std::unexpected(std::format("'{}' is too long!", wav_filename));
+    }
+
+    const bool has_default_filenames =
+        res.contains("clap.wav") &&
+        res.contains("finish.wav") &&
+        res.contains("normal.wav") &&
+        res.contains("whistle.wav");
+
+    if (!has_default_filenames)
+        return std::unexpected("Doesn't have required default hitsounds.");
+
+    return res;
+}
+
+/* WISHLIST: better error handling for `.json` files */
 
 std::expected<boost::json::object, std::string> beatmap_dir_info::parse_key_colors(const std::filesystem::path& key_color_json_path)
 {
@@ -113,7 +148,7 @@ std::expected<boost::json::object, std::string> beatmap_dir_info::parse_key_colo
         if (!res.contains(key_str) || !res.at(key_str).is_array())
             return std::unexpected(std::format("Missing '{}' key.", key_str));
     
-        /*TODO NEXT: bounds checking*/
+        float curr_end_beat = std::numeric_limits<float>::lowest();
         const boost::json::array& key_color_array = res.at(key_str).as_array();
         for (const boost::json::value& key_deco : key_color_array)
         {
@@ -127,6 +162,15 @@ std::expected<boost::json::object, std::string> beatmap_dir_info::parse_key_colo
             if (!key_deco_obj.contains("end_beat") || !key_deco_obj.at("end_beat").is_double())
                 return std::unexpected(std::format("'{}': Malformed 'end_beat' key", key_str));
 
+            const float deco_start_beat = static_cast<float>(key_deco_obj.at("start_beat").as_double());
+            const float deco_end_beat = static_cast<float>(key_deco_obj.at("end_beat").as_double());
+            if (deco_start_beat > deco_end_beat)
+                return std::unexpected(std::format("'{}': Start beat appears after end beat!'", key_str));
+
+            if (deco_start_beat < curr_end_beat)
+                return std::unexpected(std::format("'{}': Key decorations appear out of order!", key_str));
+
+            curr_end_beat = deco_end_beat;
             if (!key_deco_obj.contains("start_color") || !key_deco_obj.at("start_color").is_object())
                 return std::unexpected(std::format("'{}': Malformed 'start_color' key", key_str));
 
@@ -242,7 +286,7 @@ beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_name
     if (!json_object.contains("hit_objects") || !json_object.at("hit_objects").is_object())
         throw std::runtime_error("`metadata.json` has malformed `song_start_offset` key.");
 
-    if (std::filesystem::exists(beatmap_dir_info::app_data_dir / beatmap_dir_name / beatmap_dir_info::standard_vid_filename))
+    if (std::filesystem::exists(beatmap_dir_info::app_data_dir / beatmap_dir_name / beatmap_dir_state::standard_vid_filename))
     {
         if (!json_object.contains("video_offset") || !json_object.at("video_offset").is_double())
             throw std::runtime_error("`metadata.json` has malformed `video_offset` key while a video exists.");
@@ -274,12 +318,20 @@ beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_name
 
     if (dir_state.has_key_colors)
     {
-        const std::filesystem::path key_colors_json_path = beatmap_dir_info::app_data_dir / beatmap_dir_name / beatmap_dir_info::standard_key_colors_filename;
-        const auto parsed_json = beatmap_dir_info::parse_key_colors(key_colors_json_path);
+        const auto parsed_json = beatmap_dir_info::parse_key_colors(beatmap_dir_info::app_data_dir / beatmap_dir_name / beatmap_dir_state::standard_key_colors_filename);
         if (parsed_json.has_value())
             key_colors_json_obj = parsed_json.value();
         else
             throw std::runtime_error(parsed_json.error());
+    }
+
+    if (dir_state.has_custom_hitsounds)
+    {
+        auto custom_hitsounds_result = beatmap_dir_info::validate_custom_hitsounds(beatmap_dir_info::app_data_dir / beatmap_dir_name / beatmap_dir_state::standard_custom_hitsound_dirname);
+        if (custom_hitsounds_result.has_value())
+            custom_hitsounds = std::move(custom_hitsounds_result.value());
+        else
+            throw std::runtime_error(custom_hitsounds_result.error());
     }
 
     const std::filesystem::path song_path = dir_state.path / "song.mp3";

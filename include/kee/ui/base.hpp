@@ -107,7 +107,7 @@ public:
     kee::transition<T>& add_transition(const T& default_val);
 
     /**
-     * NOTE: We climb up UI hierarchy every time we render a UI element every frame. 
+     * WISHLIST: We climb up UI hierarchy every time we render a UI element every frame. 
      * Inefficient, if performance is a problem investigate and fix if applicable.
      */
     raylib::Rectangle get_raw_rect() const;
