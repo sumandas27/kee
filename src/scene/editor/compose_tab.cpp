@@ -9,11 +9,6 @@ namespace kee {
 namespace scene {
 namespace editor {
 
-editor_hit_object::editor_hit_object(int key, float duration) :
-    key(key),
-    duration(duration)
-{ }
-
 hit_obj_ui::hit_obj_ui(const kee::ui::required& reqs, float beat, float duration, float curr_beat, float beat_width, std::size_t key_idx, std::size_t rendered_key_count) :
     kee::ui::rect(reqs,
         kee::color::dark_blue,
@@ -234,14 +229,14 @@ void compose_tab_key::update_element([[maybe_unused]] float dt)
     hit_obj_rects.clear();
     for (const auto& [beat, object] : hit_objects)
     {
-        if (beat + object.duration < song_ui_elem.get_beat() - compose_tab::beat_lock_threshold)
+        if (beat + object.get_duration() < song_ui_elem.get_beat() - compose_tab::beat_lock_threshold)
             continue;
 
         if (beat > song_ui_elem.get_beat() + compose_tab_scene.approach_beats)
             break;
 
         const float start_progress = std::max((beat - song_ui_elem.get_beat()) / (2 * compose_tab_scene.approach_beats), 0.0f);
-        const float end_progress = std::max((beat + object.duration - song_ui_elem.get_beat()) / (2 * compose_tab_scene.approach_beats), 0.0f);
+        const float end_progress = std::max((beat + object.get_duration() - song_ui_elem.get_beat()) / (2 * compose_tab_scene.approach_beats), 0.0f);
         hit_obj_rects.push_back(make_temp_child<kee::ui::rect>(
             kee::color::blank,
             pos(pos::type::rel, 0.5),
@@ -301,7 +296,7 @@ hit_obj_metadata hit_obj_ui_key::get_metadata() const
     if (!map.has_value())
         throw std::runtime_error("get_metadata: is extracted and not valid");
 
-    return hit_obj_metadata(it->second.key, it->first, it->second.duration);
+    return hit_obj_metadata(it->second.key, it->first, it->second.get_duration());
 }
 
 void hit_obj_ui_key::delete_from_map()
@@ -428,7 +423,7 @@ void object_editor::reset_render_hit_objs()
     {
         auto& [beat, object] = *it;
         
-        hit_obj_ui render_ui = make_temp_child<hit_obj_ui>(beat, object.duration, song_ui_elem.get_beat(), object_editor::beat_width, i, keys_to_render.size());
+        hit_obj_ui render_ui = make_temp_child<hit_obj_ui>(beat, object.get_duration(), song_ui_elem.get_beat(), object_editor::beat_width, i, keys_to_render.size());
         obj_render_info.emplace(hit_obj_ui_key(keys.at(keys_to_render[i]).ref.hit_objects, it), std::move(render_ui));
     }
 
@@ -1531,7 +1526,7 @@ bool compose_tab::process_event(const compose_tab_event& e)
         
         if (next_it != hit_objects.end() && hit_obj.position.beat + hit_obj.position.duration + compose_tab::beat_lock_threshold >= next_it->first)
             is_valid = false;
-        else if (next_it != hit_objects.begin() && std::prev(next_it)->first + std::prev(next_it)->second.duration + compose_tab::beat_lock_threshold >= hit_obj.position.beat)
+        else if (next_it != hit_objects.begin() && std::prev(next_it)->first + std::prev(next_it)->second.get_duration() + compose_tab::beat_lock_threshold >= hit_obj.position.beat)
             is_valid = false;
 
         if (!is_valid)
@@ -1697,7 +1692,7 @@ void compose_tab::update_element([[maybe_unused]] float dt)
             it--;
             if (song_ui_elem.get_prev_beat().value() < it->first && it->first <= curr_beat)
                 compose_info.hitsounds.map.at("normal.wav").Play();
-            if (it->second.duration > 0.0f && song_ui_elem.get_prev_beat().value() < it->first + it->second.duration && it->first + it->second.duration <= curr_beat)
+            if (it->second.get_duration() > 0.f && song_ui_elem.get_prev_beat().value() < it->first + it->second.get_duration() && it->first + it->second.get_duration() <= curr_beat)
                 compose_info.hitsounds.map.at("normal.wav").Play();
         }
     }

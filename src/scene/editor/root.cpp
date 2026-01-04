@@ -470,12 +470,12 @@ song_ui::song_ui(const kee::ui::required& reqs, const kee::image_texture& arrow_
     music(std::move(music)),
     music_time(0.0f)
 {
-    music_slider.ref.on_event = [&, music_is_playing = music.IsPlaying()](ui::slider::event slider_event) mutable
+    music_slider.ref.on_event = [&, music_is_playing = this->music.IsPlaying()](ui::slider::event slider_event) mutable
     {
         switch (slider_event)
         {
         case ui::slider::event::on_down:
-            music_is_playing = music.IsPlaying();
+            music_is_playing = this->music.IsPlaying();
             this->music.Pause();
             break;
         case ui::slider::event::on_release:
@@ -523,7 +523,7 @@ song_ui::song_ui(const kee::ui::required& reqs, const kee::image_texture& arrow_
         }
     };
 
-    const unsigned int music_length = static_cast<unsigned int>(music.GetTimeLength());
+    const unsigned int music_length = static_cast<unsigned int>(this->music.GetTimeLength());
     const std::string music_length_str = std::format("0:00 / {}:{:02}", music_length / 60, music_length % 60);
     music_time_text.ref.set_string(music_length_str);
 
@@ -587,13 +587,13 @@ song_ui::song_ui(const kee::ui::required& reqs, const kee::image_texture& arrow_
         }
     };
 
-    music.SetLooping(true);
-    music.SetVolume(0.1f);
+    this->music.SetLooping(true);
+    this->music.SetVolume(0.1f);
     /**
      * First `.Play()` on a `raylib::Music` is slow.
      */
-    music.Play();
-    music.Pause();
+    this->music.Play();
+    this->music.Pause();
 }
 
 const raylib::Music& song_ui::get_music() const
@@ -664,6 +664,27 @@ void song_ui::update_element([[maybe_unused]] float dt)
 
     playback_l_img.ref.color = (playback_speed_idx > 0) ? playback_l_img_color.get() : kee::color(255, 255, 255, 80);
     playback_r_img.ref.color = (playback_speed_idx < song_ui::playback_speeds.size() - 1) ? playback_r_img_color.get() : kee::color(255, 255, 255, 80);
+}
+
+editor_hit_object_duration::editor_hit_object_duration(float duration, std::string_view hitsound_name) :
+    duration(duration),
+    hitsound_name(hitsound_name)
+{
+    assert(duration != 0.f);
+}
+
+editor_hit_object::editor_hit_object(int key, float duration) :
+    key(key),
+    hitsound_name("normal.wav"),
+    hold_info(duration != 0.f
+        ? std::make_optional(editor_hit_object_duration(duration, "normal.wav"))
+        : std::nullopt
+    )
+{ }
+
+float editor_hit_object::get_duration() const
+{
+    return hold_info.has_value() ? hold_info.value().duration : 0.f;
 }
 
 beatmap_save_info::beatmap_save_info(bool need_save_metadata, bool need_save_song, bool need_save_img, bool need_save_vid, bool need_save_vid_offset, bool need_save_hit_objs, bool need_save_key_color, bool need_save_hitsound) :
@@ -993,7 +1014,7 @@ void root::save_existing_beatmap()
             {
                 boost::json::object json_hit_obj;
                 json_hit_obj["beat"] = beat;
-                json_hit_obj["duration"] = hit_obj.duration;
+                json_hit_obj["duration"] = hit_obj.get_duration();
 
                 key_hit_objs.push_back(json_hit_obj);
             }

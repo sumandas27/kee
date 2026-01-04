@@ -154,6 +154,15 @@ private:
     std::optional<float> prev_beat;
 };
 
+class editor_hit_object_duration
+{
+public:
+    editor_hit_object_duration(float duration, std::string_view hitsound_name);
+
+    float duration;
+    std::string hitsound_name;
+};
+
 /**
  * These objects will belong in an `std::set`, whose keys store the `beat` of the object.
  */
@@ -162,8 +171,12 @@ class editor_hit_object
 public:
     editor_hit_object(int key, float duration);
 
+    float get_duration() const;
+
     int key;
-    float duration;
+    std::string hitsound_name;
+    
+    std::optional<editor_hit_object_duration> hold_info;
 };
 
 /* WISHLIST: refactor save system... replace with magic_enum::bitset maybe ??? */
