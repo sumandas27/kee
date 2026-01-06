@@ -19,12 +19,21 @@ public:
         const std::variant<kee::dims, kee::border>& dimensions,
         bool centered,
         std::vector<std::string>&& options,
-        std::size_t start_idx
+        std::optional<std::size_t> start_idx
     );
+
+    bool is_active() const;
+
+    void enable();
+    void disable();
+
+    /* TODO: i think provide util to set idx based on string param */
 
     std::function<void(std::size_t)> on_select;
 
 private:
+    static const kee::color color_inactive;
+
     void on_element_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods) override;
     bool on_element_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods) override;
     bool on_element_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods) override;
@@ -55,6 +64,8 @@ private:
 
     raylib::Rectangle options_render_rect;
     bool is_dropped_down;
+
+    bool active_flag;
 };
 
 } // namespace ui

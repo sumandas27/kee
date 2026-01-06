@@ -10,7 +10,7 @@ dropdown::dropdown(
     const std::variant<kee::dims, kee::border>& dimensions,
     bool centered,
     std::vector<std::string>&& options,
-    std::size_t start_idx
+    std::optional<std::size_t> start_idx
 ) :
     kee::ui::base(reqs, x, y, dimensions, centered),
     on_select([]([[maybe_unused]] std::size_t idx){}),
@@ -18,7 +18,10 @@ dropdown::dropdown(
     dropdown_outline_color(add_transition<kee::color>(kee::color::white)),
     dropdown_img_rotation(add_transition<float>(90.0f)),
     options_height(add_transition<float>(0.0f)),
-    options_curr_rect_y(add_transition<float>((start_idx + 1.0f) / (options.size() + 1.0f))),
+    options_curr_rect_y(add_transition<float>(start_idx.has_value()
+        ? (start_idx.value() + 1.0f) / (options.size() + 1.0f)
+        : 0.f
+    )),
     dropdown_rect(make_temp_child<kee::ui::rect>(
         kee::color::dark_gray,
         pos(pos::type::beg, 0),
@@ -28,7 +31,7 @@ dropdown::dropdown(
             dim(dim::type::rel, 1)
         ),
         false,
-        rect_outline(rect_outline::type::rel_w, 0.02f, kee::color::white),
+        rect_outline(rect_outline::type::rel_h, 0.07f, kee::color::white),
         std::nullopt
     )),
     dropdown_button(make_temp_child<kee::ui::button>(
@@ -48,10 +51,10 @@ dropdown::dropdown(
     )),
     dropdown_text(dropdown_text_frame.make_temp_child<kee::ui::text>(
         kee::color::white,
-        pos(pos::type::rel, 0.05f),
+        pos(pos::type::rel, 0.01f),
         pos(pos::type::beg, 0),
         text_size(text_size::type::rel_h, 1),
-        std::nullopt, false, assets.font_regular, options[start_idx], false
+        std::nullopt, false, assets.font_regular, start_idx.has_value() ? options[start_idx.value()] : "--", false
     )),
     dropdown_img_frame(make_temp_child<kee::ui::base>(
         pos(pos::type::end, 0),
@@ -85,7 +88,7 @@ dropdown::dropdown(
         pos(pos::type::rel, 0),
         border(border::type::rel_h, 0),
         false,
-        rect_outline(rect_outline::type::rel_w, 0.02f, kee::color::white),
+        rect_outline(rect_outline::type::abs, 0, kee::color::white),
         std::nullopt
     )),
     options_curr_rect(options_rect.make_temp_child<kee::ui::rect>(
@@ -98,8 +101,11 @@ dropdown::dropdown(
         ),
         false, std::nullopt, std::nullopt
     )),
-    is_dropped_down(false)
+    is_dropped_down(false),
+    active_flag(false)
 {
+    options_rect_border.outline.value().val = dropdown_rect.get_outline_thickness();
+
     options_buttons.reserve(options.size());
     options_button_text_frames.reserve(options.size());
     options_button_texts.reserve(options.size());
@@ -147,7 +153,7 @@ dropdown::dropdown(
 
         options_button_texts.push_back(options_button_text_frames[i].make_temp_child<kee::ui::text>(
             kee::color::white,
-            pos(pos::type::rel, 0.05f),
+            pos(pos::type::rel, 0.01f),
             pos(pos::type::beg, 0),
             text_size(text_size::type::rel_h, 1),
             std::nullopt, false, assets.font_regular, options[i], false
@@ -156,6 +162,9 @@ dropdown::dropdown(
 
     dropdown_button.on_event = [&](button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
+        if (!this->active_flag)
+            return;
+
         switch (button_event)
         {
         case button::event::on_hot:
@@ -171,6 +180,9 @@ dropdown::dropdown(
 
     dropdown_button.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
+        if (!this->active_flag)
+            return;
+
         this->is_dropped_down = !this->is_dropped_down;
         if (this->is_dropped_down)
         {
@@ -186,6 +198,28 @@ dropdown::dropdown(
         }
     };
 }
+
+bool dropdown::is_active() const
+{
+    return active_flag;
+}
+
+void dropdown::enable()
+{
+    active_flag = true;
+    dropdown_outline_color.set(kee::color::white);
+}
+
+void dropdown::disable()
+{
+    if (is_dropped_down)
+        dropdown_button.on_click_l(magic_enum::containers::bitset<kee::mods>());
+
+    active_flag = false;
+    dropdown_outline_color.set(dropdown::color_inactive);
+}
+
+const kee::color dropdown::color_inactive = kee::color(150, 150, 150);
 
 void dropdown::on_element_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods)
 {
@@ -243,12 +277,13 @@ void dropdown::render_element() const
 {
     /**
      * NOTE: `Begin/EndScissorMode` isn't available on `raylib-cpp`, so we must use the C API directly here.
+     * Avoid clipping by incrementing its dimensions.
      */
     BeginScissorMode(
         static_cast<int>(options_render_rect.x),
         static_cast<int>(options_render_rect.y),
-        static_cast<int>(options_render_rect.width),
-        static_cast<int>(options_render_rect.height)
+        static_cast<int>(options_render_rect.width) + 1,
+        static_cast<int>(options_render_rect.height) + 1
     );
 
     options_rect.render();

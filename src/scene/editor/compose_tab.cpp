@@ -9,7 +9,13 @@ namespace kee {
 namespace scene {
 namespace editor {
 
-hit_obj_ui::hit_obj_ui(const kee::ui::required& reqs, float beat, float duration, float curr_beat, float beat_width, std::size_t key_idx, std::size_t rendered_key_count) :
+hit_obj_ui::hit_obj_ui(
+    const kee::ui::required& reqs,
+    const std::optional<std::string>& hitsound_start,
+    const std::optional<std::string>& hitsound_end,
+    object_editor& obj_editor, 
+    float beat, float duration, float curr_beat, float beat_width, std::size_t key_idx, std::size_t rendered_key_count
+) :
     kee::ui::rect(reqs,
         kee::color::dark_blue,
         pos(pos::type::rel, (beat - curr_beat + beat_width) / (2 * beat_width)),
@@ -22,6 +28,8 @@ hit_obj_ui::hit_obj_ui(const kee::ui::required& reqs, float beat, float duration
         kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, 0.15f, kee::color::blue_raylib), 
         kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_h, 0.5f, kee::ui::rect_roundness::size_effect::extend_w)
     ),
+    hitsound_start(hitsound_start),
+    hitsound_end(hitsound_end),
     circle_l(add_child<kee::ui::rect>(std::nullopt,
         kee::color::blue_raylib,
         pos(pos::type::rel, 0),
@@ -47,6 +55,7 @@ hit_obj_ui::hit_obj_ui(const kee::ui::required& reqs, float beat, float duration
         kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f, std::nullopt)
     )),
     start_key_idx(key_idx),
+    obj_editor(obj_editor),
     selected(false),
     rendered_key_count(rendered_key_count),
     key_idx(key_idx)
@@ -55,6 +64,11 @@ hit_obj_ui::hit_obj_ui(const kee::ui::required& reqs, float beat, float duration
 void hit_obj_ui::select()
 {
     selected = true;
+    if (hitsound_start.has_value())
+        obj_editor.hitsound_dropdowns_enable(hitsound_start.value(), hitsound_end.has_value()
+            ? std::optional<std::string_view>(hitsound_end.value())
+            : std::nullopt
+        );
 
     color = kee::color::dark_green;
     outline.value().color = kee::color::green_raylib;
@@ -65,6 +79,7 @@ void hit_obj_ui::select()
 void hit_obj_ui::unselect()
 {
     selected = false;
+    obj_editor.hitsound_dropdowns_disable();
 
     color = kee::color::dark_blue;
     outline.value().color = kee::color::blue_raylib;
@@ -99,9 +114,11 @@ hit_obj_position::hit_obj_position(float beat, float duration) :
     duration(duration)
 { }
 
-hit_obj_metadata::hit_obj_metadata(int key, float beat, float duration) :
+hit_obj_metadata::hit_obj_metadata(int key, float beat, float duration, const std::string& hitsound_start, const std::optional<std::string>& hitsound_end) :
     key(key),
-    position(beat, duration)
+    position(beat, duration),
+    hitsound_start(hitsound_start),
+    hitsound_end(hitsound_end)
 { }
 
 new_hit_obj_data::new_hit_obj_data(int key, std::size_t key_idx, float click_beat, float current_beat, bool from_compose_tab) :
@@ -214,7 +231,9 @@ void compose_tab_key::update_element([[maybe_unused]] float dt)
         }
     );
 
-    if (it != key_colors.end() && song_ui_elem.get_beat() > it->start_beat)
+    if (is_selected)
+        color = kee::color::green_raylib;
+    else if (it != key_colors.end() && song_ui_elem.get_beat() > it->start_beat)
     {
         const float deco_duration = it->end_beat - it->start_beat;
         const float transition_progress = (song_ui_elem.get_beat() - it->start_beat) / deco_duration;
@@ -296,7 +315,12 @@ hit_obj_metadata hit_obj_ui_key::get_metadata() const
     if (!map.has_value())
         throw std::runtime_error("get_metadata: is extracted and not valid");
 
-    return hit_obj_metadata(it->second.key, it->first, it->second.get_duration());
+    return hit_obj_metadata(
+        it->second.key, it->first, it->second.get_duration(), it->second.hitsound_name,
+        it->second.hold_info.has_value()
+            ? std::make_optional(it->second.hold_info.value().hitsound_name)
+            : std::nullopt
+    );
 }
 
 void hit_obj_ui_key::delete_from_map()
@@ -377,26 +401,6 @@ object_editor::object_editor(
         ),
         false
     )),
-    settings_rect(add_child<kee::ui::rect>(std::nullopt,
-        kee::color(30, 30, 30),
-        pos(pos::type::rel, 0.8f),
-        pos(pos::type::rel, 0),
-        dims(
-            dim(dim::type::rel, 0.2f),
-            dim(dim::type::rel, 1)
-        ),
-        false, std::nullopt, std::nullopt
-    )),
-    key_label_rect(settings_rect.ref.add_child<kee::ui::rect>(std::nullopt,
-        kee::color(35, 35, 35),
-        pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0),
-        dims(
-            dim(dim::type::rel, 0.075f),
-            dim(dim::type::rel, 1)
-        ),
-        false, std::nullopt, std::nullopt
-    )),
     beat_indicator(add_child<kee::ui::triangle>(std::nullopt,
         kee::color::red_raylib,
         pos(pos::type::rel, 0.5f),
@@ -410,8 +414,97 @@ object_editor::object_editor(
         raylib::Vector2(1, 0),
         raylib::Vector2(0.5, 1)
     )),
+    hitsound_rect(add_child<kee::ui::rect>(std::nullopt,
+        kee::color(30, 30, 30),
+        pos(pos::type::rel, 0.8f),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 0.2f),
+            dim(dim::type::rel, 1)
+        ),
+        false, std::nullopt, std::nullopt
+    )),
+    hitsound_frame(hitsound_rect.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_h, 0.05f),
+        true
+    )),
+    hitsound_label(hitsound_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.255f),
+        ui::text_size(ui::text_size::type::rel_h, 0.17f),
+        std::nullopt, true, assets.font_semi_bold, "HITSOUNDS", false
+    )),
+    dropdown_hitsound_start(hitsound_frame.ref.add_child<kee::ui::dropdown>(std::nullopt,
+        pos(pos::type::rel, 0.4f),
+        pos(pos::type::rel, 0.57f),
+        dims(
+            dim(dim::type::rel, 0.4f),
+            dim(dim::type::rel, 0.12f)
+        ),
+        true, compose_tab_scene.compose_info.get_hitsound_names(), std::nullopt
+    )),
+    dropdown_hitsound_end(hitsound_frame.ref.add_child<kee::ui::dropdown>(std::nullopt,
+        pos(pos::type::rel, 0.4f),
+        pos(pos::type::rel, 0.77f),
+        dims(
+            dim(dim::type::rel, 0.4f),
+            dim(dim::type::rel, 0.12f)
+        ),
+        true, compose_tab_scene.compose_info.get_hitsound_names(), std::nullopt
+    )),
+    label_frame(hitsound_frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.75f),
+        pos(pos::type::rel, 0.),
+        dims(
+            dim(dim::type::rel, 0),
+            dim(dim::type::rel, 1)
+        ),
+        false
+    )),
+    label_hitsound_start(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::dark_gray,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.57f),
+        ui::text_size(ui::text_size::type::rel_h, 0.12f),
+        std::nullopt, true, assets.font_semi_bold, "START", false
+    )),
+    label_hitsound_end(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::dark_gray,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.77f),
+        ui::text_size(ui::text_size::type::rel_h, 0.12f),
+        std::nullopt, true, assets.font_semi_bold, "END", false
+    )),
+    key_label_rect(hitsound_rect.ref.add_child<kee::ui::rect>(std::nullopt,
+        kee::color(35, 35, 35),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 0.075f),
+            dim(dim::type::rel, 1)
+        ),
+        false, std::nullopt, std::nullopt
+    )),
     beat_drag_multiplier(0)
-{ }
+{ 
+    hitsound_dropdowns_disable();
+}
+
+const std::vector<int>& object_editor::get_keys_to_render() const
+{
+    return selected_key_ids.empty() ? compose_tab::prio_to_key : selected_key_ids;
+}
+
+hit_obj_ui object_editor::make_temp_hit_obj(
+    const std::optional<std::string>& hitsound_start,
+    const std::optional<std::string>& hitsound_end,
+    float beat, float duration, float curr_beat, float width_beats, std::size_t key_idx, std::size_t rendered_key_count
+) {
+    return make_temp_child<hit_obj_ui>(hitsound_start, hitsound_end, *this, beat, duration, curr_beat, width_beats, key_idx, rendered_key_count);
+}
 
 void object_editor::reset_render_hit_objs()
 {
@@ -423,7 +516,14 @@ void object_editor::reset_render_hit_objs()
     {
         auto& [beat, object] = *it;
         
-        hit_obj_ui render_ui = make_temp_child<hit_obj_ui>(beat, object.get_duration(), song_ui_elem.get_beat(), object_editor::beat_width, i, keys_to_render.size());
+        hit_obj_ui render_ui = make_temp_child<hit_obj_ui>(
+            object.hitsound_name, 
+            object.hold_info.has_value() 
+                ? std::make_optional(object.hold_info.value().hitsound_name)
+                : std::nullopt,
+            *this, beat, object.get_duration(), song_ui_elem.get_beat(), object_editor::beat_width, i, keys_to_render.size()
+        );
+
         obj_render_info.emplace(hit_obj_ui_key(keys.at(keys_to_render[i]).ref.hit_objects, it), std::move(render_ui));
     }
 
@@ -469,15 +569,38 @@ void object_editor::attempt_add_hit_obj()
         compose_tab_scene.unselect();
     
     std::vector<hit_obj_metadata> new_obj_added;
-    new_obj_added.emplace_back(new_hit_object.value().key, new_beat, new_duration);
-    compose_tab_scene.add_event(compose_tab_event(selected_key_ids, new_obj_added, std::vector<hit_obj_metadata>()));
+    new_obj_added.emplace_back(
+        new_hit_object.value().key, new_beat, new_duration, "normal.wav", 
+        new_duration != 0.f
+            ? std::make_optional("normal.wav")
+            : std::nullopt
+    );
 
+    compose_tab_scene.add_event(compose_tab_event(selected_key_ids, new_obj_added, std::vector<hit_obj_metadata>()));
     new_hit_object.reset();
 }
 
-const std::vector<int>& object_editor::get_keys_to_render() const
+void object_editor::hitsound_dropdowns_disable()
 {
-    return selected_key_ids.empty() ? compose_tab::prio_to_key : selected_key_ids;
+    dropdown_hitsound_start.ref.disable();
+    dropdown_hitsound_end.ref.disable();
+
+    label_hitsound_start.ref.color = kee::color::dark_gray;
+    label_hitsound_end.ref.color = kee::color::dark_gray;
+}
+
+void object_editor::hitsound_dropdowns_enable(std::string_view start, std::optional<std::string_view> end)
+{
+    if (!dropdown_hitsound_start.ref.is_active())
+        dropdown_hitsound_start.ref.enable();
+
+    if (!dropdown_hitsound_end.ref.is_active())
+        dropdown_hitsound_end.ref.enable();
+
+    /* TODO: use `start` and `end` */
+
+    label_hitsound_start.ref.color = kee::color::white;
+    label_hitsound_end.ref.color = kee::color::white;
 }
 
 void object_editor::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -769,7 +892,7 @@ void object_editor::update_element([[maybe_unused]] float dt)
         const float beg_beat = std::min(new_hit_object.value().click_beat, new_hit_object.value().current_beat);
         const float end_beat = std::max(new_hit_object.value().click_beat, new_hit_object.value().current_beat);
         
-        new_hit_obj_render.emplace(make_temp_child<hit_obj_ui>(beg_beat, end_beat - beg_beat, song_ui_elem.get_beat(), beat_width, new_hit_object.value().key_idx, get_keys_to_render().size()));
+        new_hit_obj_render.emplace(make_temp_child<hit_obj_ui>(std::nullopt, std::nullopt, *this, beg_beat, end_beat - beg_beat, song_ui_elem.get_beat(), beat_width, new_hit_object.value().key_idx, get_keys_to_render().size()));
         new_hit_obj_render.value().select();
     }
 
@@ -894,12 +1017,21 @@ void object_editor::attempt_move_op()
     std::vector<hit_obj_metadata> hit_objs_removed;
 
     bool same_check = false;
+    /* TODO: range based for loop */
+    /* TODO: range based one more place too */
     for (auto it = obj_render_info.begin(); it != obj_render_info.end(); it++)
         if (it->second.is_selected())
         {
-            const hit_obj_position new_obj_position = hit_obj_update_info(*it, get_beat_drag_diff());
-            const hit_obj_metadata new_obj = hit_obj_metadata(keys_to_render[it->second.get_key_idx()], new_obj_position.beat, new_obj_position.duration);
+            assert(it->second.hitsound_start.has_value());
+
             const hit_obj_metadata old_obj = it->first.get_metadata();
+            const hit_obj_position new_obj_position = hit_obj_update_info(*it, get_beat_drag_diff());
+            const hit_obj_metadata new_obj(
+                keys_to_render[it->second.get_key_idx()], new_obj_position.beat, new_obj_position.duration, it->second.hitsound_start.value(), 
+                it->second.hitsound_end.has_value()
+                    ? std::optional<std::string>(it->second.hitsound_end.value())
+                    : std::nullopt
+            );
 
             hit_objs_added.push_back(new_obj);
             hit_objs_removed.push_back(old_obj);
@@ -989,6 +1121,15 @@ compose_tab_info::compose_tab_info(
     }
 }
 
+std::vector<std::string> compose_tab_info::get_hitsound_names() const
+{
+    std::vector<std::string> res;
+    for (const auto& [key, _] : hitsounds.map)
+        res.push_back(key);
+
+    return res;
+}
+
 compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_beats, song_ui& song_ui_elem, compose_tab_info& compose_info) :
     kee::ui::base(reqs,
         pos(pos::type::rel, 0),
@@ -1000,9 +1141,9 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         false
     ),
     approach_beats(approach_beats),
+    compose_info(compose_info),
     obj_editor(add_child<object_editor>(std::nullopt, selected_key_ids, keys, *this, song_ui_elem)),
     song_ui_elem(song_ui_elem),
-    compose_info(compose_info),
     beat_snap_button_color(add_transition<kee::color>(kee::color::white)),
     beat_snap_button_outline(add_transition<float>(compose_info.is_beat_snap ? 0.6f : 0.2f)),
     key_lock_button_color(add_transition<kee::color>(kee::color::white)),
@@ -1455,7 +1596,6 @@ void compose_tab::unselect()
 {
     for (int prev_id : selected_key_ids)
     {
-        keys.at(prev_id).ref.color = kee::color::white;
         keys.at(prev_id).ref.is_selected = false;
         keys.at(prev_id).ref.frame.change_z_order(-1);
         keys.at(prev_id).ref.key_text.change_z_order(-1);
@@ -1463,6 +1603,7 @@ void compose_tab::unselect()
 
     selected_key_ids.clear();
     obj_editor.ref.reset_render_hit_objs();
+    obj_editor.ref.hitsound_dropdowns_disable();
 }
 
 void compose_tab::select(int id)
@@ -1470,7 +1611,6 @@ void compose_tab::select(int id)
     if (keys.at(id).ref.is_selected)
         return;
 
-    keys.at(id).ref.color = kee::color::green_raylib;
     keys.at(id).ref.is_selected = true;
     keys.at(id).ref.frame.change_z_order(0);
     keys.at(id).ref.key_text.change_z_order(0);
@@ -1482,6 +1622,7 @@ void compose_tab::select(int id)
     id);
 
     obj_editor.ref.reset_render_hit_objs();
+    obj_editor.ref.hitsound_dropdowns_disable();
 }
 
 void compose_tab::add_event(const compose_tab_event& e)
@@ -1540,7 +1681,7 @@ bool compose_tab::process_event(const compose_tab_event& e)
         const auto new_key_it = std::ranges::find(keys_to_render, hit_obj.key);
         const std::size_t new_key_idx = std::ranges::distance(keys_to_render.begin(), new_key_it);
 
-        hit_obj_ui render_ui = obj_editor.ref.make_temp_child<hit_obj_ui>(hit_obj.position.beat, hit_obj.position.duration, song_ui_elem.get_beat(), object_editor::beat_width, new_key_idx, keys_to_render.size());
+        hit_obj_ui render_ui = obj_editor.ref.make_temp_hit_obj(hit_obj.hitsound_start, hit_obj.hitsound_end, hit_obj.position.beat, hit_obj.position.duration, song_ui_elem.get_beat(), object_editor::beat_width, new_key_idx, keys_to_render.size());
         if (is_valid)
             render_ui.select();
 
@@ -1598,7 +1739,7 @@ bool compose_tab::on_element_key_down(int keycode, magic_enum::containers::bitse
         for (const hit_obj_metadata& metadata : clipboard)
         {
             const float new_beat = paste_beat + metadata.position.beat - clipboard_reference_beat;
-            pasted_objs.emplace_back(metadata.key, new_beat, metadata.position.duration);
+            pasted_objs.emplace_back(metadata.key, new_beat, metadata.position.duration, metadata.hitsound_start, metadata.hitsound_end);
         }
 
         add_event(compose_tab_event(selected_key_ids, pasted_objs, std::vector<hit_obj_metadata>()));
@@ -1682,6 +1823,7 @@ void compose_tab::update_element([[maybe_unused]] float dt)
 {
     if (song_ui_elem.get_music().IsPlaying() && song_ui_elem.get_prev_beat().has_value())
     {
+        const float prev_beat = song_ui_elem.get_prev_beat().value();
         const float curr_beat = song_ui_elem.get_beat();
         for (const auto& [_, key_hit_objs] : compose_info.hit_objs)
         {
@@ -1690,10 +1832,10 @@ void compose_tab::update_element([[maybe_unused]] float dt)
                 continue;
 
             it--;
-            if (song_ui_elem.get_prev_beat().value() < it->first && it->first <= curr_beat)
-                compose_info.hitsounds.map.at("normal.wav").Play();
-            if (it->second.get_duration() > 0.f && song_ui_elem.get_prev_beat().value() < it->first + it->second.get_duration() && it->first + it->second.get_duration() <= curr_beat)
-                compose_info.hitsounds.map.at("normal.wav").Play();
+            if (prev_beat < it->first && it->first <= curr_beat)
+                compose_info.hitsounds.map.at(it->second.hitsound_name).Play();
+            if (it->second.hold_info.has_value() && prev_beat < it->first + it->second.get_duration() && it->first + it->second.get_duration() <= curr_beat)
+                compose_info.hitsounds.map.at(it->second.hold_info.value().hitsound_name).Play();
         }
     }
 

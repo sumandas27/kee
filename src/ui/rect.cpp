@@ -51,34 +51,38 @@ raylib::Rectangle rect::get_extended_raw_rect() const
     return base_raw_rect;
 }
 
+float rect::get_outline_thickness() const
+{
+    const raylib::Rectangle dst_rect = get_extended_raw_rect();
+    if (!outline.has_value())
+        return 0;
+
+    switch (outline.value().rect_outline_type)
+    {
+    case rect_outline::type::abs:
+        return outline.value().val;
+    case rect_outline::type::rel_w:
+        return dst_rect.width * outline.value().val;
+    case rect_outline::type::rel_h:
+        return dst_rect.height * outline.value().val;
+    default:
+        std::unreachable();
+    }
+}
+
 void rect::render_element() const 
 {
     static const raylib::Rectangle src_rect(0, 0, global_assets::texture_empty_size, global_assets::texture_empty_size);
     const raylib::Rectangle dst_rect = get_extended_raw_rect();
 
     const float uniform_roundness_size = get_roundness();
+    const float uniform_outline_thickness = get_outline_thickness();
     const std::array<float, 2> uniform_size = { dst_rect.width, dst_rect.height };
     const std::array<float, 4> uniform_color = { color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f };
 
-    float uniform_outline_thickness = 0;
     std::array<float, 4> uniform_outline_color = { 0.0f, 0.0f, 0.0f, 0.0f };    
     if (outline.has_value())
     {
-        switch (outline.value().rect_outline_type)
-        {
-        case rect_outline::type::abs:
-            uniform_outline_thickness = outline.value().val;
-            break;
-        case rect_outline::type::rel_w:
-            uniform_outline_thickness = dst_rect.width * outline.value().val;
-            break;
-        case rect_outline::type::rel_h:
-            uniform_outline_thickness = dst_rect.height * outline.value().val;
-            break;
-        default:
-            std::unreachable();
-        }
-
         const kee::color outline_color = outline.value().color;
         uniform_outline_color = { outline_color.r / 255.0f, outline_color.g / 255.0f, outline_color.b / 255.0f, outline_color.a / 255.0f };
     }

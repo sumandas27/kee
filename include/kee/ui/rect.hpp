@@ -66,6 +66,7 @@ public:
     );
 
     raylib::Rectangle get_extended_raw_rect() const;
+    float get_outline_thickness() const;
 
     std::optional<kee::ui::rect_outline> outline;
     std::optional<kee::ui::rect_roundness> roundness;

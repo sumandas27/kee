@@ -18,18 +18,27 @@ namespace editor {
 
 /* TODO MAYBE: add beatmap ui elements to editor down the line i.e. progress bar/combo/etc */
 
-class image_state;
-class video_state;
-class key_color_state;
-class hitsound_state;
-class song_ui;
 class compose_tab;
 class editor_hit_object;
+class hitsound_state;
+class image_state;
+class key_color_state;
+class object_editor;
+class song_ui;
+class video_state;
+
 
 class hit_obj_ui final : public kee::ui::rect
 {
 public:
-    hit_obj_ui(const kee::ui::required& reqs, float beat, float duration, float curr_beat, float beat_width, std::size_t key_idx, std::size_t rendered_key_count);
+    /* TODO: beat width set to constant */
+    hit_obj_ui(
+        const kee::ui::required& reqs,
+        const std::optional<std::string>& hitsound_start,
+        const std::optional<std::string>& hitsound_end,
+        object_editor& obj_editor, 
+        float beat, float duration, float curr_beat, float beat_width, std::size_t key_idx, std::size_t rendered_key_count
+    );
 
     void select();
     void unselect();
@@ -40,6 +49,9 @@ public:
 
     void update_pos_x(float beat, float duration, float curr_beat, float beat_width);
 
+    const std::optional<std::string> hitsound_start;
+    const std::optional<std::string> hitsound_end;
+
     kee::ui::handle<kee::ui::rect> circle_l;
     kee::ui::handle<kee::ui::rect> circle_r;
 
@@ -47,6 +59,8 @@ public:
 
 private:
     static constexpr float rel_h = 0.1f;
+
+    object_editor& obj_editor;
 
     bool selected;
 
@@ -68,10 +82,13 @@ public:
 class hit_obj_metadata
 {
 public:
-    hit_obj_metadata(int key, float beat, float duration);
+    hit_obj_metadata(int key, float beat, float duration, const std::string& hitsound_start, const std::optional<std::string>& hitsound_end);
 
     int key;
     hit_obj_position position;
+    
+    std::string hitsound_start;
+    std::optional<std::string> hitsound_end;
 };
 
 class new_hit_obj_data
@@ -232,11 +249,20 @@ public:
         song_ui& song_ui_elem
     );
 
+    const std::vector<int>& get_keys_to_render() const;
+
+    hit_obj_ui make_temp_hit_obj(
+        const std::optional<std::string>& hitsound_start,
+        const std::optional<std::string>& hitsound_end,
+        float beat, float duration, float curr_beat, float beat_width, std::size_t key_idx, std::size_t rendered_key_count
+    );
+    
     void reset_render_hit_objs();
     bool delete_selected_hit_objs();
     void attempt_add_hit_obj();
 
-    const std::vector<int>& get_keys_to_render() const;
+    void hitsound_dropdowns_disable();
+    void hitsound_dropdowns_enable(std::string_view start, std::optional<std::string_view> end);
 
     kee::ui::handle<kee::ui::base> obj_renderer;
     std::map<hit_obj_ui_key, hit_obj_ui, hit_obj_ui_cmp> obj_render_info;
@@ -271,10 +297,19 @@ private:
 
     kee::ui::handle<kee::ui::base> beat_hover_l;
     kee::ui::handle<kee::ui::base> beat_hover_r;
-    kee::ui::handle<kee::ui::rect> settings_rect;
-    kee::ui::handle<kee::ui::rect> key_label_rect;
     kee::ui::handle<kee::ui::triangle> beat_indicator;
 
+    kee::ui::handle<kee::ui::rect> hitsound_rect;
+    kee::ui::handle<kee::ui::base> hitsound_frame;
+    kee::ui::handle<kee::ui::text> hitsound_label;
+
+    kee::ui::handle<kee::ui::dropdown> dropdown_hitsound_start;
+    kee::ui::handle<kee::ui::dropdown> dropdown_hitsound_end;
+    kee::ui::handle<kee::ui::base> label_frame;
+    kee::ui::handle<kee::ui::text> label_hitsound_start;
+    kee::ui::handle<kee::ui::text> label_hitsound_end;
+
+    kee::ui::handle<kee::ui::rect> key_label_rect;
     std::vector<kee::ui::handle<kee::ui::text>> key_labels;
 
     std::optional<selection_info> selection;
@@ -299,6 +334,8 @@ public:
         const key_color_state& key_colors,
         hitsound_state& hitsounds
     );
+
+    std::vector<std::string> get_hitsound_names() const;
 
     const kee::image_texture& arrow_png;
     const std::optional<image_state>& img_state;
@@ -334,6 +371,7 @@ public:
     bool is_beat_snap_enabled() const;
     bool is_key_lock_enabled() const;
 
+    /* TODO: these should be renamed */
     void unselect();
     void select(int id);
 
@@ -341,6 +379,8 @@ public:
     bool process_event(const compose_tab_event& e);
 
     const float& approach_beats;
+
+    compose_tab_info& compose_info;
 
     kee::ui::handle<object_editor> obj_editor;
 
@@ -353,7 +393,6 @@ private:
     void set_tick_freq_idx(std::size_t new_tick_freq_idx);
 
     song_ui& song_ui_elem;
-    compose_tab_info& compose_info;
 
     kee::transition<kee::color>& beat_snap_button_color;
     kee::transition<float>& beat_snap_button_outline;
