@@ -58,7 +58,5 @@
         -B build/
     ```
 
-6. `cd build`
-7. Compile the program: `make`
-8. `cd ..`
-9. Run the program: `build/kee`
+6. Compile the program: `(cd build; make)`.
+7. Run the program: `build/kee`.

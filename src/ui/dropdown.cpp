@@ -13,7 +13,10 @@ dropdown::dropdown(
     std::optional<std::size_t> start_idx
 ) :
     kee::ui::base(reqs, x, y, dimensions, centered),
-    on_select([]([[maybe_unused]] std::size_t idx){}),
+    on_select([](
+        [[maybe_unused]] std::size_t idx, 
+        [[maybe_unused]] std::string_view text
+    ){}),
     num_options(options.size()),
     dropdown_outline_color(add_transition<kee::color>(kee::color::white)),
     dropdown_img_rotation(add_transition<float>(90.0f)),
@@ -54,7 +57,7 @@ dropdown::dropdown(
         pos(pos::type::rel, 0.01f),
         pos(pos::type::beg, 0),
         text_size(text_size::type::rel_h, 1),
-        std::nullopt, false, assets.font_regular, start_idx.has_value() ? options[start_idx.value()] : "--", false
+        std::nullopt, false, assets.font_regular, start_idx.has_value() ? options[start_idx.value()] : dropdown::non_single_select_text, false
     )),
     dropdown_img_frame(make_temp_child<kee::ui::base>(
         pos(pos::type::end, 0),
@@ -206,6 +209,9 @@ bool dropdown::is_active() const
 
 void dropdown::enable()
 {
+    if (active_flag)
+        return;
+
     active_flag = true;
     dropdown_outline_color.set(kee::color::white);
 }
@@ -217,8 +223,40 @@ void dropdown::disable()
 
     active_flag = false;
     dropdown_outline_color.set(dropdown::color_inactive);
+
+    options_curr_rect_y.set(0.f);
+    dropdown_text.set_string(dropdown::non_single_select_text);
 }
 
+void dropdown::string_set(std::string_view sv, bool should_override)
+{
+    const auto it = std::find_if(options_button_texts.begin(), options_button_texts.end(),
+        [&](const kee::ui::text& options_button_text) -> bool
+        {
+            return sv == options_button_text.get_string();
+        }
+    );
+
+    if (it == options_button_texts.end())
+        throw std::runtime_error("Input string does not exist in textbox");
+
+    if (sv == dropdown_text.get_string())
+        return;
+
+    if (options_curr_rect_y.get() != 0.f && should_override)
+    {
+        options_curr_rect_y.set(0.f);
+        dropdown_text.set_string(dropdown::non_single_select_text);
+    }
+    else
+    {
+        const std::size_t idx = std::distance(options_button_texts.begin(), it);
+        options_curr_rect_y.set((idx + 1.0f) / (this->num_options + 1.0f));
+        dropdown_text.set_string(sv);
+    }
+}
+
+const std::string_view dropdown::non_single_select_text = "--";
 const kee::color dropdown::color_inactive = kee::color(150, 150, 150);
 
 void dropdown::on_element_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods)

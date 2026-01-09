@@ -673,7 +673,11 @@ editor_hit_object_duration::editor_hit_object_duration(float duration, std::stri
     assert(duration != 0.f);
 }
 
-editor_hit_object::editor_hit_object(int key, float duration) :
+editor_hit_object::editor_hit_object(
+    int key,
+    const std::string& hitsound_name, 
+    const std::optional<editor_hit_object_duration>& hold_info
+) :
     key(key),
     hitsound_name("normal.wav"),
     hold_info(duration != 0.f

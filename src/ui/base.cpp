@@ -32,11 +32,11 @@ base::base(base&& other) noexcept :
     y(std::move(other.y)),
     dimensions(std::move(other.dimensions)),
     centered(other.centered),
+    color(std::move(other.color)),
     assets(other.assets),
     parent(other.parent),
     children(std::move(other.children)),
     transitions(std::move(other.transitions)),
-    color(std::move(other.color)),
     has_render_priority(other.has_render_priority)
 { 
     for (auto& [_, child] : *children)

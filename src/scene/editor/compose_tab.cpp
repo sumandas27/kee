@@ -56,8 +56,8 @@ hit_obj_ui::hit_obj_ui(
     )),
     start_key_idx(key_idx),
     obj_editor(obj_editor),
-    selected(false),
     rendered_key_count(rendered_key_count),
+    selected(false),
     key_idx(key_idx)
 { }
 
@@ -489,7 +489,17 @@ object_editor::object_editor(
         false, std::nullopt, std::nullopt
     )),
     beat_drag_multiplier(0)
-{ 
+{
+    dropdown_hitsound_start.ref.on_select = [&]([[maybe_unused]] std::size_t item_idx, std::string_view item_text)
+    {
+        /* TODO: impl */
+    };
+
+    dropdown_hitsound_end.ref.on_select = [&]([[maybe_unused]] item_idx, std::string_view item_text)
+    {
+        /* TODO: impl */
+    };
+
     hitsound_dropdowns_disable();
 }
 
@@ -591,16 +601,16 @@ void object_editor::hitsound_dropdowns_disable()
 
 void object_editor::hitsound_dropdowns_enable(std::string_view start, std::optional<std::string_view> end)
 {
-    if (!dropdown_hitsound_start.ref.is_active())
-        dropdown_hitsound_start.ref.enable();
-
-    if (!dropdown_hitsound_end.ref.is_active())
-        dropdown_hitsound_end.ref.enable();
-
-    /* TODO: use `start` and `end` */
-
+    dropdown_hitsound_start.ref.enable();
+    dropdown_hitsound_start.ref.string_set(start, true);
     label_hitsound_start.ref.color = kee::color::white;
-    label_hitsound_end.ref.color = kee::color::white;
+
+    if (end.has_value())
+    {
+        dropdown_hitsound_end.ref.enable();
+        dropdown_hitsound_end.ref.string_set(end.value(), true);
+        label_hitsound_end.ref.color = kee::color::white;
+    }
 }
 
 void object_editor::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -1100,6 +1110,7 @@ compose_tab_info::compose_tab_info(
     event_history_idx(0),
     tick_freq_idx(3)
 {
+    /* TODO NEXT: (1) modify hit obj editor parsing */
     for (const auto& [id, _] : kee::key_ui_data)
     {
         hit_objs[id];
@@ -1687,6 +1698,7 @@ bool compose_tab::process_event(const compose_tab_event& e)
 
         std::map<float, editor_hit_object>& hit_objects = keys.at(hit_obj.key).ref.hit_objects;
         auto new_it = hit_objects.emplace(hit_obj.position.beat, editor_hit_object(hit_obj.key, hit_obj.position.duration)).first;
+        
         obj_editor.ref.obj_render_info.emplace(hit_obj_ui_key(hit_objects, new_it), std::move(render_ui));
     }
 

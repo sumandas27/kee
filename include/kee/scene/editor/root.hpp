@@ -169,7 +169,11 @@ public:
 class editor_hit_object
 {
 public:
-    editor_hit_object(int key, float duration);
+    editor_hit_object(
+        int key, 
+        const std::string& hitsound_name, 
+        const std::optional<editor_hit_object_duration>& hold_info
+    );
 
     float get_duration() const;
 

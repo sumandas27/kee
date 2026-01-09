@@ -15,8 +15,8 @@ setup_tab_info::setup_tab_info(
     hitsound_state& hitsounds
 ) :
     exit_png(exit_png),
-    vid_state(vid_state),
     img_state(img_state),
+    vid_state(vid_state),
     key_colors(key_colors),
     hitsounds(hitsounds),
     from_dir(dir_info.has_value()),

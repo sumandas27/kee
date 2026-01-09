@@ -27,11 +27,16 @@ public:
     void enable();
     void disable();
 
-    /* TODO: i think provide util to set idx based on string param */
+    void string_set(std::string_view sv, bool should_override);
 
-    std::function<void(std::size_t)> on_select;
+    /**
+     * Called when a dropdown item is selected. The item's index and text
+     * are passed in as an std::size_t and std::string_view respectively.
+     */
+    std::function<void(std::size_t, std::string_view)> on_select;
 
 private:
+    static const std::string_view non_single_select_text;
     static const kee::color color_inactive;
 
     void on_element_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods) override;

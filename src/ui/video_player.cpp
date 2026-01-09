@@ -146,7 +146,7 @@ std::optional<av::VideoFrame> video_player::get_next_frame()
 {
     while (const av::Packet packet = video_input.readPacket()) 
     {
-        if (packet.streamIndex() != video_stream_idx)
+        if (static_cast<std::size_t>(packet.streamIndex()) != video_stream_idx)
             continue;
 
         const av::VideoFrame frame = video_decoder.decode(packet);

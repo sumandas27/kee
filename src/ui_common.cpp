@@ -294,6 +294,7 @@ beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_name
         dir_state.video_dir_info = static_cast<float>(json_object.at("video_offset").as_double());    
     }
 
+    /* TODO NEXT: (0) modify hit obj json validation */
     const boost::json::object& hit_objs = json_object.at("hit_objects").as_object();
     for (const key_pos_data& key_data : kee::key_ui_data)
     {

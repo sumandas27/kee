@@ -62,9 +62,9 @@ private:
 
     object_editor& obj_editor;
 
-    bool selected;
+    const std::size_t rendered_key_count;
 
-    std::size_t rendered_key_count;
+    bool selected;
     std::size_t key_idx;
 };
 
@@ -79,6 +79,7 @@ public:
     float duration;
 };
 
+/* The way we store this should rly beat + optional<hold info> rather than this */
 class hit_obj_metadata
 {
 public:

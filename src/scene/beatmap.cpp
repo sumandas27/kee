@@ -948,6 +948,7 @@ void beatmap::reset_level()
 
         keys.emplace(id, key_frame.ref.add_child<beatmap_key>(std::nullopt, *this, id, rel_pos, key_decos));
 
+        /* TODO NEXT: (2) modify hit obj beatmap parsing */
         const boost::json::array& key_hit_objs = keys_json_obj.at(key_str).as_array();
         for (const boost::json::value& key_hit_obj : key_hit_objs)
         {
