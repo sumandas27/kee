@@ -1,6 +1,6 @@
 #include "kee/game.hpp"
 
-/* TODO NEXT: dropdown rel_h */
+/* TODO NEXT: minimize .begin()/.end() usage */
 /* TODO NEXT: add ui to add hitsounds to hit objects */
 /* TODO NEAR: start marketing (set up steam page + trailer + maybe devlog) */
 

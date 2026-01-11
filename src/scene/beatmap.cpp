@@ -948,15 +948,25 @@ void beatmap::reset_level()
 
         keys.emplace(id, key_frame.ref.add_child<beatmap_key>(std::nullopt, *this, id, rel_pos, key_decos));
 
-        /* TODO NEXT: (2) modify hit obj beatmap parsing */
         const boost::json::array& key_hit_objs = keys_json_obj.at(key_str).as_array();
         for (const boost::json::value& key_hit_obj : key_hit_objs)
         {
             const boost::json::object& key_hit_obj_json = key_hit_obj.as_object();
             const float beat = static_cast<float>(key_hit_obj_json.at("beat").as_double());
-            const float duration = static_cast<float>(key_hit_obj_json.at("duration").as_double());
+            const std::string start_hitsound = static_cast<std::string>(key_hit_obj_json.at("hitsound").as_string());
 
-            keys.at(id).ref.push(beatmap_hit_object(beat, duration));
+            /*if (!key_hit_obj_json.at("hold").is_null())
+            {
+                const boost::json::object& hold_obj = key_hit_obj_json.at("hold").as_object();
+                const float duration = static_cast<float>(hold_obj.at("duration").as_double());
+                const std::string end_hitsound = static_cast<std::string>(hold_obj.at("hitsound").as_string());
+                 TODO: do stuff with all this
+            }*/
+
+            /* TODO: add hitsounds as part of hit object class 
+            also 0.f temp
+            */
+            keys.at(id).ref.push(beatmap_hit_object(beat, 0.f));
         }
 
         if (keys.at(id).ref.get_hit_objects().empty())

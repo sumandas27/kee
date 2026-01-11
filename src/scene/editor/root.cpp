@@ -679,11 +679,8 @@ editor_hit_object::editor_hit_object(
     const std::optional<editor_hit_object_duration>& hold_info
 ) :
     key(key),
-    hitsound_name("normal.wav"),
-    hold_info(duration != 0.f
-        ? std::make_optional(editor_hit_object_duration(duration, "normal.wav"))
-        : std::nullopt
-    )
+    hitsound_name(hitsound_name),
+    hold_info(hold_info)
 { }
 
 float editor_hit_object::get_duration() const
@@ -1018,7 +1015,16 @@ void root::save_existing_beatmap()
             {
                 boost::json::object json_hit_obj;
                 json_hit_obj["beat"] = beat;
-                json_hit_obj["duration"] = hit_obj.get_duration();
+                json_hit_obj["hitsound"] = hit_obj.hitsound_name;
+
+                if (hit_obj.hold_info.has_value())
+                {
+                    boost::json::object& hold_json = json_hit_obj["hold"].emplace_object();
+                    hold_json["duration"] = hit_obj.hold_info.value().duration;
+                    hold_json["hitsound"] = hit_obj.hold_info.value().hitsound_name;
+                }
+                else
+                    json_hit_obj["hold"] = nullptr;
 
                 key_hit_objs.push_back(json_hit_obj);
             }

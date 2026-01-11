@@ -28,8 +28,6 @@ hit_obj_ui::hit_obj_ui(
         kee::ui::rect_outline(kee::ui::rect_outline::type::rel_h, 0.15f, kee::color::blue_raylib), 
         kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_h, 0.5f, kee::ui::rect_roundness::size_effect::extend_w)
     ),
-    hitsound_start(hitsound_start),
-    hitsound_end(hitsound_end),
     circle_l(add_child<kee::ui::rect>(std::nullopt,
         kee::color::blue_raylib,
         pos(pos::type::rel, 0),
@@ -54,6 +52,8 @@ hit_obj_ui::hit_obj_ui(
         std::nullopt,
         kee::ui::rect_roundness(kee::ui::rect_roundness::type::rel_w, 0.5f, std::nullopt)
     )),
+    hitsound_start(hitsound_start),
+    hitsound_end(hitsound_end),
     start_key_idx(key_idx),
     obj_editor(obj_editor),
     rendered_key_count(rendered_key_count),
@@ -492,12 +492,20 @@ object_editor::object_editor(
 {
     dropdown_hitsound_start.ref.on_select = [&]([[maybe_unused]] std::size_t item_idx, std::string_view item_text)
     {
-        /* TODO: impl */
+        for (auto& [key, ui] : obj_render_info)
+            if (ui.is_selected())
+                ui.hitsound_start = item_text;
+
+        /* TODO: persist  */
     };
 
-    dropdown_hitsound_end.ref.on_select = [&]([[maybe_unused]] item_idx, std::string_view item_text)
+    dropdown_hitsound_end.ref.on_select = [&]([[maybe_unused]] std::size_t item_idx, std::string_view item_text)
     {
-        /* TODO: impl */
+        for (auto& [key, ui] : obj_render_info)
+            if (ui.is_selected() && ui.hitsound_end.has_value())
+                ui.hitsound_end = item_text;
+
+        /* TODO: persist */
     };
 
     hitsound_dropdowns_disable();
@@ -1027,8 +1035,6 @@ void object_editor::attempt_move_op()
     std::vector<hit_obj_metadata> hit_objs_removed;
 
     bool same_check = false;
-    /* TODO: range based for loop */
-    /* TODO: range based one more place too */
     for (auto it = obj_render_info.begin(); it != obj_render_info.end(); it++)
         if (it->second.is_selected())
         {
@@ -1110,24 +1116,32 @@ compose_tab_info::compose_tab_info(
     event_history_idx(0),
     tick_freq_idx(3)
 {
-    /* TODO NEXT: (1) modify hit obj editor parsing */
     for (const auto& [id, _] : kee::key_ui_data)
     {
         hit_objs[id];
 
-        if (keys_json_obj.has_value())
+        if (!keys_json_obj.has_value())
+            continue;
+
+        const std::string key_str = std::string(1, static_cast<char>(id));
+        const boost::json::array& key_hit_objs = keys_json_obj.value().at(key_str).as_array();
+        for (const boost::json::value& key_hit_obj : key_hit_objs)
         {
-            const std::string key_str = std::string(1, static_cast<char>(id));
-            const boost::json::array& key_hit_objs = keys_json_obj.value().at(key_str).as_array();
-            
-            for (const boost::json::value& key_hit_obj : key_hit_objs)
+            const boost::json::object& key_hit_obj_json = key_hit_obj.as_object();
+            const float beat = static_cast<float>(key_hit_obj_json.at("beat").as_double());
+            const std::string start_hitsound = static_cast<std::string>(key_hit_obj_json.at("hitsound").as_string());
+
+            std::optional<editor_hit_object_duration> hold_info;
+            if (!key_hit_obj_json.at("hold").is_null())
             {
-                const boost::json::object& key_hit_obj_json = key_hit_obj.as_object();
-                const float beat = static_cast<float>(key_hit_obj_json.at("beat").as_double());
-                const float duration = static_cast<float>(key_hit_obj_json.at("duration").as_double());
+                const boost::json::object& hold_obj = key_hit_obj_json.at("hold").as_object();
+                const float duration = static_cast<float>(hold_obj.at("duration").as_double());
+                const std::string end_hitsound = static_cast<std::string>(hold_obj.at("hitsound").as_string());
                 
-                hit_objs.at(id).emplace(beat, editor_hit_object(id, duration));
+                hold_info.emplace(duration, end_hitsound);
             }
+            
+            hit_objs.at(id).emplace(beat, editor_hit_object(id, start_hitsound, hold_info));
         }
     }
 }
@@ -1697,8 +1711,12 @@ bool compose_tab::process_event(const compose_tab_event& e)
             render_ui.select();
 
         std::map<float, editor_hit_object>& hit_objects = keys.at(hit_obj.key).ref.hit_objects;
-        auto new_it = hit_objects.emplace(hit_obj.position.beat, editor_hit_object(hit_obj.key, hit_obj.position.duration)).first;
-        
+        const std::optional<editor_hit_object_duration> hold_info = (hit_obj.hitsound_end.has_value())
+            ? std::make_optional(editor_hit_object_duration(hit_obj.position.duration, hit_obj.hitsound_end.value()))
+            : std::nullopt;
+
+        const editor_hit_object new_hit_obj(hit_obj.key, hit_obj.hitsound_start, hold_info);
+        auto new_it = hit_objects.emplace(hit_obj.position.beat, new_hit_obj).first;
         obj_editor.ref.obj_render_info.emplace(hit_obj_ui_key(hit_objects, new_it), std::move(render_ui));
     }
 

@@ -612,6 +612,8 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         this->hitsounds_dialog.ref.reset(setup_tab::no_custom_hitsound_message);
         this->setup_info.hitsounds = hitsound_state();
         this->hitsounds_remove_button_color.set(kee::color::dark_gray);
+
+        /* TODO: reset non-default hitsounds to normal */
     };
 
     key_color_dialog.ref.on_success = [&](const std::filesystem::path& key_colors_path)

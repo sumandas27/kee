@@ -142,9 +142,11 @@ dropdown::dropdown(
 
         options_buttons[i].on_click_l = [&, idx = i]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
         {
+            const std::string& selected_str = this->options_button_texts[idx].get_string();
+
             this->options_curr_rect_y.set(std::nullopt, (idx + 1.0f) / (this->num_options + 1.0f), 0.2f, kee::transition_type::exp);
-            this->dropdown_text.set_string(this->options_button_texts[idx].get_string());
-            this->on_select(idx);
+            this->dropdown_text.set_string(selected_str);
+            this->on_select(idx, selected_str);
         };
 
         options_button_text_frames.push_back(options_buttons[i].make_temp_child<kee::ui::base>(

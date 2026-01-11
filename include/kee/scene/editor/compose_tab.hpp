@@ -49,11 +49,11 @@ public:
 
     void update_pos_x(float beat, float duration, float curr_beat, float beat_width);
 
-    const std::optional<std::string> hitsound_start;
-    const std::optional<std::string> hitsound_end;
-
     kee::ui::handle<kee::ui::rect> circle_l;
     kee::ui::handle<kee::ui::rect> circle_r;
+
+    std::optional<std::string> hitsound_start;
+    std::optional<std::string> hitsound_end;
 
     std::size_t start_key_idx;
 
@@ -79,7 +79,7 @@ public:
     float duration;
 };
 
-/* The way we store this should rly beat + optional<hold info> rather than this */
+/* TODO: The way we store this should rly beat + optional<hold info> rather than this */
 class hit_obj_metadata
 {
 public:
