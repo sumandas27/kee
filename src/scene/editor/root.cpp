@@ -477,6 +477,7 @@ song_ui::song_ui(const kee::ui::required& reqs, const kee::image_texture& arrow_
         case ui::slider::event::on_down:
             music_is_playing = this->music.IsPlaying();
             this->music.Pause();
+            this->last_frame_beat.reset();
             break;
         case ui::slider::event::on_release:
             this->music.Seek(music_slider.ref.progress * this->music.GetTimeLength());

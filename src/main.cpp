@@ -1,7 +1,6 @@
 #include "kee/game.hpp"
 
 /* TODO NEXT: minimize .begin()/.end() usage */
-/* TODO NEXT: change custom-named hitsound going from custom -> default hitsound pack */
 /* TODO NEAR: start marketing (set up steam page + trailer + maybe devlog) */
 
 int main()

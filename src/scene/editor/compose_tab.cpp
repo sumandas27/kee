@@ -5,8 +5,6 @@
 
 #include "kee/scene/editor/root.hpp"
 
-/* TODO: bug any time i drag playback slider and release to play, it will unecessarily play hitsound sometimes */
-
 namespace kee {
 namespace scene {
 namespace editor {
