@@ -614,7 +614,6 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         this->hitsounds_dialog.ref.reset(setup_tab::no_custom_hitsound_message);
         this->setup_info.hitsounds = hitsound_state();
         this->hitsounds_remove_button_color.set(kee::color::dark_gray);
-        this->root_elem.reset_event_history();
 
         for (auto& [unused_1, map] : setup_info.hit_objs)
             for (auto& [unused_2, obj] : map)
@@ -637,6 +636,13 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
                 if (is_custom_hitsound_end_name)
                     obj.hold_info.value().hitsound_name = "normal.wav";
             }
+
+        /**
+         * To guard against undo-ing into custom hitsounds which don't exist anymore
+         */
+        this->root_elem.save_state.value().save_metadata_needed = true;
+        this->root_elem.save();
+        this->root_elem.reset_event_history();
     };
 
     key_color_dialog.ref.on_success = [&](const std::filesystem::path& key_colors_path)
