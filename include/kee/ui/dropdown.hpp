@@ -27,7 +27,8 @@ public:
     void enable();
     void disable();
 
-    void string_set(std::string_view sv, bool should_override);
+    /* TODO: multiselect_enabled should be param */
+    void string_set(std::string_view sv, bool multiselect_enabled);
 
     /**
      * Called when a dropdown item is selected. The item's index and text
@@ -71,6 +72,7 @@ private:
     bool is_dropped_down;
 
     bool active_flag;
+    bool is_multiselect;
 };
 
 } // namespace ui

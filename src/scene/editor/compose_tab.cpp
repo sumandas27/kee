@@ -5,6 +5,8 @@
 
 #include "kee/scene/editor/root.hpp"
 
+/* TODO: bug any time i drag playback slider and release to play, it will unecessarily play hitsound sometimes */
+
 namespace kee {
 namespace scene {
 namespace editor {
@@ -132,11 +134,13 @@ new_hit_obj_data::new_hit_obj_data(int key, std::size_t key_idx, float click_bea
 compose_tab_event::compose_tab_event(
     const std::vector<int>& selected_key_ids, 
     const std::vector<hit_obj_metadata>& added, 
-    const std::vector<hit_obj_metadata>& removed
+    const std::vector<hit_obj_metadata>& removed,
+    bool hitsound_hint
 ) :
     selected_key_ids(selected_key_ids),
     added(added),
-    removed(removed)
+    removed(removed),
+    hitsound_hint(hitsound_hint)
 { }
 
 compose_tab_key::compose_tab_key(
@@ -306,8 +310,8 @@ selection_info::selection_info(
 { }
 
 hit_obj_ui_key::hit_obj_ui_key(std::map<float, editor_hit_object>& map, std::map<float, editor_hit_object>::iterator it) :
-    map(map),
-    it(it)
+    it(it),
+    map(map)
 { }
 
 hit_obj_metadata hit_obj_ui_key::get_metadata() const
@@ -492,20 +496,38 @@ object_editor::object_editor(
 {
     dropdown_hitsound_start.ref.on_select = [&]([[maybe_unused]] std::size_t item_idx, std::string_view item_text)
     {
-        for (auto& [key, ui] : obj_render_info)
+        std::vector<hit_obj_metadata> removed;
+        std::vector<hit_obj_metadata> added;
+        for (auto& [key, ui] : this->obj_render_info)
             if (ui.is_selected())
-                ui.hitsound_start = item_text;
+            {
+                hit_obj_metadata meta = key.get_metadata();
+                removed.push_back(meta);
 
-        /* TODO: persist  */
+                meta.hitsound_start = item_text;
+                added.push_back(meta);
+            }
+
+        this->compose_tab_scene.add_event(compose_tab_event(selected_key_ids, added, removed, true));
     };
 
     dropdown_hitsound_end.ref.on_select = [&]([[maybe_unused]] std::size_t item_idx, std::string_view item_text)
     {
+        std::vector<hit_obj_metadata> removed;
+        std::vector<hit_obj_metadata> added;
         for (auto& [key, ui] : obj_render_info)
-            if (ui.is_selected() && ui.hitsound_end.has_value())
-                ui.hitsound_end = item_text;
+            if (ui.is_selected())
+            {
+                hit_obj_metadata meta = key.get_metadata();
+                removed.push_back(meta);
 
-        /* TODO: persist */
+                if (ui.hitsound_end.has_value())
+                    meta.hitsound_end = item_text;
+
+                added.push_back(meta);
+            }
+
+        this->compose_tab_scene.add_event(compose_tab_event(selected_key_ids, added, removed, true));
     };
 
     hitsound_dropdowns_disable();
@@ -574,7 +596,7 @@ bool object_editor::delete_selected_hit_objs()
         if (ui.is_selected())
             deleted_objs.push_back(key.get_metadata());
 
-    compose_tab_scene.add_event(compose_tab_event(selected_key_ids, std::vector<hit_obj_metadata>(), deleted_objs));
+    compose_tab_scene.add_event(compose_tab_event(selected_key_ids, std::vector<hit_obj_metadata>(), deleted_objs, false));
     return true;
 }
 
@@ -594,7 +616,7 @@ void object_editor::attempt_add_hit_obj()
             : std::nullopt
     );
 
-    compose_tab_scene.add_event(compose_tab_event(selected_key_ids, new_obj_added, std::vector<hit_obj_metadata>()));
+    compose_tab_scene.add_event(compose_tab_event(selected_key_ids, new_obj_added, std::vector<hit_obj_metadata>(), false));
     new_hit_object.reset();
 }
 
@@ -615,6 +637,8 @@ void object_editor::hitsound_dropdowns_enable(std::string_view start, std::optio
 
     if (end.has_value())
     {
+        std::println("{}", end.value());
+
         dropdown_hitsound_end.ref.enable();
         dropdown_hitsound_end.ref.string_set(end.value(), true);
         label_hitsound_end.ref.color = kee::color::white;
@@ -1060,7 +1084,7 @@ void object_editor::attempt_move_op()
             }
         }
 
-    compose_tab_scene.add_event(compose_tab_event(selected_key_ids, hit_objs_added, hit_objs_removed));
+    compose_tab_scene.add_event(compose_tab_event(selected_key_ids, hit_objs_added, hit_objs_removed, false));
 }
 
 std::size_t object_editor::get_mouse_key_idx(float mouse_pos_y) const
@@ -1667,15 +1691,50 @@ void compose_tab::add_event(const compose_tab_event& e)
 
 bool compose_tab::process_event(const compose_tab_event& e)
 {
+    for (auto& [_, ui] : obj_editor.ref.obj_render_info)
+        if (ui.is_selected())
+            ui.unselect();
+
+    if (e.hitsound_hint)
+    {
+        if (e.added.size() != e.removed.size())
+            return false;
+
+        for (std::size_t i = 0; i < e.added.size(); i++)
+        {
+            if (e.added[i].key != e.removed[i].key || e.added[i].position != e.removed[i].position)
+                return false;
+
+            std::optional<bool> is_hitsound_start_edit = std::nullopt;
+            if (e.added[i].hitsound_start != e.removed[i].hitsound_start)
+                is_hitsound_start_edit = true;
+            else if (e.added[i].hitsound_end != e.removed[i].hitsound_end)
+                is_hitsound_start_edit = false;
+
+            auto& [key, ui] = *obj_editor.ref.obj_render_info.find(e.removed[i]);
+            if (is_hitsound_start_edit.has_value() && is_hitsound_start_edit.value())
+            {
+                key.it->second.hitsound_name = e.added[i].hitsound_start;
+                ui.hitsound_start = e.added[i].hitsound_start;
+            }
+            else if (is_hitsound_start_edit.has_value() && !is_hitsound_start_edit.value())
+            {
+                assert(key.it->second.hold_info.has_value() && e.added[i].hitsound_end.has_value());
+                key.it->second.hold_info.value().hitsound_name = e.added[i].hitsound_end.value();
+                ui.hitsound_end = e.added[i].hitsound_end.value();
+            }
+
+            ui.select();
+        }
+
+        return true;
+    }
+
     if (selected_key_ids != e.selected_key_ids)
     {
         selected_key_ids = e.selected_key_ids; 
         obj_editor.ref.reset_render_hit_objs();
     }
-
-    for (auto& [_, ui] : obj_editor.ref.obj_render_info)
-        if (ui.is_selected())
-            ui.unselect();
 
     for (const hit_obj_metadata& hit_obj : e.removed)
     {
@@ -1772,7 +1831,7 @@ bool compose_tab::on_element_key_down(int keycode, magic_enum::containers::bitse
             pasted_objs.emplace_back(metadata.key, new_beat, metadata.position.duration, metadata.hitsound_start, metadata.hitsound_end);
         }
 
-        add_event(compose_tab_event(selected_key_ids, pasted_objs, std::vector<hit_obj_metadata>()));
+        add_event(compose_tab_event(selected_key_ids, pasted_objs, std::vector<hit_obj_metadata>(), false));
         return true;
     }
     case KeyboardKey::KEY_Z:

@@ -105,7 +105,8 @@ dropdown::dropdown(
         false, std::nullopt, std::nullopt
     )),
     is_dropped_down(false),
-    active_flag(false)
+    active_flag(false),
+    is_multiselect(false)
 {
     options_rect_border.outline.value().val = dropdown_rect.get_outline_thickness();
 
@@ -223,14 +224,15 @@ void dropdown::disable()
     if (is_dropped_down)
         dropdown_button.on_click_l(magic_enum::containers::bitset<kee::mods>());
 
-    active_flag = false;
-    dropdown_outline_color.set(dropdown::color_inactive);
-
     options_curr_rect_y.set(0.f);
     dropdown_text.set_string(dropdown::non_single_select_text);
+    dropdown_outline_color.set(dropdown::color_inactive);
+
+    active_flag = false;
+    is_multiselect = false;
 }
 
-void dropdown::string_set(std::string_view sv, bool should_override)
+void dropdown::string_set(std::string_view sv, bool multiselect_enabled)
 {
     const auto it = std::find_if(options_button_texts.begin(), options_button_texts.end(),
         [&](const kee::ui::text& options_button_text) -> bool
@@ -242,13 +244,14 @@ void dropdown::string_set(std::string_view sv, bool should_override)
     if (it == options_button_texts.end())
         throw std::runtime_error("Input string does not exist in textbox");
 
-    if (sv == dropdown_text.get_string())
+    if (sv == dropdown_text.get_string() || is_multiselect)
         return;
 
-    if (options_curr_rect_y.get() != 0.f && should_override)
+    if (options_curr_rect_y.get() != 0.f && multiselect_enabled)
     {
         options_curr_rect_y.set(0.f);
         dropdown_text.set_string(dropdown::non_single_select_text);
+        is_multiselect = true;
     }
     else
     {

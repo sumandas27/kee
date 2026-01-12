@@ -112,12 +112,14 @@ public:
     compose_tab_event(
         const std::vector<int>& selected_key_ids, 
         const std::vector<hit_obj_metadata>& added, 
-        const std::vector<hit_obj_metadata>& removed
+        const std::vector<hit_obj_metadata>& removed,
+        bool hitsound_hint
     );
 
     std::vector<int> selected_key_ids;
     std::vector<hit_obj_metadata> added;
     std::vector<hit_obj_metadata> removed;
+    bool hitsound_hint;
 };
 
 class compose_tab_key : public kee::ui::button
@@ -216,11 +218,12 @@ public:
 
     void delete_from_map();
 
+    std::map<float, editor_hit_object>::iterator it;
+
 private:
     friend class hit_obj_ui_cmp;
 
     boost::optional<std::map<float, editor_hit_object>&> map;
-    std::map<float, editor_hit_object>::iterator it;
 };
 
 class hit_obj_ui_cmp
