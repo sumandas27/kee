@@ -255,10 +255,10 @@ public:
 
     void save();
     void save_existing_beatmap();
+    void reset_event_history();
 
     void set_error(std::string_view error_str, bool from_file_dialog);
     void set_info(std::string_view info_str);
-
     void set_song(const std::filesystem::path& song_path);
 
     std::optional<beatmap_file> save_state;
@@ -283,6 +283,7 @@ private:
     key_color_state key_colors;
     hitsound_state hitsounds;
 
+    std::unordered_map<int, std::map<float, editor_hit_object>> hit_objs;
     float approach_beats;
 
     setup_tab_info setup_info;

@@ -1123,52 +1123,24 @@ const std::unordered_map<int, int> compose_tab::key_to_prio = []
 
 compose_tab_info::compose_tab_info(
     const kee::image_texture& arrow_png,
-    const std::optional<boost::json::object>& keys_json_obj,
     const std::optional<image_state>& img_state,
     const std::optional<video_state>& vid_state,
     const key_color_state& key_colors,
-    hitsound_state& hitsounds
+    hitsound_state& hitsounds,
+    std::unordered_map<int, std::map<float, editor_hit_object>>& hit_objs
 ) :
     arrow_png(arrow_png),
     img_state(img_state),
     vid_state(vid_state),
     key_colors(key_colors),
     hitsounds(hitsounds),
+    hit_objs(hit_objs),
     is_beat_snap(true),
     is_key_locked(true),
     events_since_save(0), 
     event_history_idx(0),
     tick_freq_idx(3)
-{
-    for (const auto& [id, _] : kee::key_ui_data)
-    {
-        hit_objs[id];
-
-        if (!keys_json_obj.has_value())
-            continue;
-
-        const std::string key_str = std::string(1, static_cast<char>(id));
-        const boost::json::array& key_hit_objs = keys_json_obj.value().at(key_str).as_array();
-        for (const boost::json::value& key_hit_obj : key_hit_objs)
-        {
-            const boost::json::object& key_hit_obj_json = key_hit_obj.as_object();
-            const float beat = static_cast<float>(key_hit_obj_json.at("beat").as_double());
-            const std::string start_hitsound = static_cast<std::string>(key_hit_obj_json.at("hitsound").as_string());
-
-            std::optional<editor_hit_object_duration> hold_info;
-            if (!key_hit_obj_json.at("hold").is_null())
-            {
-                const boost::json::object& hold_obj = key_hit_obj_json.at("hold").as_object();
-                const float duration = static_cast<float>(hold_obj.at("duration").as_double());
-                const std::string end_hitsound = static_cast<std::string>(hold_obj.at("hitsound").as_string());
-                
-                hold_info.emplace(duration, end_hitsound);
-            }
-            
-            hit_objs.at(id).emplace(beat, editor_hit_object(id, start_hitsound, hold_info));
-        }
-    }
-}
+{ }
 
 std::vector<std::string> compose_tab_info::get_hitsound_names() const
 {

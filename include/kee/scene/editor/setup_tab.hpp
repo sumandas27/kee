@@ -8,12 +8,13 @@ namespace kee {
 namespace scene {
 namespace editor {
 
-class image_state;
-class video_state;
-class key_color_state;
+class editor_hit_object;
 class hitsound_state;
+class image_state;
+class key_color_state;
 class root;
 class setup_tab;
+class video_state;
 
 class setup_tab_info
 {
@@ -24,7 +25,8 @@ public:
         std::optional<image_state>& img_state,
         std::optional<video_state>& vid_state,
         key_color_state& key_colors,
-        hitsound_state& hitsounds
+        hitsound_state& hitsounds,
+        std::unordered_map<int, std::map<float, editor_hit_object>>& hit_objs
     );
 
     const kee::image_texture& exit_png;
@@ -32,7 +34,9 @@ public:
     std::optional<image_state>& img_state;
     std::optional<video_state>& vid_state;
     key_color_state& key_colors;
+
     hitsound_state& hitsounds;
+    std::unordered_map<int, std::map<float, editor_hit_object>>& hit_objs;
 
     std::optional<std::filesystem::path> new_song_path;
 

@@ -332,11 +332,11 @@ public:
 
     compose_tab_info(
         const kee::image_texture& arrow_png,
-        const std::optional<boost::json::object>& keys_json_obj,
         const std::optional<image_state>& img_state,
         const std::optional<video_state>& vid_state,
         const key_color_state& key_colors,
-        hitsound_state& hitsounds
+        hitsound_state& hitsounds,
+        std::unordered_map<int, std::map<float, editor_hit_object>>& hit_objs
     );
 
     std::vector<std::string> get_hitsound_names() const;
@@ -345,10 +345,9 @@ public:
     const std::optional<image_state>& img_state;
     const std::optional<video_state>& vid_state;
     const key_color_state& key_colors;
-    
-    hitsound_state& hitsounds;
 
-    std::unordered_map<int, std::map<float, editor_hit_object>> hit_objs;
+    hitsound_state& hitsounds;
+    std::unordered_map<int, std::map<float, editor_hit_object>>& hit_objs;
 
     bool is_beat_snap;
     bool is_key_locked;

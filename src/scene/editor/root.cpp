@@ -1052,6 +1052,13 @@ void root::save_existing_beatmap()
         set_info("Beatmap saved");
 }
 
+void root::reset_event_history()
+{
+    compose_info.events_since_save = 0;
+    compose_info.event_history_idx = 0;
+    compose_info.event_history.clear();
+}
+
 void root::set_error(std::string_view error_str, bool from_file_dialog)
 {
     const kee::color new_notif_color = kee::color(255, 0, 0, notif_img.ref.color.a);
@@ -1114,14 +1121,8 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
         : hitsound_state()
     ),
     approach_beats(dir_info.has_value() ? dir_info.value().approach_beats : 2.0f),
-    setup_info(dir_info, exit_png, img_state, vid_state, key_colors, hitsounds),
-    compose_info(
-        arrow_png,
-        dir_info.has_value()
-            ? std::make_optional(dir_info.value().keys_json_obj) 
-            : std::nullopt,
-        img_state, vid_state, key_colors, hitsounds
-    ),
+    setup_info(dir_info, exit_png, img_state, vid_state, key_colors, hitsounds, hit_objs),
+    compose_info(arrow_png, img_state, vid_state, key_colors, hitsounds, hit_objs),
     active_tab_elem(add_child<setup_tab>(std::nullopt, *this, setup_info, approach_beats)),
     active_tab(root::tabs::setup),
     tab_active_rect_rel_x(add_transition<float>(static_cast<float>(active_tab) / magic_enum::enum_count<root::tabs>())),
@@ -1365,6 +1366,35 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
             ui::text_size(ui::text_size::type::rel_h, 0.6f),
             std::nullopt, true, assets.font_semi_bold, enum_name, false
         ));
+    }
+
+    for (const auto& [id, _] : kee::key_ui_data)
+    {
+        hit_objs[id];
+
+        if (!dir_info.has_value())
+            continue;
+
+        const std::string key_str = std::string(1, static_cast<char>(id));
+        const boost::json::array& key_hit_objs = dir_info.value().keys_json_obj.at(key_str).as_array();
+        for (const boost::json::value& key_hit_obj : key_hit_objs)
+        {
+            const boost::json::object& key_hit_obj_json = key_hit_obj.as_object();
+            const float beat = static_cast<float>(key_hit_obj_json.at("beat").as_double());
+            const std::string start_hitsound = static_cast<std::string>(key_hit_obj_json.at("hitsound").as_string());
+
+            std::optional<editor_hit_object_duration> hold_info;
+            if (!key_hit_obj_json.at("hold").is_null())
+            {
+                const boost::json::object& hold_obj = key_hit_obj_json.at("hold").as_object();
+                const float duration = static_cast<float>(hold_obj.at("duration").as_double());
+                const std::string end_hitsound = static_cast<std::string>(hold_obj.at("hitsound").as_string());
+                
+                hold_info.emplace(duration, end_hitsound);
+            }
+            
+            hit_objs.at(id).emplace(beat, editor_hit_object(id, start_hitsound, hold_info));
+        }
     }
 }
 

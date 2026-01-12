@@ -12,13 +12,15 @@ setup_tab_info::setup_tab_info(
     std::optional<image_state>& img_state,
     std::optional<video_state>& vid_state,
     key_color_state& key_colors,
-    hitsound_state& hitsounds
+    hitsound_state& hitsounds,
+    std::unordered_map<int, std::map<float, editor_hit_object>>& hit_objs
 ) :
     exit_png(exit_png),
     img_state(img_state),
     vid_state(vid_state),
     key_colors(key_colors),
     hitsounds(hitsounds),
+    hit_objs(hit_objs),
     from_dir(dir_info.has_value()),
     song_artist(dir_info.has_value() ? dir_info.value().song_artist : ""),
     song_name(dir_info.has_value() ? dir_info.value().song_name : ""),
@@ -612,8 +614,29 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         this->hitsounds_dialog.ref.reset(setup_tab::no_custom_hitsound_message);
         this->setup_info.hitsounds = hitsound_state();
         this->hitsounds_remove_button_color.set(kee::color::dark_gray);
+        this->root_elem.reset_event_history();
 
-        /* TODO: reset non-default hitsounds to normal */
+        for (auto& [unused_1, map] : setup_info.hit_objs)
+            for (auto& [unused_2, obj] : map)
+            {
+                const bool is_custom_hitsound_start_name =
+                    obj.hitsound_name != "clap.wav" &&
+                    obj.hitsound_name != "finish.wav" &&
+                    obj.hitsound_name != "normal.wav" &&
+                    obj.hitsound_name != "whistle.wav";
+
+                if (is_custom_hitsound_start_name)
+                    obj.hitsound_name = "normal.wav";
+
+                const bool is_custom_hitsound_end_name = obj.hold_info.has_value() &&
+                    obj.hold_info.value().hitsound_name != "clap.wav" &&
+                    obj.hold_info.value().hitsound_name != "finish.wav" &&
+                    obj.hold_info.value().hitsound_name != "normal.wav" &&
+                    obj.hold_info.value().hitsound_name != "whistle.wav";
+
+                if (is_custom_hitsound_end_name)
+                    obj.hold_info.value().hitsound_name = "normal.wav";
+            }
     };
 
     key_color_dialog.ref.on_success = [&](const std::filesystem::path& key_colors_path)
