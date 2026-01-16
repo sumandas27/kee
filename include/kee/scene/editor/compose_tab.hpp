@@ -31,13 +31,12 @@ class video_state;
 class hit_obj_ui final : public kee::ui::rect
 {
 public:
-    /* TODO: beat width set to constant */
     hit_obj_ui(
         const kee::ui::required& reqs,
         const std::optional<std::string>& hitsound_start,
         const std::optional<std::string>& hitsound_end,
         object_editor& obj_editor, 
-        float beat, float duration, float curr_beat, float beat_width, std::size_t key_idx, std::size_t rendered_key_count
+        float beat, float duration, float curr_beat, std::size_t key_idx, std::size_t rendered_key_count
     );
 
     void select();
@@ -47,7 +46,7 @@ public:
     std::size_t get_key_idx() const;
     void set_key_idx(std::size_t new_key_idx);
 
-    void update_pos_x(float beat, float duration, float curr_beat, float beat_width);
+    void update_pos_x(float beat, float duration, float curr_beat);
 
     kee::ui::handle<kee::ui::rect> circle_l;
     kee::ui::handle<kee::ui::rect> circle_r;
@@ -79,7 +78,6 @@ public:
     float duration;
 };
 
-/* TODO: The way we store this should rly beat + optional<hold info> rather than this */
 class hit_obj_metadata
 {
 public:
@@ -258,7 +256,7 @@ public:
     hit_obj_ui make_temp_hit_obj(
         const std::optional<std::string>& hitsound_start,
         const std::optional<std::string>& hitsound_end,
-        float beat, float duration, float curr_beat, float beat_width, std::size_t key_idx, std::size_t rendered_key_count
+        float beat, float duration, float curr_beat, std::size_t key_idx, std::size_t rendered_key_count
     );
     
     void reset_render_hit_objs();
@@ -282,7 +280,7 @@ private:
     void render_element() const override;
 
     float get_beat_drag_diff() const;
-    hit_obj_position hit_obj_update_info(const std::pair<const hit_obj_ui_key, hit_obj_ui>& map_elem, float beat_drag_diff) const;
+    hit_obj_position hit_obj_update_info(const hit_obj_ui_key& key, const hit_obj_ui& ui, float beat_drag_diff) const;
 
     void handle_mouse_up(bool is_mouse_l);
     void attempt_move_op();
@@ -374,9 +372,8 @@ public:
     bool is_beat_snap_enabled() const;
     bool is_key_lock_enabled() const;
 
-    /* TODO: these should be renamed */
-    void unselect();
-    void select(int id);
+    void key_unselect();
+    void key_select(int id);
 
     void add_event(const compose_tab_event& e);
     bool process_event(const compose_tab_event& e);

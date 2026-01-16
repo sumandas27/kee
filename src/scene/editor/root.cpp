@@ -1358,7 +1358,7 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
 
         const root::tabs tab_enum = static_cast<root::tabs>(i);
         std::string enum_name = std::string(magic_enum::enum_name(tab_enum));
-        std::transform(enum_name.begin(), enum_name.end(), enum_name.begin(), [](unsigned char c) { return static_cast<unsigned char>(std::toupper(c)); });
+        std::ranges::transform(enum_name, enum_name.begin(), [](unsigned char c) { return static_cast<unsigned char>(std::toupper(c)); });
 
         tab_button_text.push_back(tab_buttons.back().ref.add_child<kee::ui::text>(std::nullopt,
             kee::color::white,

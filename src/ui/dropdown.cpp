@@ -9,6 +9,7 @@ dropdown::dropdown(
     const kee::pos& y,
     const std::variant<kee::dims, kee::border>& dimensions,
     bool centered,
+    bool multiselect_enabled,
     std::vector<std::string>&& options,
     std::optional<std::size_t> start_idx
 ) :
@@ -18,6 +19,7 @@ dropdown::dropdown(
         [[maybe_unused]] std::string_view text
     ){}),
     num_options(options.size()),
+    multiselect_enabled(multiselect_enabled),
     dropdown_outline_color(add_transition<kee::color>(kee::color::white)),
     dropdown_img_rotation(add_transition<float>(90.0f)),
     options_height(add_transition<float>(0.0f)),
@@ -232,9 +234,9 @@ void dropdown::disable()
     is_multiselect = false;
 }
 
-void dropdown::string_set(std::string_view sv, bool multiselect_enabled)
+void dropdown::string_set(std::string_view sv)
 {
-    const auto it = std::find_if(options_button_texts.begin(), options_button_texts.end(),
+    const auto it = std::ranges::find_if(options_button_texts,
         [&](const kee::ui::text& options_button_text) -> bool
         {
             return sv == options_button_text.get_string();

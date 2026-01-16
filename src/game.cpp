@@ -29,7 +29,7 @@ window::window()
 }
 
 game::game() :
-    curr_scene(std::make_unique<kee::scene::editor::root>(*this, assets, "local_0")),
+    curr_scene(std::make_unique<kee::scene::editor::root>(*this, assets, std::optional<std::filesystem::path>())),
     main_loop_begun(false),
     game_should_exit(false)
 { }

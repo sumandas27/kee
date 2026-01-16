@@ -1,6 +1,5 @@
 #include "kee/game.hpp"
 
-/* TODO NEXT: minimize .begin()/.end() usage */
 /* TODO NEAR: start marketing (set up steam page + trailer + maybe devlog) */
 
 int main()

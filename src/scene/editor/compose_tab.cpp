@@ -14,14 +14,14 @@ hit_obj_ui::hit_obj_ui(
     const std::optional<std::string>& hitsound_start,
     const std::optional<std::string>& hitsound_end,
     object_editor& obj_editor, 
-    float beat, float duration, float curr_beat, float beat_width, std::size_t key_idx, std::size_t rendered_key_count
+    float beat, float duration, float curr_beat, std::size_t key_idx, std::size_t rendered_key_count
 ) :
     kee::ui::rect(reqs,
         kee::color::dark_blue,
-        pos(pos::type::rel, (beat - curr_beat + beat_width) / (2 * beat_width)),
+        pos(pos::type::rel, (beat - curr_beat + object_editor::beat_width) / (2 * object_editor::beat_width)),
         pos(pos::type::rel, object_editor::hit_objs_rel_y + object_editor::hit_objs_rel_h * (key_idx + 1) / (rendered_key_count + 1) - hit_obj_ui::rel_h / 2),
         dims(
-            dim(dim::type::rel, duration / (2 * beat_width)),
+            dim(dim::type::rel, duration / (2 * object_editor::beat_width)),
             dim(dim::type::rel, hit_obj_ui::rel_h)
         ),
         false,
@@ -103,10 +103,10 @@ void hit_obj_ui::set_key_idx(std::size_t new_key_idx)
     key_idx = new_key_idx;
 }
 
-void hit_obj_ui::update_pos_x(float beat, float duration, float curr_beat, float beat_width)
+void hit_obj_ui::update_pos_x(float beat, float duration, float curr_beat)
 {
-    x.val = (beat - curr_beat + beat_width) / (2 * beat_width);
-    std::get<kee::dims>(dimensions).w.val = duration / (2 * beat_width);
+    x.val = (beat - curr_beat + object_editor::beat_width) / (2 * object_editor::beat_width);
+    std::get<kee::dims>(dimensions).w.val = duration / (2 * object_editor::beat_width);
 }
 
 hit_obj_position::hit_obj_position(float beat, float duration) :
@@ -189,13 +189,13 @@ compose_tab_key::compose_tab_key(
         {
         case ui::button::event::on_down_l:
             if (!mods.test(kee::mods::ctrl))
-                this->compose_tab_scene.unselect();
+                this->compose_tab_scene.key_unselect();
 
-            this->compose_tab_scene.select(this->key_id);
+            this->compose_tab_scene.key_select(this->key_id);
             break;
         case ui::button::event::on_down_r: {
-            this->compose_tab_scene.unselect();
-            this->compose_tab_scene.select(this->key_id);
+            this->compose_tab_scene.key_unselect();
+            this->compose_tab_scene.key_select(this->key_id);
 
             this->compose_tab_scene.obj_editor.ref.new_hit_object = new_hit_obj_data(this->key_id, 0, this->song_ui_elem.get_beat(), this->song_ui_elem.get_beat(), false);
             break;
@@ -203,7 +203,7 @@ compose_tab_key::compose_tab_key(
         case ui::button::event::on_leave:
             if (this->compose_tab_scene.obj_editor.ref.new_hit_object.has_value())
             {
-                this->compose_tab_scene.unselect();
+                this->compose_tab_scene.key_unselect();
                 this->compose_tab_scene.obj_editor.ref.new_hit_object.reset();
             }
             break;
@@ -226,13 +226,7 @@ compose_tab_key::compose_tab_key(
 
 void compose_tab_key::update_element([[maybe_unused]] float dt)
 {
-    const auto it = std::lower_bound(key_colors.begin(), key_colors.end(), song_ui_elem.get_beat(),
-        [](const key_decoration& key_deco, float beat) -> bool
-        {
-            return key_deco.end_beat < beat;
-        }
-    );
-
+    const auto it = std::ranges::lower_bound(key_colors, song_ui_elem.get_beat(), std::less<>(), &key_decoration::end_beat);
     if (is_selected)
         color = kee::color::green_raylib;
     else if (it != key_colors.end() && song_ui_elem.get_beat() > it->start_beat)
@@ -446,7 +440,7 @@ object_editor::object_editor(
             dim(dim::type::rel, 0.4f),
             dim(dim::type::rel, 0.12f)
         ),
-        true, compose_tab_scene.compose_info.get_hitsound_names(), std::nullopt
+        true, true, compose_tab_scene.compose_info.get_hitsound_names(), std::nullopt
     )),
     dropdown_hitsound_end(hitsound_frame.ref.add_child<kee::ui::dropdown>(std::nullopt,
         pos(pos::type::rel, 0.4f),
@@ -455,7 +449,7 @@ object_editor::object_editor(
             dim(dim::type::rel, 0.4f),
             dim(dim::type::rel, 0.12f)
         ),
-        true, compose_tab_scene.compose_info.get_hitsound_names(), std::nullopt
+        true, true, compose_tab_scene.compose_info.get_hitsound_names(), std::nullopt
     )),
     label_frame(hitsound_frame.ref.add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.75f),
@@ -539,9 +533,9 @@ const std::vector<int>& object_editor::get_keys_to_render() const
 hit_obj_ui object_editor::make_temp_hit_obj(
     const std::optional<std::string>& hitsound_start,
     const std::optional<std::string>& hitsound_end,
-    float beat, float duration, float curr_beat, float width_beats, std::size_t key_idx, std::size_t rendered_key_count
+    float beat, float duration, float curr_beat, std::size_t key_idx, std::size_t rendered_key_count
 ) {
-    return make_temp_child<hit_obj_ui>(hitsound_start, hitsound_end, *this, beat, duration, curr_beat, width_beats, key_idx, rendered_key_count);
+    return make_temp_child<hit_obj_ui>(hitsound_start, hitsound_end, *this, beat, duration, curr_beat, key_idx, rendered_key_count);
 }
 
 void object_editor::reset_render_hit_objs()
@@ -559,7 +553,7 @@ void object_editor::reset_render_hit_objs()
             object.hold_info.has_value() 
                 ? std::make_optional(object.hold_info.value().hitsound_name)
                 : std::nullopt,
-            *this, beat, object.get_duration(), song_ui_elem.get_beat(), object_editor::beat_width, i, keys_to_render.size()
+            *this, beat, object.get_duration(), song_ui_elem.get_beat(), i, keys_to_render.size()
         );
 
         obj_render_info.emplace(hit_obj_ui_key(keys.at(keys_to_render[i]).ref.hit_objects, it), std::move(render_ui));
@@ -604,7 +598,7 @@ void object_editor::attempt_add_hit_obj()
     const float new_duration = std::max(new_hit_object.value().click_beat, new_hit_object.value().current_beat) - new_beat;
 
     if (!new_hit_object.value().from_compose_tab)
-        compose_tab_scene.unselect();
+        compose_tab_scene.key_unselect();
     
     std::vector<hit_obj_metadata> new_obj_added;
     new_obj_added.emplace_back(
@@ -630,7 +624,7 @@ void object_editor::hitsound_dropdowns_disable()
 void object_editor::hitsound_dropdowns_enable(std::string_view start, std::optional<std::string_view> end)
 {
     dropdown_hitsound_start.ref.enable();
-    dropdown_hitsound_start.ref.string_set(start, true);
+    dropdown_hitsound_start.ref.string_set(start);
     label_hitsound_start.ref.color = kee::color::white;
 
     if (end.has_value())
@@ -638,7 +632,7 @@ void object_editor::hitsound_dropdowns_enable(std::string_view start, std::optio
         std::println("{}", end.value());
 
         dropdown_hitsound_end.ref.enable();
-        dropdown_hitsound_end.ref.string_set(end.value(), true);
+        dropdown_hitsound_end.ref.string_set(end.value());
         label_hitsound_end.ref.color = kee::color::white;
     }
 }
@@ -650,7 +644,7 @@ void object_editor::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[ma
 
     const raylib::Rectangle obj_editor_raw_rect = get_raw_rect();
     const float mouse_in_rect_percent = (mouse_pos.x - obj_editor_raw_rect.x) / obj_editor_raw_rect.width;
-    const float mouse_beat_diff = (mouse_in_rect_percent - 0.5f) * beat_width * 2;
+    const float mouse_beat_diff = (mouse_in_rect_percent - 0.5f) * object_editor::beat_width * 2;
     mouse_beat = song_ui_elem.get_beat() + mouse_beat_diff;
 
     if (beat_hover_l.ref.get_raw_rect().CheckCollision(mouse_pos))
@@ -675,11 +669,11 @@ void object_editor::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[ma
         if (selection_end_rel_y > 1)
             selection_end_rel_y = 1;
 
-        box_selection.rect.x.val = (selection_start_beat - (song_ui_elem.get_beat() - beat_width)) / (2 * beat_width);
+        box_selection.rect.x.val = (selection_start_beat - (song_ui_elem.get_beat() - object_editor::beat_width)) / (2 * object_editor::beat_width);
         box_selection.rect.y.val = selection_start_rel_y;
 
         auto& [w, h] = std::get<kee::dims>(box_selection.rect.dimensions);
-        w.val = (selection_end_beat - selection_start_beat) / (2 * beat_width);
+        w.val = (selection_end_beat - selection_start_beat) / (2 * object_editor::beat_width);
         h.val = selection_end_rel_y - selection_start_rel_y;
     }
     else if (new_hit_object.has_value())
@@ -781,7 +775,7 @@ bool object_editor::on_element_mouse_down(const raylib::Vector2& mouse_pos, bool
         }
         else
         {
-            is_drag_possible = std::none_of(obj_render_info.begin(), obj_render_info.end(), 
+            is_drag_possible = std::ranges::none_of(obj_render_info, 
                 [&](const auto& obj) 
                 {
                     const bool distinct_from_selected = &obj != &(*obj_selected_it);
@@ -881,21 +875,21 @@ bool object_editor::on_element_mouse_up([[maybe_unused]] const raylib::Vector2& 
 void object_editor::update_element([[maybe_unused]] float dt)
 {
     const float beat_drag_diff = get_beat_drag_diff();
-    for (auto& map_elem : obj_render_info)
+    for (auto& [key, ui] : obj_render_info)
     {
-        hit_obj_position update = hit_obj_update_info(map_elem, beat_drag_diff);
-        map_elem.second.update_pos_x(update.beat, update.duration, song_ui_elem.get_beat(), beat_width);
+        hit_obj_position update = hit_obj_update_info(key, ui, beat_drag_diff);
+        ui.update_pos_x(update.beat, update.duration, song_ui_elem.get_beat());
     }
 
-    const int beat_start_tick = static_cast<int>(std::floor(song_ui_elem.get_beat() - beat_width) * compose_tab_scene.get_ticks_per_beat());
-    const int beat_end_tick = static_cast<int>(std::ceil(song_ui_elem.get_beat() + beat_width) * compose_tab_scene.get_ticks_per_beat());
+    const int beat_start_tick = static_cast<int>(std::floor(song_ui_elem.get_beat() - object_editor::beat_width) * compose_tab_scene.get_ticks_per_beat());
+    const int beat_end_tick = static_cast<int>(std::ceil(song_ui_elem.get_beat() + object_editor::beat_width) * compose_tab_scene.get_ticks_per_beat());
     
     beat_render_rects.clear();
     whole_beat_texts.clear();
     for (int beat_tick = beat_start_tick; beat_tick <= beat_end_tick; beat_tick++)
     {
         const float beat_render = static_cast<float>(beat_tick) / compose_tab_scene.get_ticks_per_beat();
-        const float render_rel_x = (beat_render - (song_ui_elem.get_beat() - beat_width)) / (2 * beat_width);
+        const float render_rel_x = (beat_render - (song_ui_elem.get_beat() - object_editor::beat_width)) / (2 * object_editor::beat_width);
 
         const bool is_whole_beat = beat_tick % compose_tab_scene.get_ticks_per_beat() == 0;
         const float render_rel_w = is_whole_beat ? 0.005f : 0.003f;
@@ -932,7 +926,7 @@ void object_editor::update_element([[maybe_unused]] float dt)
         const float beg_beat = std::min(new_hit_object.value().click_beat, new_hit_object.value().current_beat);
         const float end_beat = std::max(new_hit_object.value().click_beat, new_hit_object.value().current_beat);
         
-        new_hit_obj_render.emplace(make_temp_child<hit_obj_ui>(std::nullopt, std::nullopt, *this, beg_beat, end_beat - beg_beat, song_ui_elem.get_beat(), beat_width, new_hit_object.value().key_idx, get_keys_to_render().size()));
+        new_hit_obj_render.emplace(make_temp_child<hit_obj_ui>(std::nullopt, std::nullopt, *this, beg_beat, end_beat - beg_beat, song_ui_elem.get_beat(), new_hit_object.value().key_idx, get_keys_to_render().size()));
         new_hit_obj_render.value().select();
     }
 
@@ -980,13 +974,13 @@ float object_editor::get_beat_drag_diff() const
         return 0.0f;
 }
 
-hit_obj_position object_editor::hit_obj_update_info(const std::pair<const hit_obj_ui_key, hit_obj_ui>& map_elem, float beat_drag_diff) const
+hit_obj_position object_editor::hit_obj_update_info(const hit_obj_ui_key& key, const hit_obj_ui& ui, float beat_drag_diff) const
 {
-    const hit_obj_position pos = map_elem.first.get_metadata().position;
+    const hit_obj_position pos = key.get_metadata().position;
     float update_beat = pos.beat;
     float update_duration = pos.duration;
 
-    if (map_elem.second.is_selected() && selection.has_value() && std::holds_alternative<selection_obj_info>(selection.value().variant))
+    if (ui.is_selected() && selection.has_value() && std::holds_alternative<selection_obj_info>(selection.value().variant))
     {
         const selection_obj_info& obj_selection = std::get<selection_obj_info>(selection.value().variant);
 
@@ -1057,17 +1051,17 @@ void object_editor::attempt_move_op()
     std::vector<hit_obj_metadata> hit_objs_removed;
 
     bool same_check = false;
-    for (auto it = obj_render_info.begin(); it != obj_render_info.end(); it++)
-        if (it->second.is_selected())
+    for (auto& [key, ui] : obj_render_info)
+        if (ui.is_selected())
         {
-            assert(it->second.hitsound_start.has_value());
+            assert(ui.hitsound_start.has_value());
 
-            const hit_obj_metadata old_obj = it->first.get_metadata();
-            const hit_obj_position new_obj_position = hit_obj_update_info(*it, get_beat_drag_diff());
+            const hit_obj_metadata old_obj = key.get_metadata();
+            const hit_obj_position new_obj_position = hit_obj_update_info(key, ui, get_beat_drag_diff());
             const hit_obj_metadata new_obj(
-                keys_to_render[it->second.get_key_idx()], new_obj_position.beat, new_obj_position.duration, it->second.hitsound_start.value(), 
-                it->second.hitsound_end.has_value()
-                    ? std::optional<std::string>(it->second.hitsound_end.value())
+                keys_to_render[ui.get_key_idx()], new_obj_position.beat, new_obj_position.duration, ui.hitsound_start.value(), 
+                ui.hitsound_end.has_value()
+                    ? std::optional<std::string>(ui.hitsound_end.value())
                     : std::nullopt
             );
 
@@ -1588,7 +1582,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         keys.emplace(id, key_holders.back().ref.add_child<compose_tab_key>(std::nullopt, *this, song_ui_elem, compose_info.hit_objs[id], compose_info.key_colors.decorations.at(key_str), id));
     }
 
-    unselect();
+    key_unselect();
 }
 
 int compose_tab::get_ticks_per_beat() const
@@ -1611,7 +1605,7 @@ bool compose_tab::is_key_lock_enabled() const
     return compose_info.is_key_locked;
 }
 
-void compose_tab::unselect()
+void compose_tab::key_unselect()
 {
     for (int prev_id : selected_key_ids)
     {
@@ -1625,7 +1619,7 @@ void compose_tab::unselect()
     obj_editor.ref.hitsound_dropdowns_disable();
 }
 
-void compose_tab::select(int id)
+void compose_tab::key_select(int id)
 {
     if (keys.at(id).ref.is_selected)
         return;
@@ -1635,7 +1629,7 @@ void compose_tab::select(int id)
     keys.at(id).ref.key_text.change_z_order(0);
 
     selected_key_ids.insert(
-        std::lower_bound(selected_key_ids.begin(), selected_key_ids.end(), id,
+        std::ranges::lower_bound(selected_key_ids, id,
             [](int l, int r) { return compose_tab::key_to_prio.at(l) <= compose_tab::key_to_prio.at(r); }
         ),
     id);
@@ -1735,7 +1729,7 @@ bool compose_tab::process_event(const compose_tab_event& e)
         const auto new_key_it = std::ranges::find(keys_to_render, hit_obj.key);
         const std::size_t new_key_idx = std::ranges::distance(keys_to_render.begin(), new_key_it);
 
-        hit_obj_ui render_ui = obj_editor.ref.make_temp_hit_obj(hit_obj.hitsound_start, hit_obj.hitsound_end, hit_obj.position.beat, hit_obj.position.duration, song_ui_elem.get_beat(), object_editor::beat_width, new_key_idx, keys_to_render.size());
+        hit_obj_ui render_ui = obj_editor.ref.make_temp_hit_obj(hit_obj.hitsound_start, hit_obj.hitsound_end, hit_obj.position.beat, hit_obj.position.duration, song_ui_elem.get_beat(), new_key_idx, keys_to_render.size());
         if (is_valid)
             render_ui.select();
 
@@ -1763,7 +1757,7 @@ bool compose_tab::on_element_key_down(int keycode, magic_enum::containers::bitse
         for (int prev_id : selected_key_ids)
             keys.at(prev_id).ref.color = kee::color::white;
 
-        unselect();
+        key_unselect();
         return true;
     case KeyboardKey::KEY_A:
         if (!mods.test(kee::mods::ctrl))

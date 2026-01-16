@@ -18,6 +18,7 @@ public:
         const kee::pos& y,
         const std::variant<kee::dims, kee::border>& dimensions,
         bool centered,
+        bool multiselect_enabled,
         std::vector<std::string>&& options,
         std::optional<std::size_t> start_idx
     );
@@ -27,8 +28,7 @@ public:
     void enable();
     void disable();
 
-    /* TODO: multiselect_enabled should be param */
-    void string_set(std::string_view sv, bool multiselect_enabled);
+    void string_set(std::string_view sv);
 
     /**
      * Called when a dropdown item is selected. The item's index and text
@@ -48,6 +48,7 @@ private:
     void render_element() const override;
 
     const std::size_t num_options;
+    const bool multiselect_enabled;
 
     kee::transition<kee::color>& dropdown_outline_color;
     kee::transition<float>& dropdown_img_rotation;
