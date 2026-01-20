@@ -337,7 +337,7 @@ pause_menu::pause_menu(const kee::ui::required& reqs, beatmap& beatmap_scene) :
                     dim(dim::type::rel, 1),
                     dim(dim::type::rel, 0.15f)
                 ),
-                false
+                false, false
             )
         ) :
         std::variant<kee::ui::handle<kee::ui::slider>, kee::ui::handle<kee::ui::rect>>(

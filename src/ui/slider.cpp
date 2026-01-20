@@ -10,7 +10,8 @@ slider::slider(
     const kee::pos& x, 
     const kee::pos& y, 
     const std::variant<kee::dims, kee::border>& dimensions, 
-    bool centered
+    bool centered,
+    bool menu_style
 ) :
     kee::ui::base(reqs, x, y, dimensions, centered),
     on_event([]([[maybe_unused]] slider::event slider_event){}),
@@ -26,7 +27,9 @@ slider::slider(
             dim(dim::type::rel, 1)
         ),
         false, std::nullopt, 
-        rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt)
+        !menu_style 
+            ? std::make_optional(rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt))
+            : std::nullopt
     )),
     fill(make_temp_child<kee::ui::rect>(
         kee::color::white,
@@ -38,7 +41,9 @@ slider::slider(
         ),
         false,
         std::nullopt,
-        rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt)
+        !menu_style
+            ? std::make_optional(rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt))
+            : std::nullopt
     )),
     thumb(fill.make_temp_child<kee::ui::rect>(
         kee::color::white,
@@ -52,7 +57,8 @@ slider::slider(
         std::nullopt,
         rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt)
     )),
-    slider_state(mouse_state::off)
+    slider_state(mouse_state::off),
+    menu_style(menu_style)
 { }
 
 bool slider::is_down() const
@@ -118,9 +124,15 @@ bool slider::on_element_mouse_up([[maybe_unused]] const raylib::Vector2& mouse_p
 
 void slider::update_element([[maybe_unused]] float dt)
 {
-    fill.color = fill_color.get();
+    if (!menu_style)
+        fill.color = fill_color.get();
+
     std::get<kee::dims>(fill.dimensions).w.val = progress;
     std::get<kee::dims>(thumb.dimensions).h.val = thumb_scale.get();
+
+    fill.color.a = color.a;
+    thumb.color.a = color.a;
+    track.color.a = slider::track_color.a * color.a / 255.f;
 }
 
 void slider::render_element() const

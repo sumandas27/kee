@@ -2,7 +2,7 @@
 
 #include <avcpp/av.h>
 
-#include "kee/scene/editor/root.hpp"
+#include "kee/scene/menu.hpp"
 
 namespace kee {
 
@@ -29,7 +29,7 @@ window::window()
 }
 
 game::game() :
-    curr_scene(std::make_unique<kee::scene::editor::root>(*this, assets, std::optional<std::filesystem::path>())),
+    curr_scene(std::make_unique<kee::scene::menu>(*this, assets, beatmap_dir_info("local_0"))),
     main_loop_begun(false),
     game_should_exit(false)
 { }

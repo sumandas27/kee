@@ -241,6 +241,11 @@ void compose_tab_key::update_element([[maybe_unused]] float dt)
     frame.ref.outline.value().color = color;
     key_text.ref.color = color;
 
+    const float rgb_max = std::max({ color.r, color.g, color.b });
+    const kee::color hit_obj_color = rgb_max != 0.f
+        ? color * (255.f / rgb_max)
+        : kee::color::white;
+
     hit_obj_rects.clear();
     for (const auto& [beat, object] : hit_objects)
     {
@@ -258,7 +263,7 @@ void compose_tab_key::update_element([[maybe_unused]] float dt)
             pos(pos::type::rel, 0.5),
             border(border::type::rel_h, start_progress),
             true,
-            ui::rect_outline(ui::rect_outline::type::abs, 0, kee::color::white),
+            ui::rect_outline(ui::rect_outline::type::abs, 0, hit_obj_color),
             std::nullopt
         ));
 
@@ -1329,7 +1334,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
                     dim(dim::type::rel, 1),
                     dim(dim::type::rel, 0.15f)
                 ),
-                false
+                false, false
             )
         ) :
         std::variant<kee::ui::handle<kee::ui::slider>, kee::ui::handle<kee::ui::rect>>(

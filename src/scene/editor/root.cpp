@@ -375,7 +375,7 @@ song_ui::song_ui(const kee::ui::required& reqs, const kee::image_texture& arrow_
             dim(dim::type::rel, 1),
             dim(dim::type::rel, 0.1f)
         ),
-        false
+        false, false
     )),
     pause_play(add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::beg, 0),
@@ -744,7 +744,7 @@ hitsound_state::hitsound_state()
         map[hitsound_wav.path().filename().string()] = raylib::Sound(hitsound_wav.path().string());
 
     /* TODO: hard coded don't like */
-    map.at("normal.wav").SetVolume(0.01f);
+    map.at("normal.wav").SetVolume(0.1f);
 }
 
 hitsound_state::hitsound_state(const std::filesystem::path& path, std::unordered_map<std::string, raylib::Sound>&& map) :
@@ -762,12 +762,309 @@ hitsound_state::hitsound_state(const std::filesystem::path& path, root& root_ele
         root_elem.set_error(custom_hitsounds.error(), true);
 }
 
-root::root(kee::game& game, kee::global_assets& assets, const std::optional<std::filesystem::path>& beatmap_dir_name) :
-    root(game, assets, beatmap_dir_name.has_value() 
-        ? std::make_optional(beatmap_dir_info(beatmap_dir_name.value()))
+root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_dir_info>&& dir_info) :
+    kee::scene::base(game, assets),
+    save_state(dir_info.has_value() 
+        ? std::make_optional(beatmap_file(dir_info.value().dir_state, false)) 
         : std::nullopt
-    )
-{ }
+    ),
+    arrow_png("assets/img/arrow.png"),
+    error_png("assets/img/error.png"),
+    exit_png("assets/img/exit.png"),
+    info_png("assets/img/info.png"),
+    img_state(dir_info.has_value() && dir_info.value().dir_state.has_image
+        ? std::make_optional(image_state(dir_info.value().dir_state.path / beatmap_dir_state::standard_img_filename))
+        : std::nullopt
+    ),
+    vid_state(dir_info.has_value() && dir_info.value().dir_state.video_dir_info.has_value()
+        ? std::make_optional(video_state(dir_info.value().dir_state.path / beatmap_dir_state::standard_vid_filename, dir_info.value().dir_state.video_dir_info.value()))
+        : std::nullopt
+    ),
+    key_colors(dir_info.has_value() && dir_info.value().key_colors_json_obj.has_value()
+        ? key_color_state(dir_info.value().dir_state.path / beatmap_dir_state::standard_key_colors_filename, dir_info.value().key_colors_json_obj.value())
+        : key_color_state()
+    ),
+    hitsounds(dir_info.has_value() && dir_info.value().custom_hitsounds.has_value()
+        ? hitsound_state(dir_info.value().dir_state.path / beatmap_dir_state::standard_custom_hitsound_dirname, std::move(dir_info.value().custom_hitsounds.value()))
+        : hitsound_state()
+    ),
+    approach_beats(dir_info.has_value() ? dir_info.value().approach_beats : 2.0f),
+    setup_info(dir_info, exit_png, img_state, vid_state, key_colors, hitsounds, hit_objs),
+    compose_info(arrow_png, img_state, vid_state, key_colors, hitsounds, hit_objs),
+    active_tab_elem(add_child<setup_tab>(std::nullopt, *this, setup_info, approach_beats)),
+    active_tab(root::tabs::setup),
+    tab_active_rect_rel_x(add_transition<float>(static_cast<float>(active_tab) / magic_enum::enum_count<root::tabs>())),
+    exit_button_rect_alpha(add_transition<float>(0.0f)),
+    notif_rect_rel_x(add_transition<float>(1.0f)),
+    notif_alpha(add_transition<float>(0)),
+    tab_rect(add_child<kee::ui::rect>(1,
+        kee::color(10, 10, 10, 255),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 0.04f)
+        ),
+        false, std::nullopt, std::nullopt
+    )),
+    tab_display_frame(tab_rect.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::abs, 0),
+            dim(dim::type::rel, 1)
+        ),
+        false
+    )),
+    tab_active_rect(tab_display_frame.ref.add_child<kee::ui::rect>(std::nullopt,
+        kee::color(20, 20, 20, 255),
+        pos(pos::type::rel, tab_active_rect_rel_x.get()),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::rel, 1.0f / magic_enum::enum_count<root::tabs>()),
+            dim(dim::type::rel, 1)
+        ),
+        false, std::nullopt, std::nullopt
+    )),
+    exit_button(tab_rect.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::end, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::aspect, 1),
+            dim(dim::type::rel, 1)
+        ),
+        false
+    )),
+    exit_button_rect(exit_button.ref.add_child<kee::ui::rect>(0,
+        kee::color(255, 0, 0, static_cast<unsigned char>(exit_button_rect_alpha.get())),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::abs, 0),
+        true, std::nullopt, std::nullopt
+    )),
+    exit_button_image(exit_button.ref.add_child<kee::ui::image>(1,
+        exit_png, kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_w, 0.3f),
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
+    )),
+    playback_bg(add_child<kee::ui::rect>(std::nullopt,
+        kee::color(30, 30, 30),
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.92f),
+        dims(
+            dim(dim::type::rel, 1),
+            dim(dim::type::rel, 0.08f)
+        ),
+        false, std::nullopt, std::nullopt
+    )),
+    playback_ui_frame(playback_bg.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_h, 0.15f),
+        true
+    )),
+    playback_ui(dir_info.has_value() ?
+        std::variant<kee::ui::handle<song_ui>, kee::ui::handle<kee::ui::text>>(
+            playback_ui_frame.ref.add_child<song_ui>(std::nullopt, 
+                arrow_png, 
+                std::move(dir_info.value().song), 
+                dir_info.value().song_bpm, 
+                dir_info.value().song_start_offset
+            )
+        ) :
+        std::variant<kee::ui::handle<song_ui>, kee::ui::handle<kee::ui::text>>(
+            playback_ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
+                kee::color::white,
+                pos(pos::type::rel, 0),
+                pos(pos::type::rel, 0),
+                ui::text_size(ui::text_size::type::rel_h, 0.5f),
+                std::nullopt, false, assets.font_semi_bold, "NO SONG SELECTED", false
+            )
+        )
+    ),
+    notif_rect(add_child<kee::ui::rect>(1,
+        kee::color(80, 80, 80, static_cast<unsigned char>(notif_alpha.get())),
+        pos(pos::type::rel, notif_rect_rel_x.get()),
+        pos(pos::type::rel, 0.93f),
+        dims(
+            dim(dim::type::rel, 0.2f),
+            dim(dim::type::rel, 0.05f)
+        ),
+        false,
+        ui::rect_outline(ui::rect_outline::type::rel_h, 0.1f, kee::color(255, 0, 0, static_cast<unsigned char>(notif_alpha.get()))),
+        ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.2f, std::nullopt)
+    )),
+    notif_img_frame(notif_rect.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0),
+        dims(
+            dim(dim::type::aspect, 1),
+            dim(dim::type::rel, 1)
+        ),
+        false
+    )),
+    notif_img(notif_img_frame.ref.add_child<kee::ui::image>(std::nullopt,
+        error_png, kee::color(255, 0, 0, notif_alpha.get()),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_h, 0.3f),
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
+    )),
+    notif_text(notif_rect.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color(255, 255, 255, static_cast<unsigned char>(notif_alpha.get())),
+        pos(pos::type::rel, 0.13f),
+        pos(pos::type::rel, 0.3f),
+        ui::text_size(ui::text_size::type::rel_h, 0.4f),
+        kee::dim(kee::dim::type::rel, 0.82f),
+        false, assets.font_semi_bold, std::string(), false
+    )),
+    notif_timer(0.0f)
+{
+    std::visit([](const auto& elem) {
+        elem.ref.take_keyboard_capture();
+    }, active_tab_elem);
+
+    const raylib::Rectangle tab_raw_rect = tab_rect.ref.get_raw_rect();
+    std::get<kee::dims>(tab_display_frame.ref.dimensions).w.val = tab_raw_rect.width - tab_raw_rect.height;
+
+    exit_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            this->exit_button_rect_alpha.set(std::nullopt, 255, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            this->exit_button_rect_alpha.set(std::nullopt, 0, 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    exit_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        this->confirm_exit.emplace(this->exit_button.ref.add_child<confirm_exit_ui>(2, *this, this->error_png, this->tab_rect.ref.get_raw_rect().width));
+    };
+
+    tab_buttons.reserve(magic_enum::enum_count<root::tabs>());
+    tab_button_text.reserve(magic_enum::enum_count<root::tabs>());
+
+    for (std::size_t i = 0; i < magic_enum::enum_count<root::tabs>(); i++)
+    {
+        tab_button_text_colors.push_back(add_transition<kee::color>(kee::color::white));
+
+        tab_buttons.push_back(tab_display_frame.ref.add_child<kee::ui::button>(std::nullopt,
+            pos(pos::type::rel, static_cast<float>(i) / magic_enum::enum_count<root::tabs>()),
+            pos(pos::type::rel, 0),
+            dims(
+                dim(dim::type::rel, 1.0f / magic_enum::enum_count<root::tabs>()),
+                dim(dim::type::rel, 1)
+            ),
+            false
+        ));
+
+        tab_buttons.back().ref.on_event = [&, idx = i](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+        {
+            switch (button_event)
+            {
+            case ui::button::event::on_hot:
+                this->tab_button_text_colors[idx].get().set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
+                break;
+            case ui::button::event::on_leave:
+                this->tab_button_text_colors[idx].get().set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
+                break;
+            default:
+                break;
+            }
+        };
+
+        tab_buttons.back().ref.on_click_l = [&, idx = i]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+        {
+            const root::tabs tab_enum = static_cast<root::tabs>(idx);
+            if (this->active_tab == tab_enum)
+                return;
+
+            const bool requires_song_ui = (tab_enum == root::tabs::compose || tab_enum == root::tabs::timing);
+            if (requires_song_ui && !std::holds_alternative<kee::ui::handle<song_ui>>(this->playback_ui))
+            {
+                this->set_error("Select a song first!", false);
+                return;
+            }
+
+            const float new_rel_x = static_cast<float>(idx) / magic_enum::enum_count<root::tabs>();
+            this->tab_active_rect_rel_x.set(std::nullopt, new_rel_x, 0.3f, kee::transition_type::exp);
+            this->active_tab = tab_enum;
+
+            std::visit([](const auto& elem) {
+                elem.ref.release_keyboard_capture();
+            }, this->active_tab_elem);
+
+            switch (tab_enum)
+            {
+            case root::tabs::setup:
+                this->active_tab_elem.emplace<kee::ui::handle<setup_tab>>(add_child<setup_tab>(std::nullopt, *this, setup_info, approach_beats));
+                break;
+            case root::tabs::compose: {
+                song_ui& song_ui_elem = std::get<kee::ui::handle<song_ui>>(this->playback_ui).ref;
+                this->active_tab_elem.emplace<kee::ui::handle<compose_tab>>(add_child<compose_tab>(std::nullopt, approach_beats, song_ui_elem, compose_info));
+                break;
+            }
+            case root::tabs::timing: {
+                song_ui& song_ui_elem = std::get<kee::ui::handle<song_ui>>(this->playback_ui).ref;
+                this->active_tab_elem.emplace<kee::ui::handle<timing_tab>>(add_child<timing_tab>(std::nullopt, *this, song_ui_elem, timing_info));
+                break;
+            }}
+
+            std::visit([](const auto& elem) {
+                elem.ref.take_keyboard_capture();
+            }, this->active_tab_elem);
+        };
+
+        const root::tabs tab_enum = static_cast<root::tabs>(i);
+        std::string enum_name = std::string(magic_enum::enum_name(tab_enum));
+        std::ranges::transform(enum_name, enum_name.begin(), [](unsigned char c) { return static_cast<unsigned char>(std::toupper(c)); });
+
+        tab_button_text.push_back(tab_buttons.back().ref.add_child<kee::ui::text>(std::nullopt,
+            kee::color::white,
+            pos(pos::type::rel, 0.5f),
+            pos(pos::type::rel, 0.5f),
+            ui::text_size(ui::text_size::type::rel_h, 0.6f),
+            std::nullopt, true, assets.font_semi_bold, enum_name, false
+        ));
+    }
+
+    for (const auto& [id, _] : kee::key_ui_data)
+    {
+        hit_objs[id];
+
+        if (!dir_info.has_value())
+            continue;
+
+        const std::string key_str = std::string(1, static_cast<char>(id));
+        const boost::json::array& key_hit_objs = dir_info.value().keys_json_obj.at(key_str).as_array();
+        for (const boost::json::value& key_hit_obj : key_hit_objs)
+        {
+            const boost::json::object& key_hit_obj_json = key_hit_obj.as_object();
+            const float beat = static_cast<float>(key_hit_obj_json.at("beat").as_double());
+            const std::string start_hitsound = static_cast<std::string>(key_hit_obj_json.at("hitsound").as_string());
+
+            std::optional<editor_hit_object_duration> hold_info;
+            if (!key_hit_obj_json.at("hold").is_null())
+            {
+                const boost::json::object& hold_obj = key_hit_obj_json.at("hold").as_object();
+                const float duration = static_cast<float>(hold_obj.at("duration").as_double());
+                const std::string end_hitsound = static_cast<std::string>(hold_obj.at("hitsound").as_string());
+                
+                hold_info.emplace(duration, end_hitsound);
+            }
+            
+            hit_objs.at(id).emplace(beat, editor_hit_object(id, start_hitsound, hold_info));
+        }
+    }
+}
 
 std::optional<beatmap_save_info> root::get_save_info() const
 {
@@ -1093,310 +1390,6 @@ void root::set_info(std::string_view info_str)
 void root::set_song(const std::filesystem::path& song_path)
 {
     playback_ui.emplace<kee::ui::handle<song_ui>>(playback_ui_frame.ref.add_child<song_ui>(std::nullopt, arrow_png, song_path));
-}
-
-root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_dir_info> dir_info) :
-    kee::scene::base(game, assets),
-    save_state(dir_info.has_value() 
-        ? std::make_optional(beatmap_file(dir_info.value().dir_state, false)) 
-        : std::nullopt
-    ),
-    arrow_png("assets/img/arrow.png"),
-    error_png("assets/img/error.png"),
-    exit_png("assets/img/exit.png"),
-    info_png("assets/img/info.png"),
-    img_state(dir_info.has_value() && dir_info.value().dir_state.has_image
-        ? std::make_optional(image_state(dir_info.value().dir_state.path / beatmap_dir_state::standard_img_filename))
-        : std::nullopt
-    ),
-    vid_state(dir_info.has_value() && dir_info.value().dir_state.video_dir_info.has_value()
-        ? std::make_optional(video_state(dir_info.value().dir_state.path / beatmap_dir_state::standard_vid_filename, dir_info.value().dir_state.video_dir_info.value()))
-        : std::nullopt
-    ),
-    key_colors(dir_info.has_value() && dir_info.value().key_colors_json_obj.has_value()
-        ? key_color_state(dir_info.value().dir_state.path / beatmap_dir_state::standard_key_colors_filename, dir_info.value().key_colors_json_obj.value())
-        : key_color_state()
-    ),
-    hitsounds(dir_info.has_value() && dir_info.value().custom_hitsounds.has_value()
-        ? hitsound_state(dir_info.value().dir_state.path / beatmap_dir_state::standard_custom_hitsound_dirname, std::move(dir_info.value().custom_hitsounds.value()))
-        : hitsound_state()
-    ),
-    approach_beats(dir_info.has_value() ? dir_info.value().approach_beats : 2.0f),
-    setup_info(dir_info, exit_png, img_state, vid_state, key_colors, hitsounds, hit_objs),
-    compose_info(arrow_png, img_state, vid_state, key_colors, hitsounds, hit_objs),
-    active_tab_elem(add_child<setup_tab>(std::nullopt, *this, setup_info, approach_beats)),
-    active_tab(root::tabs::setup),
-    tab_active_rect_rel_x(add_transition<float>(static_cast<float>(active_tab) / magic_enum::enum_count<root::tabs>())),
-    exit_button_rect_alpha(add_transition<float>(0.0f)),
-    notif_rect_rel_x(add_transition<float>(1.0f)),
-    notif_alpha(add_transition<float>(0)),
-    tab_rect(add_child<kee::ui::rect>(1,
-        kee::color(10, 10, 10, 255),
-        pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0),
-        dims(
-            dim(dim::type::rel, 1),
-            dim(dim::type::rel, 0.04f)
-        ),
-        false, std::nullopt, std::nullopt
-    )),
-    tab_display_frame(tab_rect.ref.add_child<kee::ui::base>(std::nullopt,
-        pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0),
-        dims(
-            dim(dim::type::abs, 0),
-            dim(dim::type::rel, 1)
-        ),
-        false
-    )),
-    tab_active_rect(tab_display_frame.ref.add_child<kee::ui::rect>(std::nullopt,
-        kee::color(20, 20, 20, 255),
-        pos(pos::type::rel, tab_active_rect_rel_x.get()),
-        pos(pos::type::rel, 0),
-        dims(
-            dim(dim::type::rel, 1.0f / magic_enum::enum_count<root::tabs>()),
-            dim(dim::type::rel, 1)
-        ),
-        false, std::nullopt, std::nullopt
-    )),
-    exit_button(tab_rect.ref.add_child<kee::ui::button>(std::nullopt,
-        pos(pos::type::end, 0),
-        pos(pos::type::rel, 0),
-        dims(
-            dim(dim::type::aspect, 1),
-            dim(dim::type::rel, 1)
-        ),
-        false
-    )),
-    exit_button_rect(exit_button.ref.add_child<kee::ui::rect>(0,
-        kee::color(255, 0, 0, static_cast<unsigned char>(exit_button_rect_alpha.get())),
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.5f),
-        border(border::type::abs, 0),
-        true, std::nullopt, std::nullopt
-    )),
-    exit_button_image(exit_button.ref.add_child<kee::ui::image>(1,
-        exit_png, kee::color::white,
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.5f),
-        border(border::type::rel_w, 0.3f),
-        true, ui::image::display::shrink_to_fit, false, false, 0.0f
-    )),
-    playback_bg(add_child<kee::ui::rect>(std::nullopt,
-        kee::color(30, 30, 30),
-        pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0.92f),
-        dims(
-            dim(dim::type::rel, 1),
-            dim(dim::type::rel, 0.08f)
-        ),
-        false, std::nullopt, std::nullopt
-    )),
-    playback_ui_frame(playback_bg.ref.add_child<kee::ui::base>(std::nullopt,
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.5f),
-        border(border::type::rel_h, 0.15f),
-        true
-    )),
-    playback_ui(dir_info.has_value() ?
-        std::variant<kee::ui::handle<song_ui>, kee::ui::handle<kee::ui::text>>(
-            playback_ui_frame.ref.add_child<song_ui>(std::nullopt, 
-                arrow_png, 
-                std::move(dir_info.value().song), 
-                dir_info.value().song_bpm, 
-                dir_info.value().song_start_offset
-            )
-        ) :
-        std::variant<kee::ui::handle<song_ui>, kee::ui::handle<kee::ui::text>>(
-            playback_ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
-                kee::color::white,
-                pos(pos::type::rel, 0),
-                pos(pos::type::rel, 0),
-                ui::text_size(ui::text_size::type::rel_h, 0.5f),
-                std::nullopt, false, assets.font_semi_bold, "NO SONG SELECTED", false
-            )
-        )
-    ),
-    notif_rect(add_child<kee::ui::rect>(1,
-        kee::color(80, 80, 80, static_cast<unsigned char>(notif_alpha.get())),
-        pos(pos::type::rel, notif_rect_rel_x.get()),
-        pos(pos::type::rel, 0.93f),
-        dims(
-            dim(dim::type::rel, 0.2f),
-            dim(dim::type::rel, 0.05f)
-        ),
-        false,
-        ui::rect_outline(ui::rect_outline::type::rel_h, 0.1f, kee::color(255, 0, 0, static_cast<unsigned char>(notif_alpha.get()))),
-        ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.2f, std::nullopt)
-    )),
-    notif_img_frame(notif_rect.ref.add_child<kee::ui::base>(std::nullopt,
-        pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0),
-        dims(
-            dim(dim::type::aspect, 1),
-            dim(dim::type::rel, 1)
-        ),
-        false
-    )),
-    notif_img(notif_img_frame.ref.add_child<kee::ui::image>(std::nullopt,
-        error_png, kee::color(255, 0, 0, notif_alpha.get()),
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.5f),
-        border(border::type::rel_h, 0.3f),
-        true, ui::image::display::shrink_to_fit, false, false, 0.0f
-    )),
-    notif_text(notif_rect.ref.add_child<kee::ui::text>(std::nullopt,
-        kee::color(255, 255, 255, static_cast<unsigned char>(notif_alpha.get())),
-        pos(pos::type::rel, 0.13f),
-        pos(pos::type::rel, 0.3f),
-        ui::text_size(ui::text_size::type::rel_h, 0.4f),
-        kee::dim(kee::dim::type::rel, 0.82f),
-        false, assets.font_semi_bold, std::string(), false
-    )),
-    notif_timer(0.0f)
-{
-    std::visit([](const auto& elem) {
-        elem.ref.take_keyboard_capture();
-    }, active_tab_elem);
-
-    const raylib::Rectangle tab_raw_rect = tab_rect.ref.get_raw_rect();
-    std::get<kee::dims>(tab_display_frame.ref.dimensions).w.val = tab_raw_rect.width - tab_raw_rect.height;
-
-    exit_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
-    {
-        switch (button_event)
-        {
-        case ui::button::event::on_hot:
-            this->exit_button_rect_alpha.set(std::nullopt, 255, 0.5f, kee::transition_type::exp);
-            break;
-        case ui::button::event::on_leave:
-            this->exit_button_rect_alpha.set(std::nullopt, 0, 0.5f, kee::transition_type::exp);
-            break;
-        default:
-            break;
-        }
-    };
-
-    exit_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
-    {
-        this->confirm_exit.emplace(this->exit_button.ref.add_child<confirm_exit_ui>(2, *this, this->error_png, this->tab_rect.ref.get_raw_rect().width));
-    };
-
-    tab_buttons.reserve(magic_enum::enum_count<root::tabs>());
-    tab_button_text.reserve(magic_enum::enum_count<root::tabs>());
-
-    for (std::size_t i = 0; i < magic_enum::enum_count<root::tabs>(); i++)
-    {
-        tab_button_text_colors.push_back(add_transition<kee::color>(kee::color::white));
-
-        tab_buttons.push_back(tab_display_frame.ref.add_child<kee::ui::button>(std::nullopt,
-            pos(pos::type::rel, static_cast<float>(i) / magic_enum::enum_count<root::tabs>()),
-            pos(pos::type::rel, 0),
-            dims(
-                dim(dim::type::rel, 1.0f / magic_enum::enum_count<root::tabs>()),
-                dim(dim::type::rel, 1)
-            ),
-            false
-        ));
-
-        tab_buttons.back().ref.on_event = [&, idx = i](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
-        {
-            switch (button_event)
-            {
-            case ui::button::event::on_hot:
-                this->tab_button_text_colors[idx].get().set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
-                break;
-            case ui::button::event::on_leave:
-                this->tab_button_text_colors[idx].get().set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
-                break;
-            default:
-                break;
-            }
-        };
-
-        tab_buttons.back().ref.on_click_l = [&, idx = i]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
-        {
-            const root::tabs tab_enum = static_cast<root::tabs>(idx);
-            if (this->active_tab == tab_enum)
-                return;
-
-            const bool requires_song_ui = (tab_enum == root::tabs::compose || tab_enum == root::tabs::timing);
-            if (requires_song_ui && !std::holds_alternative<kee::ui::handle<song_ui>>(this->playback_ui))
-            {
-                this->set_error("Select a song first!", false);
-                return;
-            }
-
-            const float new_rel_x = static_cast<float>(idx) / magic_enum::enum_count<root::tabs>();
-            this->tab_active_rect_rel_x.set(std::nullopt, new_rel_x, 0.3f, kee::transition_type::exp);
-            this->active_tab = tab_enum;
-
-            std::visit([](const auto& elem) {
-                elem.ref.release_keyboard_capture();
-            }, this->active_tab_elem);
-
-            switch (tab_enum)
-            {
-            case root::tabs::setup:
-                this->active_tab_elem.emplace<kee::ui::handle<setup_tab>>(add_child<setup_tab>(std::nullopt, *this, setup_info, approach_beats));
-                break;
-            case root::tabs::compose: {
-                song_ui& song_ui_elem = std::get<kee::ui::handle<song_ui>>(this->playback_ui).ref;
-                this->active_tab_elem.emplace<kee::ui::handle<compose_tab>>(add_child<compose_tab>(std::nullopt, approach_beats, song_ui_elem, compose_info));
-                break;
-            }
-            case root::tabs::timing: {
-                song_ui& song_ui_elem = std::get<kee::ui::handle<song_ui>>(this->playback_ui).ref;
-                this->active_tab_elem.emplace<kee::ui::handle<timing_tab>>(add_child<timing_tab>(std::nullopt, *this, song_ui_elem, timing_info));
-                break;
-            }}
-
-            std::visit([](const auto& elem) {
-                elem.ref.take_keyboard_capture();
-            }, this->active_tab_elem);
-        };
-
-        const root::tabs tab_enum = static_cast<root::tabs>(i);
-        std::string enum_name = std::string(magic_enum::enum_name(tab_enum));
-        std::ranges::transform(enum_name, enum_name.begin(), [](unsigned char c) { return static_cast<unsigned char>(std::toupper(c)); });
-
-        tab_button_text.push_back(tab_buttons.back().ref.add_child<kee::ui::text>(std::nullopt,
-            kee::color::white,
-            pos(pos::type::rel, 0.5f),
-            pos(pos::type::rel, 0.5f),
-            ui::text_size(ui::text_size::type::rel_h, 0.6f),
-            std::nullopt, true, assets.font_semi_bold, enum_name, false
-        ));
-    }
-
-    for (const auto& [id, _] : kee::key_ui_data)
-    {
-        hit_objs[id];
-
-        if (!dir_info.has_value())
-            continue;
-
-        const std::string key_str = std::string(1, static_cast<char>(id));
-        const boost::json::array& key_hit_objs = dir_info.value().keys_json_obj.at(key_str).as_array();
-        for (const boost::json::value& key_hit_obj : key_hit_objs)
-        {
-            const boost::json::object& key_hit_obj_json = key_hit_obj.as_object();
-            const float beat = static_cast<float>(key_hit_obj_json.at("beat").as_double());
-            const std::string start_hitsound = static_cast<std::string>(key_hit_obj_json.at("hitsound").as_string());
-
-            std::optional<editor_hit_object_duration> hold_info;
-            if (!key_hit_obj_json.at("hold").is_null())
-            {
-                const boost::json::object& hold_obj = key_hit_obj_json.at("hold").as_object();
-                const float duration = static_cast<float>(hold_obj.at("duration").as_double());
-                const std::string end_hitsound = static_cast<std::string>(hold_obj.at("hitsound").as_string());
-                
-                hold_info.emplace(duration, end_hitsound);
-            }
-            
-            hit_objs.at(id).emplace(beat, editor_hit_object(id, start_hitsound, hold_info));
-        }
-    }
 }
 
 bool root::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods)

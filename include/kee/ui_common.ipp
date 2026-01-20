@@ -15,6 +15,9 @@ T transition<T>::calculate(T start, T end, float transition_progress, kee::trans
     case transition_type::exp:
         interpolation = 1.0f - std::powf(2.0f, -10.0f * transition_progress);
         break;
+    case transition_type::inv_exp:
+        interpolation = std::powf(2.0f, 10.0f * (transition_progress - 1.f));
+        break;
     }
 
     return end * interpolation + start * (1.0f - interpolation);

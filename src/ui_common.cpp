@@ -295,7 +295,7 @@ beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_name
     }
 
     const boost::json::object& hit_objs = json_object.at("hit_objects").as_object();
-    /*for (const key_pos_data& key_data : kee::key_ui_data)
+    for (const key_pos_data& key_data : kee::key_ui_data)
     {
         const std::string key_str = std::string(1, static_cast<char>(key_data.raylib_key));
         if (!hit_objs.contains(key_str) || !hit_objs.at(key_str).is_array())
@@ -331,7 +331,7 @@ beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_name
             if (!hold_obj.contains("hitsound") || !hold_obj.at("hitsound").is_string())
                 throw std::runtime_error("`metadata.json` key hit object has malformed end hitsound.");
         }
-    }*/
+    }
 
     if (dir_state.has_key_colors)
     {

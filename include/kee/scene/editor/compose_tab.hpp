@@ -325,8 +325,8 @@ private:
 class compose_tab_info
 {
 public:
-    static constexpr std::size_t tick_freq_count = 8;
-    static constexpr std::array<int, tick_freq_count> tick_freqs = { 1, 2, 3, 4, 6, 8, 12, 16 };
+    static constexpr std::size_t tick_freq_count = 9;
+    static constexpr std::array<int, tick_freq_count> tick_freqs = { 1, 2, 3, 4, 5, 6, 8, 12, 16 };
 
     compose_tab_info(
         const kee::image_texture& arrow_png,

@@ -18,7 +18,8 @@ public:
         const kee::pos& x, 
         const kee::pos& y, 
         const std::variant<kee::dims, kee::border>& dimensions,
-        bool centered
+        bool centered,
+        bool menu_style
     );
 
     bool is_down() const;
@@ -46,6 +47,8 @@ private:
     kee::ui::rect thumb;
 
     kee::mouse_state slider_state;
+
+    bool menu_style;
 };
 
 enum class slider::event

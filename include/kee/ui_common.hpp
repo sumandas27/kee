@@ -114,7 +114,8 @@ enum class mods
 enum class transition_type
 {
     lin,
-    exp
+    exp,
+    inv_exp
 };
 
 class transition_base
@@ -324,7 +325,7 @@ static const std::array<key_pos_data, key_count> key_ui_data = {
     key_pos_data(KeyboardKey::KEY_SPACE, raylib::Vector2(0.5f, 0.875f))
 };
 
-static constexpr float key_border_width = 0.025f;
+static constexpr float key_border_width = 0.035f;
 static constexpr float key_border_parent_h = 0.05f;
 
 static constexpr float key_aspect_w = 11;
