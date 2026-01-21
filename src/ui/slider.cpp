@@ -92,7 +92,11 @@ void slider::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[maybe_unu
     }
     else if (is_mouse_on_slider && slider_state == mouse_state::off)
     {
-        fill_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
+        const kee::color to_color = (!menu_style)
+            ? kee::color::dark_orange
+            : kee::color(200, 200, 200);
+
+        fill_color.set(std::nullopt, to_color, 0.5f, kee::transition_type::exp);
         slider_state = mouse_state::hot;
     }
 }
@@ -114,9 +118,13 @@ bool slider::on_element_mouse_up([[maybe_unused]] const raylib::Vector2& mouse_p
     if (slider_state != mouse_state::down || !is_mouse_l)
         return false;
 
+    const kee::color to_color = (!menu_style)
+        ? kee::color::dark_orange
+        : kee::color(200, 200, 200);
+
     on_event(slider::event::on_release);
     thumb_scale.set(std::nullopt, 1.75f, 0.5f, kee::transition_type::exp);
-    fill_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
+    fill_color.set(std::nullopt, to_color, 0.5f, kee::transition_type::exp);
     
     slider_state = mouse_state::hot;
     return true;
@@ -124,11 +132,12 @@ bool slider::on_element_mouse_up([[maybe_unused]] const raylib::Vector2& mouse_p
 
 void slider::update_element([[maybe_unused]] float dt)
 {
-    if (!menu_style)
-        fill.color = fill_color.get();
-
     std::get<kee::dims>(fill.dimensions).w.val = progress;
     std::get<kee::dims>(thumb.dimensions).h.val = thumb_scale.get();
+
+    fill.color = fill_color.get();
+    if (menu_style)
+        thumb.color = fill_color.get();
 
     fill.color.a = color.a;
     thumb.color.a = color.a;

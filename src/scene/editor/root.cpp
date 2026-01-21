@@ -524,10 +524,6 @@ song_ui::song_ui(const kee::ui::required& reqs, const kee::image_texture& arrow_
         }
     };
 
-    const unsigned int music_length = static_cast<unsigned int>(this->music.GetTimeLength());
-    const std::string music_length_str = std::format("0:00 / {}:{:02}", music_length / 60, music_length % 60);
-    music_time_text.ref.set_string(music_length_str);
-
     playback_l_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
         switch (button_event)

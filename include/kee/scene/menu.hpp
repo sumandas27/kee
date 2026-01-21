@@ -43,10 +43,17 @@ public:
 
     kee::transition<kee::color>& pause_play_color;
     kee::transition<float>& pause_play_scale;
+    kee::transition<float>& song_ui_alpha;
 
     kee::ui::handle<kee::ui::slider> music_slider;
     kee::ui::handle<kee::ui::button> pause_play;
     kee::ui::handle<kee::ui::image> pause_play_img;
+
+    kee::ui::handle<kee::ui::base> song_ui_frame_outer;
+    kee::ui::handle<kee::ui::base> song_ui_frame_inner;
+    kee::ui::handle<kee::ui::rect> music_cover_art_frame;
+    kee::ui::handle<kee::ui::image> music_cover_art;
+    kee::ui::handle<kee::ui::text> music_time_text;
 };
 
 class menu final : public kee::scene::base
@@ -72,6 +79,7 @@ private:
     kee::ui::handle<kee::ui::rect> e2_rect;
     kee::ui::handle<kee::ui::text> e2_text;
 
+    std::optional<kee::image_texture> music_cover_art_texture;
     raylib::Music music;
     float music_time;
 

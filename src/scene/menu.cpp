@@ -29,9 +29,10 @@ music_transitions::music_transitions(menu& menu_scene) :
     music_volume_trns_finished(false),
     pause_play_color(menu_scene.add_transition<kee::color>(kee::color(255, 255, 255, 0))),
     pause_play_scale(menu_scene.add_transition<float>(1.0f)),
+    song_ui_alpha(menu_scene.add_transition<float>(0.f)),
     music_slider(menu_scene.add_child<kee::ui::slider>(std::nullopt,
         pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.9f),
+        pos(pos::type::rel, 0.895f),
         dims(
             dim(dim::type::rel, 1.f),
             dim(dim::type::rel, 0.01f)
@@ -56,12 +57,54 @@ music_transitions::music_transitions(menu& menu_scene) :
             dim(dim::type::rel, 1)
         ),
         true, ui::image::display::shrink_to_fit, false, false, 0.0f
+    )),
+    song_ui_frame_outer(menu_scene.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::rel, 0.9f),
+        dims(
+            dim(dim::type::rel, 1.f),
+            dim(dim::type::rel, 0.1f)
+        ),
+        false
+    )),
+    song_ui_frame_inner(song_ui_frame_outer.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_h, 0.25f),
+        true
+    )),
+    music_cover_art_frame(song_ui_frame_inner.ref.add_child<kee::ui::rect>(std::nullopt,
+        kee::color(255, 255, 255, 20),
+        pos(pos::type::beg, 0),
+        pos(pos::type::beg, 0),
+        dims(
+            dim(dim::type::aspect, static_cast<float>(kee::window_w) / kee::window_h),
+            dim(dim::type::rel, 1)
+        ),
+        false, std::nullopt, std::nullopt
+    )),
+    music_cover_art(music_cover_art_frame.ref.add_child<kee::ui::image>(std::nullopt,
+        /* TODO: if cover art texture doesn't exist handle */
+        menu_scene.music_cover_art_texture.value(), 
+        kee::color(255, 255, 255, song_ui_alpha.get()),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::abs, 0),
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
+    )),
+    music_time_text(song_ui_frame_inner.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color(255, 255, 255, song_ui_alpha.get()),
+        pos(pos::type::end, 0),
+        pos(pos::type::beg, 0),
+        ui::text_size(ui::text_size::type::rel_h, 1.0f),
+        std::nullopt, false, menu_scene.assets.font_regular, "TEST TEST", false
     ))
 {
     slider_alpha.set(std::nullopt, 255.0f, 0.5f, kee::transition_type::lin);
     slider_width.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
     music_volume_multiplier.set(std::nullopt, 2.0f, 2.0f, kee::transition_type::inv_exp);
     pause_play_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::lin);
+    song_ui_alpha.set(std::nullopt, 255.f, 0.5f, kee::transition_type::lin);
 
     music_slider.ref.on_event = [&, music_is_playing = this->menu_scene.music.IsPlaying()](ui::slider::event slider_event) mutable
     {
@@ -177,6 +220,10 @@ menu::menu(kee::game& game, kee::global_assets& assets, beatmap_dir_info&& beatm
         ui::text_size(ui::text_size::type::rel_h, 0.8f),
         std::nullopt, true, assets.font_semi_bold, "E", false
     )),
+    music_cover_art_texture(beatmap_info.dir_state.has_image
+        ? std::make_optional(beatmap_info.dir_state.path / beatmap_dir_state::standard_img_filename)
+        : std::nullopt
+    ),
     music(std::move(beatmap_info.song)),
     music_time(0.f),
     scene_time(0.f)
@@ -218,6 +265,13 @@ void menu::update_element(float dt)
         w.val = music_trns.value().pause_play_scale.get();
         h.val = music_trns.value().pause_play_scale.get();
         music_trns.value().pause_play_img.ref.color = music_trns.value().pause_play_color.get();
+
+        const unsigned int music_length = static_cast<unsigned int>(music.GetTimeLength());
+        const unsigned int music_time_int = static_cast<unsigned int>(music_time);
+        const std::string music_time_str = std::format("{}:{:02} / {}:{:02}", music_time_int / 60, music_time_int % 60, music_length / 60, music_length % 60);
+        music_trns.value().music_time_text.ref.set_string(music_time_str);
+        music_trns.value().music_time_text.ref.color.a = music_trns.value().song_ui_alpha.get();
+        music_trns.value().music_cover_art.ref.color.a = music_trns.value().song_ui_alpha.get();
     }
 
     scene_time += dt;
