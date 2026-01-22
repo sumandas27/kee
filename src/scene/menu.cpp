@@ -57,47 +57,6 @@ music_transitions::music_transitions(menu& menu_scene) :
             dim(dim::type::rel, 1)
         ),
         true, ui::image::display::shrink_to_fit, false, false, 0.0f
-    )),
-    song_ui_frame_outer(menu_scene.add_child<kee::ui::base>(std::nullopt,
-        pos(pos::type::rel, 0.f),
-        pos(pos::type::rel, 0.9f),
-        dims(
-            dim(dim::type::rel, 1.f),
-            dim(dim::type::rel, 0.1f)
-        ),
-        false
-    )),
-    song_ui_frame_inner(song_ui_frame_outer.ref.add_child<kee::ui::base>(std::nullopt,
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.5f),
-        border(border::type::rel_h, 0.25f),
-        true
-    )),
-    music_cover_art_frame(song_ui_frame_inner.ref.add_child<kee::ui::rect>(std::nullopt,
-        kee::color(255, 255, 255, 20),
-        pos(pos::type::beg, 0),
-        pos(pos::type::beg, 0),
-        dims(
-            dim(dim::type::aspect, static_cast<float>(kee::window_w) / kee::window_h),
-            dim(dim::type::rel, 1)
-        ),
-        false, std::nullopt, std::nullopt
-    )),
-    music_cover_art(music_cover_art_frame.ref.add_child<kee::ui::image>(std::nullopt,
-        /* TODO: if cover art texture doesn't exist handle */
-        menu_scene.music_cover_art_texture.value(), 
-        kee::color(255, 255, 255, song_ui_alpha.get()),
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.5f),
-        border(border::type::abs, 0),
-        true, ui::image::display::shrink_to_fit, false, false, 0.0f
-    )),
-    music_time_text(song_ui_frame_inner.ref.add_child<kee::ui::text>(std::nullopt,
-        kee::color(255, 255, 255, song_ui_alpha.get()),
-        pos(pos::type::end, 0),
-        pos(pos::type::beg, 0),
-        ui::text_size(ui::text_size::type::rel_h, 1.0f),
-        std::nullopt, false, menu_scene.assets.font_regular, "TEST TEST", false
     ))
 {
     slider_alpha.set(std::nullopt, 255.0f, 0.5f, kee::transition_type::lin);
@@ -226,8 +185,77 @@ menu::menu(kee::game& game, kee::global_assets& assets, beatmap_dir_info&& beatm
     ),
     music(std::move(beatmap_info.song)),
     music_time(0.f),
+    song_ui_frame_outer(add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::rel, 0.9f),
+        dims(
+            dim(dim::type::rel, 1.f),
+            dim(dim::type::rel, 0.1f)
+        ),
+        false
+    )),
+    song_ui_frame_inner(song_ui_frame_outer.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_h, 0.25f),
+        true
+    )),
+    music_cover_art_frame(song_ui_frame_inner.ref.add_child<kee::ui::rect>(std::nullopt,
+        kee::color(255, 255, 255, 0),
+        pos(pos::type::beg, 0),
+        pos(pos::type::beg, 0),
+        dims(
+            dim(dim::type::aspect, static_cast<float>(kee::window_w) / kee::window_h),
+            dim(dim::type::rel, 1)
+        ),
+        false, std::nullopt, std::nullopt
+    )),
+    music_cover_art(music_cover_art_frame.ref.add_child<kee::ui::image>(std::nullopt,
+        /* TODO: if cover art texture doesn't exist handle */
+        music_cover_art_texture.value(), 
+        kee::color(255, 255, 255, 0),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::abs, 0),
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
+    )),
+    music_info_text_frame(song_ui_frame_outer.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 0.25f),
+        dims(
+            dim(dim::type::rel, 0.01f),
+            dim(dim::type::rel, 0.5f)
+        ),
+        false
+    )),
+    music_name_text(music_info_text_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color(255, 255, 255, 0),
+        pos(pos::type::beg, 0),
+        pos(pos::type::beg, 0),
+        ui::text_size(ui::text_size::type::rel_h, 0.6f),
+        std::nullopt, false, assets.font_semi_bold, beatmap_info.song_name, false
+    )),
+    music_artist_text(music_info_text_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color(255, 255, 255, 0),
+        pos(pos::type::beg, 0),
+        pos(pos::type::end, 0),
+        ui::text_size(ui::text_size::type::rel_h, 0.35f),
+        std::nullopt, false, assets.font_regular, beatmap_info.song_artist, true
+    )),
+    music_time_text(song_ui_frame_inner.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color(255, 255, 255, 0),
+        pos(pos::type::end, 0),
+        pos(pos::type::beg, 0),
+        ui::text_size(ui::text_size::type::rel_h, 1.0f),
+        std::nullopt, false, assets.font_regular, std::string(), false
+    )),
     scene_time(0.f)
 { 
+    const raylib::Rectangle music_cover_art_frame_rect = music_cover_art_frame.ref.get_raw_rect();
+    const float music_cover_art_frame_rel_beg = music_cover_art_frame_rect.x / kee::window_w;
+    const float music_cover_art_frame_rel_end = (music_cover_art_frame_rect.x + music_cover_art_frame_rect.width)/ kee::window_w;
+    music_info_text_frame.ref.x.val = music_cover_art_frame_rel_end + music_cover_art_frame_rel_beg / 2.f;
+
     k_text_alpha.set(std::nullopt, 255.0f, 2.0f, kee::transition_type::lin);
 
     music.SetVolume(0.f);
@@ -269,9 +297,13 @@ void menu::update_element(float dt)
         const unsigned int music_length = static_cast<unsigned int>(music.GetTimeLength());
         const unsigned int music_time_int = static_cast<unsigned int>(music_time);
         const std::string music_time_str = std::format("{}:{:02} / {}:{:02}", music_time_int / 60, music_time_int % 60, music_length / 60, music_length % 60);
-        music_trns.value().music_time_text.ref.set_string(music_time_str);
-        music_trns.value().music_time_text.ref.color.a = music_trns.value().song_ui_alpha.get();
-        music_trns.value().music_cover_art.ref.color.a = music_trns.value().song_ui_alpha.get();
+        music_time_text.ref.set_string(music_time_str);
+
+        music_cover_art_frame.ref.color.a = (20.f * music_trns.value().song_ui_alpha.get()) / 255.f;
+        music_time_text.ref.color.a = music_trns.value().song_ui_alpha.get();
+        music_name_text.ref.color.a = music_trns.value().song_ui_alpha.get();
+        music_artist_text.ref.color.a = (100.f * music_trns.value().song_ui_alpha.get()) / 255.f;
+        music_cover_art.ref.color.a = music_trns.value().song_ui_alpha.get();
     }
 
     scene_time += dt;

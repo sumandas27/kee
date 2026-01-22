@@ -29,7 +29,7 @@ window::window()
 }
 
 game::game() :
-    curr_scene(std::make_unique<kee::scene::menu>(*this, assets, beatmap_dir_info("daft-punk-something-about-us"))),
+    curr_scene(std::make_unique<kee::scene::menu>(*this, assets, beatmap_dir_info("local_0"))),
     main_loop_begun(false),
     game_should_exit(false)
 { }

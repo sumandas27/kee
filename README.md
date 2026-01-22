@@ -47,8 +47,8 @@
 
     **TODO: can move some of this in `CMakeLists.txt` itself**
     ```sh
-    cmake 
-        -DCMAKE_C_COMPILER=/opt/homebrew/opt/llvm/bin/clang 
+    cmake
+        -DCMAKE_C_COMPILER=/opt/homebrew/opt/llvm/bin/clang
         -DCMAKE_CXX_COMPILER=/opt/homebrew/opt/llvm/bin/clang++ 
         -DCMAKE_CXX_STANDARD=23 
         -DCMAKE_OSX_SYSROOT=$(xcrun --sdk macosx --show-sdk-path) 
