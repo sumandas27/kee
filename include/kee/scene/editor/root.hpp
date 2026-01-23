@@ -275,7 +275,6 @@ private:
 
     kee::image_texture arrow_png;
     kee::image_texture error_png;
-    kee::image_texture exit_png;
     kee::image_texture info_png;
 
     std::optional<image_state> img_state;

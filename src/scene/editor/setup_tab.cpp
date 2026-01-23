@@ -7,15 +7,13 @@ namespace scene {
 namespace editor {
 
 setup_tab_info::setup_tab_info(
-    const std::optional<beatmap_dir_info>& dir_info, 
-    const kee::image_texture& exit_png,
+    const std::optional<beatmap_dir_info>& dir_info,
     std::optional<image_state>& img_state,
     std::optional<video_state>& vid_state,
     key_color_state& key_colors,
     hitsound_state& hitsounds,
     std::unordered_map<int, std::map<float, editor_hit_object>>& hit_objs
 ) :
-    exit_png(exit_png),
     img_state(img_state),
     vid_state(vid_state),
     key_colors(key_colors),
@@ -329,7 +327,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         false
     )),
     hitsounds_remove_image(hitsounds_remove_button.ref.add_child<kee::ui::image>(std::nullopt,
-        setup_info.exit_png,
+        assets.exit_png,
         hitsounds_remove_button_color.get(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
@@ -379,7 +377,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         false
     )),
     key_color_remove_image(key_color_remove_button.ref.add_child<kee::ui::image>(std::nullopt,
-        setup_info.exit_png,
+        assets.exit_png,
         key_color_remove_button_color.get(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
@@ -429,7 +427,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         false
     )),
     image_remove_img(image_remove_button.ref.add_child<kee::ui::image>(std::nullopt,
-        setup_info.exit_png,
+        assets.exit_png,
         image_remove_button_color.get(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
@@ -479,7 +477,7 @@ setup_tab::setup_tab(const kee::ui::required& reqs, root& root_elem, setup_tab_i
         false
     )),
     video_remove_img(video_remove_button.ref.add_child<kee::ui::image>(std::nullopt,
-        setup_info.exit_png,
+        assets.exit_png,
         image_remove_button_color.get(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),

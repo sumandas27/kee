@@ -766,7 +766,6 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
     ),
     arrow_png("assets/img/arrow.png"),
     error_png("assets/img/error.png"),
-    exit_png("assets/img/exit.png"),
     info_png("assets/img/info.png"),
     img_state(dir_info.has_value() && dir_info.value().dir_state.has_image
         ? std::make_optional(image_state(dir_info.value().dir_state.path / beatmap_dir_state::standard_img_filename))
@@ -785,7 +784,7 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
         : hitsound_state()
     ),
     approach_beats(dir_info.has_value() ? dir_info.value().approach_beats : 2.0f),
-    setup_info(dir_info, exit_png, img_state, vid_state, key_colors, hitsounds, hit_objs),
+    setup_info(dir_info, img_state, vid_state, key_colors, hitsounds, hit_objs),
     compose_info(arrow_png, img_state, vid_state, key_colors, hitsounds, hit_objs),
     active_tab_elem(add_child<setup_tab>(std::nullopt, *this, setup_info, approach_beats)),
     active_tab(root::tabs::setup),
@@ -839,7 +838,7 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
         true, std::nullopt, std::nullopt
     )),
     exit_button_image(exit_button.ref.add_child<kee::ui::image>(1,
-        exit_png, kee::color::white,
+        assets.exit_png, kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_w, 0.3f),
