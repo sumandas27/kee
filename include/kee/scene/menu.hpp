@@ -42,12 +42,18 @@ public:
     bool music_volume_trns_finished;
 
     kee::transition<kee::color>& pause_play_color;
-    kee::transition<float>& pause_play_scale;
+    kee::transition<float>& pause_play_border;
     kee::transition<float>& song_ui_alpha;
+
+    kee::image_texture step_texture;
 
     kee::ui::handle<kee::ui::slider> music_slider;
     kee::ui::handle<kee::ui::button> pause_play;
     kee::ui::handle<kee::ui::image> pause_play_img;
+    kee::ui::handle<kee::ui::button> step_l;
+    kee::ui::handle<kee::ui::image> step_l_img;
+    kee::ui::handle<kee::ui::button> step_r;
+    kee::ui::handle<kee::ui::image> step_r_img;
 };
 
 class menu final : public kee::scene::base

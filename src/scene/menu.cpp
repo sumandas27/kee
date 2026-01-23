@@ -28,8 +28,9 @@ music_transitions::music_transitions(menu& menu_scene) :
     music_volume_multiplier(menu_scene.add_transition<float>(0.0f)),
     music_volume_trns_finished(false),
     pause_play_color(menu_scene.add_transition<kee::color>(kee::color(255, 255, 255, 0))),
-    pause_play_scale(menu_scene.add_transition<float>(1.0f)),
+    pause_play_border(menu_scene.add_transition<float>(0.f)),
     song_ui_alpha(menu_scene.add_transition<float>(0.f)),
+    step_texture("assets/img/step.png"),
     music_slider(menu_scene.add_child<kee::ui::slider>(std::nullopt,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.895f),
@@ -52,10 +53,39 @@ music_transitions::music_transitions(menu& menu_scene) :
         menu_scene.assets.play_png, pause_play_color.get(),
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
+        border(border::type::rel_h, pause_play_border.get()),
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
+    )),
+    step_l(menu_scene.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::rel, 0.4f),
+        pos(pos::type::rel, 0.95f),
         dims(
-            dim(dim::type::rel, 1),
-            dim(dim::type::rel, 1)
+            dim(dim::type::aspect, 1),
+            dim(dim::type::rel, 0.04f)
         ),
+        true
+    )),
+    step_l_img(step_l.ref.add_child<kee::ui::image>(std::nullopt,
+        step_texture, kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::abs, 0),
+        true, ui::image::display::shrink_to_fit, true, false, 0.0f
+    )),
+    step_r(menu_scene.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::rel, 0.6f),
+        pos(pos::type::rel, 0.95f),
+        dims(
+            dim(dim::type::aspect, 1),
+            dim(dim::type::rel, 0.04f)
+        ),
+        true
+    )),
+    step_r_img(step_r.ref.add_child<kee::ui::image>(std::nullopt,
+        step_texture, kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::abs, 0),
         true, ui::image::display::shrink_to_fit, false, false, 0.0f
     ))
 {
@@ -89,14 +119,14 @@ music_transitions::music_transitions(menu& menu_scene) :
         {
         case ui::button::event::on_hot:
             pause_play_color.set(std::nullopt, kee::color(255, 255, 255, 200), 0.5f, kee::transition_type::exp);
-            pause_play_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
+            pause_play_border.set(std::nullopt, 0.f, 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_down_l:
-            pause_play_scale.set(std::nullopt, 0.9f, 0.5f, kee::transition_type::exp);
+            pause_play_border.set(std::nullopt, 0.05f, 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_leave:
             pause_play_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
-            pause_play_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
+            pause_play_border.set(std::nullopt, 0.f, 0.5f, kee::transition_type::exp);
             break;
         default:
             break;
@@ -289,9 +319,7 @@ void menu::update_element(float dt)
         music_trns.value().music_slider.ref.color.a = music_trns.value().slider_alpha.get();
         std::get<kee::dims>(music_trns.value().music_slider.ref.dimensions).w.val = music_trns.value().slider_width.get();
 
-        auto& [w, h] = std::get<kee::dims>(music_trns.value().pause_play_img.ref.dimensions);
-        w.val = music_trns.value().pause_play_scale.get();
-        h.val = music_trns.value().pause_play_scale.get();
+        std::get<kee::border>(music_trns.value().pause_play_img.ref.dimensions).val = music_trns.value().pause_play_border.get();
         music_trns.value().pause_play_img.ref.color = music_trns.value().pause_play_color.get();
 
         const unsigned int music_length = static_cast<unsigned int>(music.GetTimeLength());
