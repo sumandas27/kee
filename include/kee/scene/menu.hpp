@@ -12,6 +12,28 @@ namespace scene {
 
 class menu;
 
+class music_analyzer
+{
+public:
+    music_analyzer(const std::filesystem::path& music_path);
+
+    void update();
+
+    void play();
+    void pause();
+
+private:
+    using sample_t = std::int16_t;
+
+    static constexpr unsigned int sample_rate = 48000;
+    static constexpr int samples_per_refresh = 2048;
+
+    raylib::Wave wave;
+    unsigned int frame_cursor;
+
+    raylib::AudioStream audio_stream;
+};
+
 class opening_transitions
 {
 public:
@@ -80,6 +102,8 @@ private:
     kee::ui::handle<kee::ui::text> e2_text;
 
     std::optional<kee::image_texture> music_cover_art_texture;
+
+    /* TODO: replace with music analyzer */
     raylib::Music music;
     float music_time;
 

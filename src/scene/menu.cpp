@@ -3,6 +3,32 @@
 namespace kee {
 namespace scene {
 
+music_analyzer::music_analyzer(const std::filesystem::path& music_path) :
+    wave(music_path.string()),
+    frame_cursor(0),
+    audio_stream(music_analyzer::sample_rate, 8 * sizeof(sample_t))
+{ 
+    audio_stream.SetBufferSizeDefault(music_analyzer::samples_per_refresh);
+}
+
+void music_analyzer::update()
+{
+    while (audio_stream.IsProcessed())
+    {
+
+    }
+}
+
+void music_analyzer::play()
+{
+    audio_stream.Play();
+}
+
+void music_analyzer::pause()
+{
+    audio_stream.Pause();
+}
+
 opening_transitions::opening_transitions(menu& menu_scene) :
     k_rect_alpha(menu_scene.add_transition<float>(0.0f)),
     k_rect_x(menu_scene.add_transition<float>(0.5f)),
