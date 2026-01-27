@@ -28,7 +28,8 @@ global_assets::global_assets() :
     sdf_triangle_loc_p2(shader_sdf_triangle.GetLocation("p2")),
     pause_png("assets/img/pause.png"),
     play_png("assets/img/play.png"),
-    directory_png("assets/img/directory.png")
+    directory_png("assets/img/directory.png"),
+    exit_png("assets/img/exit.png")
 {
     const raylib::Image img_empty(global_assets::texture_empty_size, global_assets::texture_empty_size, raylib::Color::Blank());
     texture_empty = raylib::Texture(img_empty);

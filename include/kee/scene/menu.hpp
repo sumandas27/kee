@@ -64,10 +64,20 @@ public:
     bool music_volume_trns_finished;
 
     kee::transition<kee::color>& pause_play_color;
+    kee::transition<kee::color>& step_l_color;
+    kee::transition<kee::color>& step_r_color;
+    kee::transition<kee::color>& setting_color;
+    kee::transition<kee::color>& exit_color;
+
     kee::transition<float>& pause_play_border;
+    kee::transition<float>& step_l_border;
+    kee::transition<float>& step_r_border;
+    kee::transition<float>& setting_border;
+    kee::transition<float>& exit_border;
     kee::transition<float>& song_ui_alpha;
 
     kee::image_texture step_texture;
+    kee::image_texture setting_texture;
 
     kee::ui::handle<kee::ui::slider> music_slider;
     kee::ui::handle<kee::ui::button> pause_play;
@@ -76,6 +86,12 @@ public:
     kee::ui::handle<kee::ui::image> step_l_img;
     kee::ui::handle<kee::ui::button> step_r;
     kee::ui::handle<kee::ui::image> step_r_img;
+
+    kee::ui::handle<kee::ui::base> setting_exit_frame;
+    kee::ui::handle<kee::ui::button> setting_button;
+    kee::ui::handle<kee::ui::image> setting_img;
+    kee::ui::handle<kee::ui::button> exit_button;
+    kee::ui::handle<kee::ui::image> exit_img;
 };
 
 class menu final : public kee::scene::base

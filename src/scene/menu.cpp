@@ -54,9 +54,18 @@ music_transitions::music_transitions(menu& menu_scene) :
     music_volume_multiplier(menu_scene.add_transition<float>(0.0f)),
     music_volume_trns_finished(false),
     pause_play_color(menu_scene.add_transition<kee::color>(kee::color(255, 255, 255, 0))),
+    step_l_color(menu_scene.add_transition<kee::color>(kee::color(255, 255, 255, 0))),
+    step_r_color(menu_scene.add_transition<kee::color>(kee::color(255, 255, 255, 0))),
+    setting_color(menu_scene.add_transition<kee::color>(kee::color(255, 255, 255, 0))),
+    exit_color(menu_scene.add_transition<kee::color>(kee::color(255, 255, 255, 0))),
     pause_play_border(menu_scene.add_transition<float>(0.f)),
+    step_l_border(menu_scene.add_transition<float>(0.f)),
+    step_r_border(menu_scene.add_transition<float>(0.f)),
+    setting_border(menu_scene.add_transition<float>(0.f)),
+    exit_border(menu_scene.add_transition<float>(0.f)),
     song_ui_alpha(menu_scene.add_transition<float>(0.f)),
     step_texture("assets/img/step.png"),
+    setting_texture("assets/img/settings.png"),
     music_slider(menu_scene.add_child<kee::ui::slider>(std::nullopt,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.895f),
@@ -92,10 +101,10 @@ music_transitions::music_transitions(menu& menu_scene) :
         true
     )),
     step_l_img(step_l.ref.add_child<kee::ui::image>(std::nullopt,
-        step_texture, kee::color::white,
+        step_texture, step_l_color.get(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
-        border(border::type::abs, 0),
+        border(border::type::rel_h, step_l_border.get()),
         true, ui::image::display::shrink_to_fit, true, false, 0.0f
     )),
     step_r(menu_scene.add_child<kee::ui::button>(std::nullopt,
@@ -108,10 +117,48 @@ music_transitions::music_transitions(menu& menu_scene) :
         true
     )),
     step_r_img(step_r.ref.add_child<kee::ui::image>(std::nullopt,
-        step_texture, kee::color::white,
+        step_texture, step_r_color.get(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
-        border(border::type::abs, 0),
+        border(border::type::rel_h, step_r_border.get()),
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
+    )),
+    setting_exit_frame(menu_scene.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_w, 0.02f),
+        true
+    )),
+    setting_button(setting_exit_frame.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::beg, 0.f),
+        pos(pos::type::beg, 0.f),
+        dims(
+            dim(dim::type::aspect, 1),
+            dim(dim::type::rel, 0.04f)
+        ),
+        false
+    )),
+    setting_img(setting_button.ref.add_child<kee::ui::image>(std::nullopt,
+        setting_texture, setting_color.get(),
+        pos(pos::type::rel, 0.5),
+        pos(pos::type::rel, 0.5),
+        border(border::type::rel_h, setting_border.get()),
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
+    )),
+    exit_button(setting_exit_frame.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::end, 0.f),
+        pos(pos::type::beg, 0.f),
+        dims(
+            dim(dim::type::aspect, 1),
+            dim(dim::type::rel, 0.04f)
+        ),
+        false
+    )),
+    exit_img(exit_button.ref.add_child<kee::ui::image>(std::nullopt,
+        menu_scene.assets.exit_png, exit_color.get(),
+        pos(pos::type::rel, 0.5),
+        pos(pos::type::rel, 0.5),
+        border(border::type::rel_h, exit_border.get()),
         true, ui::image::display::shrink_to_fit, false, false, 0.0f
     ))
 {
@@ -119,6 +166,10 @@ music_transitions::music_transitions(menu& menu_scene) :
     slider_width.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
     music_volume_multiplier.set(std::nullopt, 2.0f, 2.0f, kee::transition_type::inv_exp);
     pause_play_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::lin);
+    step_l_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::lin);
+    step_r_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::lin);
+    setting_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::lin);
+    exit_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::lin);
     song_ui_alpha.set(std::nullopt, 255.f, 0.5f, kee::transition_type::lin);
 
     music_slider.ref.on_event = [&, music_is_playing = this->menu_scene.music.IsPlaying()](ui::slider::event slider_event) mutable
@@ -172,6 +223,106 @@ music_transitions::music_transitions(menu& menu_scene) :
             this->menu_scene.music.Resume();
             this->pause_play_img.ref.set_image(this->menu_scene.assets.play_png);
         }
+    };
+
+    step_l.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            step_l_color.set(std::nullopt, kee::color(255, 255, 255, 200), 0.5f, kee::transition_type::exp);
+            step_l_border.set(std::nullopt, 0.f, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_down_l:
+            step_l_border.set(std::nullopt, 0.05f, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            step_l_color.set(std::nullopt, kee::color(255, 255, 255), 0.5f, kee::transition_type::exp);
+            step_l_border.set(std::nullopt, 0.f, 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    step_l.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    { 
+        /* TODO: impl*/
+    };
+
+    step_r.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            step_r_color.set(std::nullopt, kee::color(255, 255, 255, 200), 0.5f, kee::transition_type::exp);
+            step_r_border.set(std::nullopt, 0.f, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_down_l:
+            step_r_border.set(std::nullopt, 0.05f, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            step_r_color.set(std::nullopt, kee::color(255, 255, 255), 0.5f, kee::transition_type::exp);
+            step_r_border.set(std::nullopt, 0.f, 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    step_r.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    { 
+        /* TODO: impl*/
+    };
+
+    setting_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            setting_color.set(std::nullopt, kee::color(255, 255, 255, 200), 0.5f, kee::transition_type::exp);
+            setting_border.set(std::nullopt, 0.f, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_down_l:
+            setting_border.set(std::nullopt, 0.05f, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            setting_color.set(std::nullopt, kee::color(255, 255, 255), 0.5f, kee::transition_type::exp);
+            setting_border.set(std::nullopt, 0.f, 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    setting_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    { 
+        /* TODO: impl*/
+    };
+
+    exit_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            exit_color.set(std::nullopt, kee::color(255, 255, 255, 200), 0.5f, kee::transition_type::exp);
+            exit_border.set(std::nullopt, 0.f, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_down_l:
+            exit_border.set(std::nullopt, 0.05f, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            exit_color.set(std::nullopt, kee::color(255, 255, 255), 0.5f, kee::transition_type::exp);
+            exit_border.set(std::nullopt, 0.f, 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    setting_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    { 
+        /* TODO: impl*/
     };
 }
 
@@ -346,7 +497,16 @@ void menu::update_element(float dt)
         std::get<kee::dims>(music_trns.value().music_slider.ref.dimensions).w.val = music_trns.value().slider_width.get();
 
         std::get<kee::border>(music_trns.value().pause_play_img.ref.dimensions).val = music_trns.value().pause_play_border.get();
+        std::get<kee::border>(music_trns.value().step_l_img.ref.dimensions).val = music_trns.value().step_l_border.get();
+        std::get<kee::border>(music_trns.value().step_r_img.ref.dimensions).val = music_trns.value().step_r_border.get();
+        std::get<kee::border>(music_trns.value().setting_img.ref.dimensions).val = music_trns.value().setting_border.get();
+        std::get<kee::border>(music_trns.value().exit_img.ref.dimensions).val = music_trns.value().exit_border.get();
+
         music_trns.value().pause_play_img.ref.color = music_trns.value().pause_play_color.get();
+        music_trns.value().step_l_img.ref.color = music_trns.value().step_l_color.get();
+        music_trns.value().step_r_img.ref.color = music_trns.value().step_r_color.get();
+        music_trns.value().setting_img.ref.color = music_trns.value().setting_color.get();
+        music_trns.value().exit_img.ref.color = music_trns.value().exit_color.get();
 
         const unsigned int music_length = static_cast<unsigned int>(music.GetTimeLength());
         const unsigned int music_time_int = static_cast<unsigned int>(music_time);

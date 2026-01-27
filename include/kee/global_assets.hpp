@@ -54,6 +54,7 @@ public:
     const kee::image_texture pause_png;
     const kee::image_texture play_png;
     const kee::image_texture directory_png;
+    const kee::image_texture exit_png;
 
 private:
     static raylib::Font gen_sdf_font(const std::filesystem::path& font_path);

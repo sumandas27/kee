@@ -20,16 +20,13 @@ class setup_tab_info
 {
 public:
     setup_tab_info(
-        const std::optional<beatmap_dir_info>& dir_info, 
-        const kee::image_texture& exit_png, 
+        const std::optional<beatmap_dir_info>& dir_info,
         std::optional<image_state>& img_state,
         std::optional<video_state>& vid_state,
         key_color_state& key_colors,
         hitsound_state& hitsounds,
         std::unordered_map<int, std::map<float, editor_hit_object>>& hit_objs
     );
-
-    const kee::image_texture& exit_png;
 
     std::optional<image_state>& img_state;
     std::optional<video_state>& vid_state;
