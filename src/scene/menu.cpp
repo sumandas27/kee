@@ -5,16 +5,25 @@ namespace scene {
 
 music_analyzer::music_analyzer(const std::filesystem::path& music_path) :
     wave(music_path.string()),
-    frame_cursor(0),
-    audio_stream(music_analyzer::gen_audio_stream())
+    frame_cursor(0)
 { 
+    SetAudioStreamBufferSizeDefault(music_analyzer::frames_per_refresh);
+
+    audio_stream = LoadAudioStream(music_analyzer::sample_rate, music_analyzer::bit_depth, music_analyzer::channels);
+    PlayAudioStream(audio_stream);
+
     wave.Format(music_analyzer::sample_rate, music_analyzer::bit_depth, music_analyzer::channels);
     samples = std::span<sample_t>(static_cast<sample_t*>(wave.data), wave.frameCount * music_analyzer::channels);
 }
 
+music_analyzer::~music_analyzer()
+{
+    UnloadAudioStream(audio_stream);
+}
+
 void music_analyzer::update()
 {
-    while (audio_stream.IsProcessed())
+    while (IsAudioStreamProcessed(audio_stream))
     {
         std::array<sample_t, music_analyzer::fft_resolution * music_analyzer::channels> to_submit;
         for (int i = 0; i < music_analyzer::fft_resolution; i++)
@@ -28,11 +37,11 @@ void music_analyzer::update()
                 break;
             }
 
-            for (int ch = 0; ch < music_analyzer::channels; ch++)
+            for (unsigned int ch = 0; ch < music_analyzer::channels; ch++)
                 to_submit[i * music_analyzer::channels + ch] = samples[cursor * music_analyzer::channels + ch];
         }
 
-        audio_stream.Update(to_submit.data(), music_analyzer::frames_per_refresh);
+        UpdateAudioStream(audio_stream, to_submit.data(), music_analyzer::frames_per_refresh);
         frame_cursor += music_analyzer::frames_per_refresh;
 
         /* TODO: perform FFT analysis */
@@ -334,28 +343,23 @@ void music_analyzer::seek(float time)
 
 bool music_analyzer::is_playing() const
 {
-    return audio_stream.IsPlaying();
+    return IsAudioStreamPlaying(audio_stream);
 }
 
-void music_analyzer::play()
+void music_analyzer::resume()
 {
-    audio_stream.Play();
+    return ResumeAudioStream(audio_stream);
 }
 
 void music_analyzer::pause()
 {
-    audio_stream.Pause();
+    return PauseAudioStream(audio_stream);
 }
 
 void music_analyzer::set_volume(float new_volume)
 {
-    audio_stream.SetVolume(std::clamp(new_volume, 0.f, 1.f));
-}
-
-raylib::AudioStream music_analyzer::gen_audio_stream()
-{
-    SetAudioStreamBufferSizeDefault(music_analyzer::frames_per_refresh);
-    return raylib::AudioStream(music_analyzer::sample_rate, music_analyzer::bit_depth, music_analyzer::channels);
+    const float new_volume_clamped = std::clamp(new_volume, 0.f, 1.f);
+    SetAudioStreamVolume(audio_stream, new_volume_clamped);
 }
 
 opening_transitions::opening_transitions(menu& menu_scene) :
@@ -512,7 +516,7 @@ music_transitions::music_transitions(menu& menu_scene) :
         case ui::slider::event::on_release:
             this->menu_scene.analyzer.seek(this->music_slider.ref.progress * this->menu_scene.analyzer.get_time_length());
             if (music_is_playing)
-                this->menu_scene.analyzer.play();
+                this->menu_scene.analyzer.resume();
             break;
         default:
             break;
@@ -549,7 +553,7 @@ music_transitions::music_transitions(menu& menu_scene) :
         else
         {
             this->menu_scene.analyzer.seek(this->music_slider.ref.progress * this->menu_scene.analyzer.get_time_length());
-            this->menu_scene.analyzer.play();
+            this->menu_scene.analyzer.resume();
             this->pause_play_img.ref.set_image(this->menu_scene.assets.play_png);
         }
     };
@@ -856,7 +860,7 @@ void menu::update_element(float dt)
     if (scene_time >= 3.5f && !music_trns.has_value())
     {
         music_trns.emplace(*this);
-        analyzer.play();
+        analyzer.resume();
     }
 
     k_text.ref.color.a = k_text_alpha.get();

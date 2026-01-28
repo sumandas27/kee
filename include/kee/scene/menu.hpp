@@ -18,6 +18,12 @@ class music_analyzer
 {
 public:
     music_analyzer(const std::filesystem::path& music_path);
+    music_analyzer(const music_analyzer&) = delete;
+    music_analyzer(music_analyzer&&) = delete;
+    ~music_analyzer();
+
+    music_analyzer& operator=(const music_analyzer&) = delete;
+    music_analyzer& operator=(music_analyzer&&) = delete;
 
     float get_time_length() const;
     float get_time_played() const;
@@ -26,7 +32,7 @@ public:
     void update();
 
     bool is_playing() const;
-    void play();
+    void resume();
     void pause();
 
     void set_volume(float new_volume);
@@ -41,14 +47,16 @@ private:
     static constexpr int fft_resolution = 16384;
     static constexpr int frames_per_refresh = 2048;
 
-    static raylib::AudioStream gen_audio_stream();
-
     raylib::Wave wave;
     std::span<sample_t> samples;
     unsigned int frame_cursor;
 
-    /* TODO: move over to c AudioStream, raylib-cpp ctor is broken */
-    raylib::AudioStream audio_stream;
+    /**
+     * NOTE: We use raylib's C AudioStream bindings, `raylib-cpp`
+     * AudioStream's constructor calls `Unload()` initially, crashing 
+     * since no audio stream has previously been loaded in.
+     */
+    AudioStream audio_stream;
 };
 
 class opening_transitions
