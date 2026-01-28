@@ -83,6 +83,7 @@ const std::string_view beatmap_dir_state::standard_key_colors_filename = "key_co
 const std::string_view beatmap_dir_state::standard_img_filename = "img.png";
 const std::string_view beatmap_dir_state::standard_vid_filename = "vid.mp4";
 const std::string_view beatmap_dir_state::standard_custom_hitsound_dirname = "hitsounds";
+const std::string_view beatmap_dir_state::standard_music_filename = "song.mp3";
 
 beatmap_dir_state::beatmap_dir_state(const std::filesystem::path& path) :
     path(path),
@@ -350,9 +351,6 @@ beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_name
         else
             throw std::runtime_error(custom_hitsounds_result.error());
     }
-
-    const std::filesystem::path song_path = dir_state.path / "song.mp3";
-    song = raylib::Music(song_path.string());
 
     song_name = json_object.at("song_name").as_string();
     song_artist = json_object.at("song_artist").as_string();

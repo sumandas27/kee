@@ -1,5 +1,7 @@
 #pragma once
 
+#include <span>
+
 #include "kee/scene/base.hpp"
 #include "kee/ui/button.hpp"
 #include "kee/ui/image.hpp"
@@ -17,20 +19,35 @@ class music_analyzer
 public:
     music_analyzer(const std::filesystem::path& music_path);
 
+    float get_time_length() const;
+    float get_time_played() const;
+    void seek(float time);
+
     void update();
 
+    bool is_playing() const;
     void play();
     void pause();
+
+    void set_volume(float new_volume);
 
 private:
     using sample_t = std::int16_t;
 
     static constexpr unsigned int sample_rate = 48000;
-    static constexpr int samples_per_refresh = 2048;
+    static constexpr unsigned int bit_depth = 8 * sizeof(sample_t);
+    static constexpr unsigned int channels = 2;
+
+    static constexpr int fft_resolution = 16384;
+    static constexpr int frames_per_refresh = 2048;
+
+    static raylib::AudioStream gen_audio_stream();
 
     raylib::Wave wave;
+    std::span<sample_t> samples;
     unsigned int frame_cursor;
 
+    /* TODO: move over to c AudioStream, raylib-cpp ctor is broken */
     raylib::AudioStream audio_stream;
 };
 
@@ -120,7 +137,9 @@ private:
     std::optional<kee::image_texture> music_cover_art_texture;
 
     /* TODO: replace with music analyzer */
-    raylib::Music music;
+    music_analyzer analyzer;
+
+    /* TODO: remove i think */
     float music_time;
 
     kee::ui::handle<kee::ui::base> song_ui_frame_outer;

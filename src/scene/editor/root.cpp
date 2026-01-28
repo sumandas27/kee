@@ -864,7 +864,7 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
         std::variant<kee::ui::handle<song_ui>, kee::ui::handle<kee::ui::text>>(
             playback_ui_frame.ref.add_child<song_ui>(std::nullopt, 
                 arrow_png, 
-                std::move(dir_info.value().song), 
+                (dir_info.value().dir_state.path / beatmap_dir_state::standard_music_filename).string(), 
                 dir_info.value().song_bpm, 
                 dir_info.value().song_start_offset
             )

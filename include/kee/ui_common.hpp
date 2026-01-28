@@ -239,6 +239,7 @@ public:
     static const std::string_view standard_img_filename;
     static const std::string_view standard_vid_filename;
     static const std::string_view standard_custom_hitsound_dirname;
+    static const std::string_view standard_music_filename;
 
     beatmap_dir_state(const std::filesystem::path& path);
 
@@ -263,7 +264,6 @@ public:
 
     beatmap_dir_state dir_state;
     
-    raylib::Music song;
     std::string song_name;
     std::string song_artist;
     std::string mapper;

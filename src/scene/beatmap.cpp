@@ -916,7 +916,7 @@ beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&&
         true
     )),
     end_beat(0.0f),
-    music(std::move(beatmap_info.song)),
+    music((beatmap_info.dir_state.path / beatmap_dir_state::standard_music_filename).string()),
     hitsound("assets/sfx/hitsound_default/normal.wav"),
     combo_lost_sfx("assets/sfx/combo_lost.wav")
 { 
