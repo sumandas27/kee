@@ -55,7 +55,7 @@ private:
     static constexpr int frames_per_refresh = 2048;
 
     /* TODO: add developer mozilla links to this */
-    static constexpr float smoothing_time_const = 0.75f;
+    static constexpr float smoothing_time_const = 0.2f;
     static constexpr float min_db = -100.f;
     static constexpr float max_db = -33.f;
     static constexpr float inv_db_range = 1.f / (music_analyzer::max_db - music_analyzer::min_db);
@@ -172,6 +172,7 @@ private:
     kee::ui::handle<kee::ui::text> music_time_text;
 
     std::vector<kee::ui::handle<kee::ui::rect>> visualizer_bot;
+    std::vector<kee::ui::handle<kee::ui::rect>> visualizer_top;
 
     float scene_time;
 };

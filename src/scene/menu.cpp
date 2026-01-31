@@ -52,6 +52,9 @@ void music_analyzer::update()
         frame_cursor += music_analyzer::frames_per_refresh;
     }
 
+    if (!IsAudioStreamPlaying(audio_stream))
+        return;
+
     for (std::size_t i = 0; i < music_analyzer::fft_resolution; i++)
     {
         const float x = (2.f * std::numbers::pi * i) / (music_analyzer::fft_resolution - 1.f);
@@ -82,20 +85,20 @@ void music_analyzer::update()
         for (int i = 0; i < music_analyzer::fft_resolution; i += len)
         {
             std::complex<float> twiddle_current(1.f, 0.f);
-            for (int j = 0; j < len / 2; j++) /* TODO: isn't j reinitialized */
+            for (int k = 0; k < len / 2; k++)
             {
-                const std::complex<float> e = fft_work_buffer[i + j];
-                const std::complex<float> o = fft_work_buffer[i + j + len / 2];
+                const std::complex<float> e = fft_work_buffer[i + k];
+                const std::complex<float> o = fft_work_buffer[i + k + len / 2];
                 const std::complex<float> twiddle_odd(
                     o.real() * twiddle_current.real() - o.imag() * twiddle_current.imag(),
                     o.real() * twiddle_current.imag() + o.imag() * twiddle_current.real()
                 );
 
-                fft_work_buffer[i + j].real(e.real() + twiddle_odd.real());
-                fft_work_buffer[i + j].imag(e.imag() + twiddle_odd.imag());
+                fft_work_buffer[i + k].real(e.real() + twiddle_odd.real());
+                fft_work_buffer[i + k].imag(e.imag() + twiddle_odd.imag());
 
-                fft_work_buffer[i + j + len / 2].real(e.real() - twiddle_odd.real());
-                fft_work_buffer[i + j + len / 2].imag(e.imag() - twiddle_odd.imag());
+                fft_work_buffer[i + k + len / 2].real(e.real() - twiddle_odd.real());
+                fft_work_buffer[i + k + len / 2].imag(e.imag() - twiddle_odd.imag());
 
                 const float real_next = twiddle_current.real() * twiddle_unit.real() - twiddle_current.imag() * twiddle_unit.imag();
                 const float imag_next = twiddle_current.real() * twiddle_unit.imag() + twiddle_current.imag() * twiddle_unit.real();
@@ -119,283 +122,6 @@ void music_analyzer::update()
         visualizer_bins[bin] = std::clamp(normalized, 0.f, 1.f);
     }
 }
-
-/*
-
-REFERENCE:
-
-#include "raylib.h"
-
-#include "raymath.h"
-
-#include <math.h>
-#include <stdlib.h>
-#include <string.h>
-#include <print>
-
-#if defined(PLATFORM_DESKTOP)
-    #define GLSL_VERSION            330
-#else   // PLATFORM_ANDROID, PLATFORM_WEB
-    #define GLSL_VERSION            100
-#endif
-
-#define STEREO                           2
-#define SAMPLE_RATE                    48000
-#define SAMPLE_RATE_F                  48000.0f
-#define FFT_WINDOW_SIZE                16384
-#define BUFFER_SIZE                    64
-#define PER_SAMPLE_BIT_DEPTH           16
-#define AUDIO_STREAM_RING_BUFFER_SIZE  (4096)
-#define EFFECTIVE_SAMPLE_RATE          (SAMPLE_RATE_F*0.5f)
-#define WINDOW_TIME                    ((double)FFT_WINDOW_SIZE/(double)EFFECTIVE_SAMPLE_RATE)
-#define FFT_HISTORICAL_SMOOTHING_DUR   2.0f
-#define MIN_DECIBELS                   (-100.0f) // https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/minDecibels
-#define MAX_DECIBELS                   (-33.0f)  // https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/maxDecibels
-#define INVERSE_DECIBEL_RANGE          (1.0f/(MAX_DECIBELS - MIN_DECIBELS))
-#define DB_TO_LINEAR_SCALE             (20.0f/2.302585092994046f)
-#define SMOOTHING_TIME_CONSTANT        0.8f // https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/smoothingTimeConstant
-#define TEXTURE_HEIGHT                 1
-#define FFT_ROW                        0
-#define UNUSED_CHANNEL                 0.0f
-
-typedef struct FFTComplex { float real, imaginary; } FFTComplex;
-
-typedef struct FFTData {
-    FFTComplex *spectrum;
-    FFTComplex *workBuffer;
-    float *prevMagnitudes;
-    float (*fftHistory)[BUFFER_SIZE];
-    int fftHistoryLen;
-    int historyPos;
-    double lastFftTime;
-    float tapbackPos;
-} FFTData;
-
-static void CaptureFrame(FFTData *fftData, const float *audioSamples);
-static void RenderFrame(const FFTData *fftData, Image *fftImage);
-static void CooleyTukeyFFTSlow(FFTComplex *spectrum, int n);
-
-//------------------------------------------------------------------------------------
-// Program main entry point
-//------------------------------------------------------------------------------------
-int main(void)
-{
-    // Initialization
-    //-----------------------------------------------------------------------------------     ---
-    const int screenWidth = 800;
-    const int screenHeight = 450;
-
-    InitWindow(screenWidth, screenHeight, "raylib [audio] example - spectrum visualizer");
-
-    Image fftImage = GenImageColor(BUFFER_SIZE, TEXTURE_HEIGHT, WHITE);
-    Texture2D fftTexture = LoadTextureFromImage(fftImage);
-    RenderTexture2D bufferA = LoadRenderTexture(screenWidth, screenHeight);
-    Vector2 iResolution = { (float)screenWidth, (float)screenHeight };
-
-    Shader shader = LoadShader(0, TextFormat("C:/Users/suman/source/personal/test_cpp/resources/shaders/glsl%i/fft.fs", GLSL_VERSION));
-
-    int iResolutionLocation = GetShaderLocation(shader, "iResolution");
-    int iChannel0Location = GetShaderLocation(shader, "iChannel0");
-    SetShaderValue(shader, iResolutionLocation, &iResolution, SHADER_UNIFORM_VEC2);
-    SetShaderValueTexture(shader, iChannel0Location, fftTexture);
-
-    InitAudioDevice();
-    SetAudioStreamBufferSizeDefault(AUDIO_STREAM_RING_BUFFER_SIZE);
-
-    // WARNING: Memory out-of-bounds on PLATFORM_WEB
-    Wave wav = LoadWave("C:/Users/suman/source/personal/test_cpp/resources/song.mp3");
-    WaveFormat(&wav, SAMPLE_RATE, PER_SAMPLE_BIT_DEPTH, STEREO);
-
-    AudioStream audioStream = LoadAudioStream(SAMPLE_RATE, PER_SAMPLE_BIT_DEPTH, STEREO);
-    PlayAudioStream(audioStream);
-
-    int fftHistoryLen = (int)ceilf(FFT_HISTORICAL_SMOOTHING_DUR/WINDOW_TIME) + 1;
-
-    FFTData fft = {
-        .spectrum = (FFTComplex*)RL_CALLOC(sizeof(FFTComplex), FFT_WINDOW_SIZE),
-        .workBuffer = (FFTComplex*)RL_CALLOC(sizeof(FFTComplex), FFT_WINDOW_SIZE),
-        .prevMagnitudes = (float*)RL_CALLOC(BUFFER_SIZE, sizeof(float)),
-        .fftHistory = (float(*)[BUFFER_SIZE])RL_CALLOC(fftHistoryLen, sizeof(float[BUFFER_SIZE])),
-        .fftHistoryLen = fftHistoryLen,
-        .historyPos = 0,
-        .lastFftTime = 0.0,
-        .tapbackPos = 0.01f
-    };
-
-    int wavCursor = 0;
-    const short *wavPCM16 = (short*)wav.data;
-
-    short chunkSamples[FFT_WINDOW_SIZE * 2] = { 0 };
-    float audioSamples[FFT_WINDOW_SIZE] = { 0 };
-
-    SetTargetFPS(60);
-    //----------------------------------------------------------------------------------
-
-    // Main game loop
-    while (!WindowShouldClose())    // Detect window close button or ESC key
-    {
-        // Update
-        //----------------------------------------------------------------------------------
-        while (IsAudioStreamProcessed(audioStream))
-        {
-            for (int i = 0; i < FFT_WINDOW_SIZE; i++)
-            {
-                int cursor = wavCursor + i;
-                int left = (wav.channels == 2)? wavPCM16[cursor*2 + 0] : wavPCM16[cursor];
-                int right = (wav.channels == 2)? wavPCM16[cursor*2 + 1] : left;
-                chunkSamples[i*2 + 0] = left;
-                chunkSamples[i*2 + 1] = right;
-
-                // this is to loop the audio
-                //if (++wavCursor >= wav.frameCount) wavCursor = 0;
-            }
-
-            wavCursor += AUDIO_STREAM_RING_BUFFER_SIZE;
-            UpdateAudioStream(audioStream, chunkSamples, AUDIO_STREAM_RING_BUFFER_SIZE);
-
-            for (int i = 0; i < FFT_WINDOW_SIZE; i++) audioSamples[i] = (chunkSamples[i*2] + chunkSamples[i*2 + 1])*0.5f/32767.0f;
-        }
-
-        CaptureFrame(&fft, audioSamples);
-        RenderFrame(&fft, &fftImage);
-        UpdateTexture(fftTexture, fftImage.data);
-        //----------------------------------------------------------------------------------
-
-        // Draw
-        //----------------------------------------------------------------------------------
-        BeginDrawing();
-
-            ClearBackground(RAYWHITE);
-
-            BeginShaderMode(shader);
-                SetShaderValueTexture(shader, iChannel0Location, fftTexture);
-                DrawTextureRec(bufferA.texture,
-                    Rectangle { 0, 0, (float)screenWidth, (float)-screenHeight },
-                    Vector2 { 0, 0 }, WHITE);
-            EndShaderMode();
-
-        EndDrawing();
-        //------------------------------------------------------------------------------
-    }
-
-    // De-Initialization
-    //--------------------------------------------------------------------------------------
-    UnloadShader(shader);
-    UnloadRenderTexture(bufferA);
-    UnloadTexture(fftTexture);
-    UnloadImage(fftImage);
-    UnloadAudioStream(audioStream);
-    UnloadWave(wav);
-    CloseAudioDevice();
-
-    RL_FREE(fft.spectrum);
-    RL_FREE(fft.workBuffer);
-    RL_FREE(fft.prevMagnitudes);
-    RL_FREE(fft.fftHistory);
-
-    CloseWindow();        // Close window and OpenGL context
-    //----------------------------------------------------------------------------------
-
-    return 0;
-}
-
-// Cooley–Tukey FFT https://en.wikipedia.org/wiki/Cooley%E2%80%93Tukey_FFT_algorithm#Data_reordering,_bit_reversal,_and_in-place_algorithms
-static void CooleyTukeyFFTSlow(FFTComplex *spectrum, int n)
-{
-    int j = 0;
-    for (int i = 1; i < n - 1; i++)
-    {
-        int bit = n >> 1;
-        while (j >= bit)
-        {
-            j -= bit;
-            bit >>= 1;
-        }
-        j += bit;
-        if (i < j)
-        {
-            FFTComplex temp = spectrum[i];
-            spectrum[i] = spectrum[j];
-            spectrum[j] = temp;
-        }
-    }
-
-    for (int len = 2; len <= n; len <<= 1)
-    {
-        float angle = -2.0f*PI/len;
-        FFTComplex twiddleUnit = { cosf(angle), sinf(angle) };
-        for (int i = 0; i < n; i += len)
-        {
-            FFTComplex twiddleCurrent = { 1.0f, 0.0f };
-            for (int j = 0; j < len/2; j++)
-            {
-                FFTComplex even = spectrum[i + j];
-                FFTComplex odd = spectrum[i + j + len/2];
-                FFTComplex twiddledOdd = {
-                    odd.real*twiddleCurrent.real - odd.imaginary*twiddleCurrent.imaginary,
-                    odd.real*twiddleCurrent.imaginary + odd.imaginary*twiddleCurrent.real
-                };
-
-                spectrum[i + j].real = even.real + twiddledOdd.real;
-                spectrum[i + j].imaginary = even.imaginary + twiddledOdd.imaginary;
-                spectrum[i + j + len/2].real = even.real - twiddledOdd.real;
-                spectrum[i + j + len/2].imaginary = even.imaginary - twiddledOdd.imaginary;
-
-                float twiddleRealNext = twiddleCurrent.real*twiddleUnit.real - twiddleCurrent.imaginary*twiddleUnit.imaginary;
-                twiddleCurrent.imaginary = twiddleCurrent.real*twiddleUnit.imaginary + twiddleCurrent.imaginary*twiddleUnit.real;
-                twiddleCurrent.real = twiddleRealNext;
-            }
-        }
-    }
-}
-
-static void CaptureFrame(FFTData *fftData, const float *audioSamples)
-{
-    for (int i = 0; i < FFT_WINDOW_SIZE; i++)
-    {
-        float x = (2.0f*PI*i)/(FFT_WINDOW_SIZE - 1.0f);
-        float blackmanWeight  = 0.5f * (1.0f - cosf(x)); // https://en.wikipedia.org/wiki/Window_function#Blackman_window
-        fftData->workBuffer[i].real = audioSamples[i]*blackmanWeight;
-        fftData->workBuffer[i].imaginary = 0.0f;
-    }
-
-    CooleyTukeyFFTSlow(fftData->workBuffer, FFT_WINDOW_SIZE);
-    memcpy(fftData->spectrum, fftData->workBuffer, sizeof(FFTComplex)*FFT_WINDOW_SIZE);
-
-    float smoothedSpectrum[BUFFER_SIZE];
-
-    for (int bin = 0; bin < BUFFER_SIZE; bin++)
-    {
-        float re = fftData->workBuffer[bin].real;
-        float im = fftData->workBuffer[bin].imaginary;
-        float linearMagnitude = sqrtf(re*re + im*im)/FFT_WINDOW_SIZE;
-
-        float smoothedMagnitude = SMOOTHING_TIME_CONSTANT*fftData->prevMagnitudes[bin] + (1.0f - SMOOTHING_TIME_CONSTANT)*linearMagnitude;
-        fftData->prevMagnitudes[bin] = smoothedMagnitude;
-
-        float db = logf(fmaxf(smoothedMagnitude, 1e-40f))*DB_TO_LINEAR_SCALE;
-        float normalized = (db - MIN_DECIBELS)*INVERSE_DECIBEL_RANGE;
-        smoothedSpectrum[bin] = Clamp(normalized, 0.0f, 1.0f);
-    }
-
-    fftData->lastFftTime = GetTime();
-    memcpy(fftData->fftHistory[fftData->historyPos], smoothedSpectrum, sizeof(smoothedSpectrum));
-    fftData->historyPos = (fftData->historyPos + 1)%fftData->fftHistoryLen;
-}
-
-static void RenderFrame(const FFTData *fftData, Image *fftImage)
-{
-    double framesSinceTapback = floor(fftData->tapbackPos/WINDOW_TIME);
-    framesSinceTapback = Clamp(framesSinceTapback, 0.0, fftData->fftHistoryLen - 1);
-
-    int historyPosition = (fftData->historyPos - 1 - (int)framesSinceTapback)%fftData->fftHistoryLen;
-    if (historyPosition < 0) historyPosition += fftData->fftHistoryLen;
-
-    const float *amplitude = fftData->fftHistory[historyPosition];
-    for (int bin = 0; bin < BUFFER_SIZE; bin++) ImageDrawPixel(fftImage, bin, FFT_ROW, ColorFromNormalized(Vector4 { amplitude[bin], UNUSED_CHANNEL, UNUSED_CHANNEL, UNUSED_CHANNEL }));
-}
-
-*/
 
 float music_analyzer::get_time_length() const
 {
@@ -879,17 +605,31 @@ menu::menu(kee::game& game, kee::global_assets& assets, const beatmap_dir_info& 
     music_info_text_frame.ref.x.val = music_cover_art_frame_rel_end + music_cover_art_frame_rel_beg / 2.f;
 
     visualizer_bot.reserve(music_analyzer::bins);
+    visualizer_top.reserve(music_analyzer::bins);
     for (std::size_t i = 0; i < music_analyzer::bins; i++)
+    {
         visualizer_bot.push_back(add_child<kee::ui::rect>(1,
-            kee::color(255, 255, 255, 30),
-            pos(pos::type::rel, static_cast<float>(i) / music_analyzer::bins),
+            kee::color(255, 255, 255, 15),
+            pos(pos::type::rel, (0.075f + static_cast<float>(i)) / music_analyzer::bins),
             pos(pos::type::end, 0),
             dims(
-                dim(dim::type::rel, 1.f / music_analyzer::bins),
+                dim(dim::type::rel, 0.85f / music_analyzer::bins),
                 dim(dim::type::rel, 0.f)
             ),
             false, std::nullopt, std::nullopt
         ));
+
+        visualizer_top.push_back(add_child<kee::ui::rect>(1,
+            kee::color(255, 255, 255, 15),
+            pos(pos::type::rel, (0.075f + static_cast<float>(i)) / music_analyzer::bins),
+            pos(pos::type::beg, 0),
+            dims(
+                dim(dim::type::rel, 0.85f / music_analyzer::bins),
+                dim(dim::type::rel, 0.f)
+            ),
+            false, std::nullopt, std::nullopt
+        ));
+    }
 
     k_text_alpha.set(std::nullopt, 255.0f, 2.0f, kee::transition_type::lin);
     analyzer.set_volume(1.f);
@@ -897,7 +637,15 @@ menu::menu(kee::game& game, kee::global_assets& assets, const beatmap_dir_info& 
 
 void menu::update_element(float dt)
 {
-    analyzer.update();
+    scene_time += dt;
+    if (scene_time >= 3.0f && !opening_trns.has_value())
+        opening_trns.emplace(*this);
+
+    if (scene_time >= 3.5f && !music_trns.has_value())
+    {
+        music_trns.emplace(*this);
+        analyzer.play();
+    }
 
     if (music_trns.has_value())
     {
@@ -938,16 +686,6 @@ void menu::update_element(float dt)
         music_cover_art.ref.color.a = music_trns.value().song_ui_alpha.get();
     }
 
-    scene_time += dt;
-    if (scene_time >= 3.0f && !opening_trns.has_value())
-        opening_trns.emplace(*this);
-
-    if (scene_time >= 3.5f && !music_trns.has_value())
-    {
-        music_trns.emplace(*this);
-        analyzer.play();
-    }
-
     k_text.ref.color.a = k_text_alpha.get();
     k_rect.ref.outline.value().color.a = opening_trns.has_value() ? opening_trns.value().k_rect_alpha.get() : 0.f;
     k_rect.ref.x.val = opening_trns.has_value() ? opening_trns.value().k_rect_x.get() : 0.5f;
@@ -959,8 +697,12 @@ void menu::update_element(float dt)
     e2_rect.ref.outline.value().color.a = opening_trns.has_value() ? opening_trns.value().e2_rect_alpha.get() : 0.f;
     e2_rect.ref.x.val = opening_trns.has_value() ? opening_trns.value().e2_rect_x.get() : 0.5f;
 
+    analyzer.update();
     for (std::size_t i = 0; i < music_analyzer::bins; i++)
-        std::get<kee::dims>(visualizer_bot[i].ref.dimensions).h.val = analyzer.get_visualizer_bin(i);
+    {
+        std::get<kee::dims>(visualizer_bot[i].ref.dimensions).h.val = 0.3f * analyzer.get_visualizer_bin(i);
+        std::get<kee::dims>(visualizer_top[i].ref.dimensions).h.val = 0.3f * analyzer.get_visualizer_bin(music_analyzer::bins - i - 1);
+    }
 }
 
 } // namespace scene
