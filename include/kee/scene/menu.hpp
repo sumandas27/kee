@@ -1,5 +1,7 @@
 #pragma once
 
+#include <complex>
+#include <numbers>
 #include <span>
 
 #include "kee/scene/base.hpp"
@@ -17,6 +19,8 @@ class menu;
 class music_analyzer
 {
 public:
+    static constexpr std::size_t bins = 64;
+
     music_analyzer(const std::filesystem::path& music_path);
     music_analyzer(const music_analyzer&) = delete;
     music_analyzer(music_analyzer&&) = delete;
@@ -25,17 +29,20 @@ public:
     music_analyzer& operator=(const music_analyzer&) = delete;
     music_analyzer& operator=(music_analyzer&&) = delete;
 
+    void update();
+
     float get_time_length() const;
     float get_time_played() const;
     void seek(float time);
 
-    void update();
-
     bool is_playing() const;
-    void resume();
     void pause();
+    void play();
+    void resume();
 
     void set_volume(float new_volume);
+
+    float get_visualizer_bin(std::size_t i);
 
 private:
     using sample_t = std::int16_t;
@@ -47,9 +54,20 @@ private:
     static constexpr int fft_resolution = 16384;
     static constexpr int frames_per_refresh = 2048;
 
+    /* TODO: add developer mozilla links to this */
+    static constexpr float smoothing_time_const = 0.75f;
+    static constexpr float min_db = -100.f;
+    static constexpr float max_db = -33.f;
+    static constexpr float inv_db_range = 1.f / (music_analyzer::max_db - music_analyzer::min_db);
+
     raylib::Wave wave;
     std::span<sample_t> samples;
     unsigned int frame_cursor;
+
+    std::array<std::complex<float>, music_analyzer::fft_resolution> fft_work_buffer;
+    std::array<float, music_analyzer::fft_resolution> fft_pcm_floats;
+    std::array<float, music_analyzer::bins> fft_prev_mags;
+    std::array<float, music_analyzer::bins> visualizer_bins;
 
     /**
      * NOTE: We use raylib's C AudioStream bindings, `raylib-cpp`
@@ -85,9 +103,6 @@ public:
     kee::transition<float>& slider_alpha;
     kee::transition<float>& slider_width;
 
-    kee::transition<float>& music_volume_multiplier;
-    bool music_volume_trns_finished;
-
     kee::transition<kee::color>& pause_play_color;
     kee::transition<kee::color>& step_l_color;
     kee::transition<kee::color>& step_r_color;
@@ -122,7 +137,7 @@ public:
 class menu final : public kee::scene::base
 {
 public:
-    menu(kee::game& game, kee::global_assets& assets, beatmap_dir_info&& beatmap_info);
+    menu(kee::game& game, kee::global_assets& assets, const beatmap_dir_info& beatmap_info);
 
 private:
     friend class music_transitions;
@@ -144,10 +159,7 @@ private:
 
     std::optional<kee::image_texture> music_cover_art_texture;
 
-    /* TODO: replace with music analyzer */
     music_analyzer analyzer;
-
-    /* TODO: remove i think */
     float music_time;
 
     kee::ui::handle<kee::ui::base> song_ui_frame_outer;
@@ -158,6 +170,8 @@ private:
     kee::ui::handle<kee::ui::text> music_name_text;
     kee::ui::handle<kee::ui::text> music_artist_text;
     kee::ui::handle<kee::ui::text> music_time_text;
+
+    std::vector<kee::ui::handle<kee::ui::rect>> visualizer_bot;
 
     float scene_time;
 };

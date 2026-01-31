@@ -5,12 +5,13 @@ namespace scene {
 
 music_analyzer::music_analyzer(const std::filesystem::path& music_path) :
     wave(music_path.string()),
-    frame_cursor(0)
+    frame_cursor(0),
+    fft_pcm_floats{},
+    fft_prev_mags{},
+    visualizer_bins{}
 { 
     SetAudioStreamBufferSizeDefault(music_analyzer::frames_per_refresh);
-
     audio_stream = LoadAudioStream(music_analyzer::sample_rate, music_analyzer::bit_depth, music_analyzer::channels);
-    PlayAudioStream(audio_stream);
 
     wave.Format(music_analyzer::sample_rate, music_analyzer::bit_depth, music_analyzer::channels);
     samples = std::span<sample_t>(static_cast<sample_t*>(wave.data), wave.frameCount * music_analyzer::channels);
@@ -26,25 +27,96 @@ void music_analyzer::update()
     while (IsAudioStreamProcessed(audio_stream))
     {
         std::array<sample_t, music_analyzer::fft_resolution * music_analyzer::channels> to_submit;
-        for (int i = 0; i < music_analyzer::fft_resolution; i++)
+        for (std::size_t i = 0; i < music_analyzer::fft_resolution; i++)
         {
-            unsigned int cursor = frame_cursor + i;
-
-            /* TODO: warning */
+            std::size_t cursor = frame_cursor + i;
             if (cursor >= wave.frameCount)
             {
                 frame_cursor = 0;
                 break;
             }
 
+            float pcm_float = 0;
             for (unsigned int ch = 0; ch < music_analyzer::channels; ch++)
-                to_submit[i * music_analyzer::channels + ch] = samples[cursor * music_analyzer::channels + ch];
+            {
+                const sample_t sample = samples[cursor * music_analyzer::channels + ch];
+                to_submit[i * music_analyzer::channels + ch] = sample;
+                pcm_float += sample;
+            }
+
+            pcm_float /= (music_analyzer::channels * std::numeric_limits<sample_t>::max());
+            fft_pcm_floats[i] = pcm_float;
         }
 
         UpdateAudioStream(audio_stream, to_submit.data(), music_analyzer::frames_per_refresh);
         frame_cursor += music_analyzer::frames_per_refresh;
+    }
 
-        /* TODO: perform FFT analysis */
+    for (std::size_t i = 0; i < music_analyzer::fft_resolution; i++)
+    {
+        const float x = (2.f * std::numbers::pi * i) / (music_analyzer::fft_resolution - 1.f);
+        const float blackman_weight = 0.42f - 0.5f * std::cosf(x) + 0.08f * std::cosf(2 * x);
+        fft_work_buffer[i] = fft_pcm_floats[i] * blackman_weight;
+    }
+
+    int j = 0;
+    for (int i = 1; i < music_analyzer::fft_resolution - 1; i++)
+    {
+        int bit = music_analyzer::fft_resolution >> 1;
+        while (j >= bit)
+        {
+            j -= bit;
+            bit >>= 1;
+        }
+
+        j += bit;
+        if (i < j)
+            std::swap(fft_work_buffer[i], fft_work_buffer[j]);
+    }
+
+    for (int len = 2; len <= music_analyzer::fft_resolution; len <<= 1)
+    {
+        const float angle = -2.f * std::numbers::pi / len;
+        const std::complex<float> twiddle_unit(std::cosf(angle), std::sinf(angle));
+
+        for (int i = 0; i < music_analyzer::fft_resolution; i += len)
+        {
+            std::complex<float> twiddle_current(1.f, 0.f);
+            for (int j = 0; j < len / 2; j++) /* TODO: isn't j reinitialized */
+            {
+                const std::complex<float> e = fft_work_buffer[i + j];
+                const std::complex<float> o = fft_work_buffer[i + j + len / 2];
+                const std::complex<float> twiddle_odd(
+                    o.real() * twiddle_current.real() - o.imag() * twiddle_current.imag(),
+                    o.real() * twiddle_current.imag() + o.imag() * twiddle_current.real()
+                );
+
+                fft_work_buffer[i + j].real(e.real() + twiddle_odd.real());
+                fft_work_buffer[i + j].imag(e.imag() + twiddle_odd.imag());
+
+                fft_work_buffer[i + j + len / 2].real(e.real() - twiddle_odd.real());
+                fft_work_buffer[i + j + len / 2].imag(e.imag() - twiddle_odd.imag());
+
+                const float real_next = twiddle_current.real() * twiddle_unit.real() - twiddle_current.imag() * twiddle_unit.imag();
+                const float imag_next = twiddle_current.real() * twiddle_unit.imag() + twiddle_current.imag() * twiddle_unit.real();
+                twiddle_current.real(real_next);
+                twiddle_current.imag(imag_next);
+            }
+        }
+    }
+
+    for (std::size_t bin = 0; bin < music_analyzer::bins; bin++)
+    {
+        const float linear_mag = std::abs(fft_work_buffer[bin]) / music_analyzer::fft_resolution;
+        const float prev_contribution = music_analyzer::smoothing_time_const * fft_prev_mags[bin];
+        const float curr_contribution = (1.f - music_analyzer::smoothing_time_const) * linear_mag;
+        
+        const float smoothed_mag = prev_contribution + curr_contribution;
+        fft_prev_mags[bin] = smoothed_mag;
+
+        const float db = 20 * std::log10f(std::max(smoothed_mag, 1e-40f));
+        const float normalized = (db - music_analyzer::min_db) * music_analyzer::inv_db_range;
+        visualizer_bins[bin] = std::clamp(normalized, 0.f, 1.f);
     }
 }
 
@@ -346,20 +418,33 @@ bool music_analyzer::is_playing() const
     return IsAudioStreamPlaying(audio_stream);
 }
 
-void music_analyzer::resume()
-{
-    return ResumeAudioStream(audio_stream);
-}
-
 void music_analyzer::pause()
 {
-    return PauseAudioStream(audio_stream);
+    PauseAudioStream(audio_stream);
+}
+
+void music_analyzer::play()
+{
+    PlayAudioStream(audio_stream);
+}
+
+void music_analyzer::resume()
+{
+    ResumeAudioStream(audio_stream);
 }
 
 void music_analyzer::set_volume(float new_volume)
 {
     const float new_volume_clamped = std::clamp(new_volume, 0.f, 1.f);
     SetAudioStreamVolume(audio_stream, new_volume_clamped);
+}
+
+float music_analyzer::get_visualizer_bin(std::size_t i)
+{
+    if (i >= music_analyzer::bins)
+        throw std::runtime_error("music_analyzer::get_visualizer_bin: out of bounds");
+
+    return visualizer_bins[i];
 }
 
 opening_transitions::opening_transitions(menu& menu_scene) :
@@ -384,8 +469,6 @@ music_transitions::music_transitions(menu& menu_scene) :
     menu_scene(menu_scene),
     slider_alpha(menu_scene.add_transition<float>(0.0f)),
     slider_width(menu_scene.add_transition<float>(0.0f)),
-    music_volume_multiplier(menu_scene.add_transition<float>(0.0f)),
-    music_volume_trns_finished(false),
     pause_play_color(menu_scene.add_transition<kee::color>(kee::color(255, 255, 255, 0))),
     step_l_color(menu_scene.add_transition<kee::color>(kee::color(255, 255, 255, 0))),
     step_r_color(menu_scene.add_transition<kee::color>(kee::color(255, 255, 255, 0))),
@@ -399,7 +482,7 @@ music_transitions::music_transitions(menu& menu_scene) :
     song_ui_alpha(menu_scene.add_transition<float>(0.f)),
     step_texture("assets/img/step.png"),
     setting_texture("assets/img/settings.png"),
-    music_slider(menu_scene.add_child<kee::ui::slider>(std::nullopt,
+    music_slider(menu_scene.add_child<kee::ui::slider>(2,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.895f),
         dims(
@@ -408,7 +491,7 @@ music_transitions::music_transitions(menu& menu_scene) :
         ),
         true, true
     )),
-    pause_play(menu_scene.add_child<kee::ui::button>(std::nullopt,
+    pause_play(menu_scene.add_child<kee::ui::button>(2,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.95f),
         dims(
@@ -424,7 +507,7 @@ music_transitions::music_transitions(menu& menu_scene) :
         border(border::type::rel_h, pause_play_border.get()),
         true, ui::image::display::shrink_to_fit, false, false, 0.0f
     )),
-    step_l(menu_scene.add_child<kee::ui::button>(std::nullopt,
+    step_l(menu_scene.add_child<kee::ui::button>(2,
         pos(pos::type::rel, 0.4f),
         pos(pos::type::rel, 0.95f),
         dims(
@@ -440,7 +523,7 @@ music_transitions::music_transitions(menu& menu_scene) :
         border(border::type::rel_h, step_l_border.get()),
         true, ui::image::display::shrink_to_fit, true, false, 0.0f
     )),
-    step_r(menu_scene.add_child<kee::ui::button>(std::nullopt,
+    step_r(menu_scene.add_child<kee::ui::button>(2,
         pos(pos::type::rel, 0.6f),
         pos(pos::type::rel, 0.95f),
         dims(
@@ -456,7 +539,7 @@ music_transitions::music_transitions(menu& menu_scene) :
         border(border::type::rel_h, step_r_border.get()),
         true, ui::image::display::shrink_to_fit, false, false, 0.0f
     )),
-    setting_exit_frame(menu_scene.add_child<kee::ui::base>(std::nullopt,
+    setting_exit_frame(menu_scene.add_child<kee::ui::base>(2,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_w, 0.02f),
@@ -497,7 +580,6 @@ music_transitions::music_transitions(menu& menu_scene) :
 {
     slider_alpha.set(std::nullopt, 255.0f, 0.5f, kee::transition_type::lin);
     slider_width.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
-    music_volume_multiplier.set(std::nullopt, 2.0f, 2.0f, kee::transition_type::inv_exp);
     pause_play_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::lin);
     step_l_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::lin);
     step_r_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::lin);
@@ -659,10 +741,10 @@ music_transitions::music_transitions(menu& menu_scene) :
     };
 }
 
-menu::menu(kee::game& game, kee::global_assets& assets, beatmap_dir_info&& beatmap_info) :
+menu::menu(kee::game& game, kee::global_assets& assets, const beatmap_dir_info& beatmap_info) :
     kee::scene::base(game, assets),
     k_text_alpha(add_transition<float>(0.0f)),
-    k_rect(add_child<kee::ui::rect>(std::nullopt,
+    k_rect(add_child<kee::ui::rect>(2,
         kee::color::blank,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
@@ -681,7 +763,7 @@ menu::menu(kee::game& game, kee::global_assets& assets, beatmap_dir_info&& beatm
         ui::text_size(ui::text_size::type::rel_h, 0.8f),
         std::nullopt, true, assets.font_semi_bold, "K", false
     )),
-    e1_rect(add_child<kee::ui::rect>(std::nullopt,
+    e1_rect(add_child<kee::ui::rect>(2,
         kee::color::blank,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
@@ -700,7 +782,7 @@ menu::menu(kee::game& game, kee::global_assets& assets, beatmap_dir_info&& beatm
         ui::text_size(ui::text_size::type::rel_h, 0.8f),
         std::nullopt, true, assets.font_semi_bold, "E", false
     )),
-    e2_rect(add_child<kee::ui::rect>(std::nullopt,
+    e2_rect(add_child<kee::ui::rect>(2,
         kee::color::blank,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
@@ -725,7 +807,7 @@ menu::menu(kee::game& game, kee::global_assets& assets, beatmap_dir_info&& beatm
     ),
     analyzer(beatmap_info.dir_state.path / beatmap_dir_state::standard_music_filename),
     music_time(0.f),
-    song_ui_frame_outer(add_child<kee::ui::base>(std::nullopt,
+    song_ui_frame_outer(add_child<kee::ui::base>(2,
         pos(pos::type::rel, 0.f),
         pos(pos::type::rel, 0.9f),
         dims(
@@ -796,9 +878,21 @@ menu::menu(kee::game& game, kee::global_assets& assets, beatmap_dir_info&& beatm
     const float music_cover_art_frame_rel_end = (music_cover_art_frame_rect.x + music_cover_art_frame_rect.width)/ kee::window_w;
     music_info_text_frame.ref.x.val = music_cover_art_frame_rel_end + music_cover_art_frame_rel_beg / 2.f;
 
-    k_text_alpha.set(std::nullopt, 255.0f, 2.0f, kee::transition_type::lin);
+    visualizer_bot.reserve(music_analyzer::bins);
+    for (std::size_t i = 0; i < music_analyzer::bins; i++)
+        visualizer_bot.push_back(add_child<kee::ui::rect>(1,
+            kee::color(255, 255, 255, 30),
+            pos(pos::type::rel, static_cast<float>(i) / music_analyzer::bins),
+            pos(pos::type::end, 0),
+            dims(
+                dim(dim::type::rel, 1.f / music_analyzer::bins),
+                dim(dim::type::rel, 0.f)
+            ),
+            false, std::nullopt, std::nullopt
+        ));
 
-    analyzer.set_volume(0.f);
+    k_text_alpha.set(std::nullopt, 255.0f, 2.0f, kee::transition_type::lin);
+    analyzer.set_volume(1.f);
 }
 
 void menu::update_element(float dt)
@@ -807,15 +901,6 @@ void menu::update_element(float dt)
 
     if (music_trns.has_value())
     {
-        if (!music_trns.value().music_volume_trns_finished)
-        {
-            const float music_volume_multiplier = music_trns.value().music_volume_multiplier.get();
-            analyzer.set_volume(0.01f * music_volume_multiplier);
-
-            if (music_volume_multiplier >= 1.0f)
-                music_trns.value().music_volume_trns_finished = true;
-        }
-
         if (!music_trns.value().music_slider.ref.is_down())
         {
             if (analyzer.is_playing())
@@ -860,7 +945,7 @@ void menu::update_element(float dt)
     if (scene_time >= 3.5f && !music_trns.has_value())
     {
         music_trns.emplace(*this);
-        analyzer.resume();
+        analyzer.play();
     }
 
     k_text.ref.color.a = k_text_alpha.get();
@@ -873,6 +958,9 @@ void menu::update_element(float dt)
     e2_text.ref.color.a = opening_trns.has_value() ? opening_trns.value().e2_text_alpha.get() : 0.f;
     e2_rect.ref.outline.value().color.a = opening_trns.has_value() ? opening_trns.value().e2_rect_alpha.get() : 0.f;
     e2_rect.ref.x.val = opening_trns.has_value() ? opening_trns.value().e2_rect_x.get() : 0.5f;
+
+    for (std::size_t i = 0; i < music_analyzer::bins; i++)
+        std::get<kee::dims>(visualizer_bot[i].ref.dimensions).h.val = analyzer.get_visualizer_bin(i);
 }
 
 } // namespace scene
