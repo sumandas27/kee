@@ -51,11 +51,11 @@ private:
     static constexpr unsigned int bit_depth = 8 * sizeof(sample_t);
     static constexpr unsigned int channels = 2;
 
+    static constexpr std::size_t fft_bins = 8192;
     static constexpr int fft_resolution = 16384;
     static constexpr int frames_per_refresh = 2048;
 
-    /* TODO: add developer mozilla links to this */
-    static constexpr float smoothing_time_const = 0.2f;
+    static constexpr float smoothing_time_const = 0.8f;
     static constexpr float min_db = -100.f;
     static constexpr float max_db = -33.f;
     static constexpr float inv_db_range = 1.f / (music_analyzer::max_db - music_analyzer::min_db);
@@ -66,7 +66,8 @@ private:
 
     std::array<std::complex<float>, music_analyzer::fft_resolution> fft_work_buffer;
     std::array<float, music_analyzer::fft_resolution> fft_pcm_floats;
-    std::array<float, music_analyzer::bins> fft_prev_mags;
+    std::array<float, music_analyzer::fft_bins> fft_prev_mags;
+    std::array<float, music_analyzer::fft_bins> fft_curr_mags;
     std::array<float, music_analyzer::bins> visualizer_bins;
 
     /**

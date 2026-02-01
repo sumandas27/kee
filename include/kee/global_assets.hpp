@@ -39,7 +39,10 @@ public:
     raylib::Shader shader_sdf_triangle;
     raylib::Texture texture_empty;
 
-    const int sdf_rect_loc_color;
+    const int sdf_rect_loc_color_tr;
+    const int sdf_rect_loc_color_br;
+    const int sdf_rect_loc_color_bl;
+    const int sdf_rect_loc_color_tl;
     const int sdf_rect_loc_size;
     const int sdf_rect_loc_roundness_size;
     const int sdf_rect_loc_outline_color;

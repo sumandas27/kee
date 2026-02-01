@@ -87,7 +87,11 @@ void rect::render_element() const
         uniform_outline_color = { outline_color.r / 255.0f, outline_color.g / 255.0f, outline_color.b / 255.0f, outline_color.a / 255.0f };
     }
 
-    assets.shader_sdf_rect.SetValue(assets.sdf_rect_loc_color, uniform_color.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC4);
+    assets.shader_sdf_rect.SetValue(assets.sdf_rect_loc_color_tr, uniform_color.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC4);
+    assets.shader_sdf_rect.SetValue(assets.sdf_rect_loc_color_br, uniform_color.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC4);
+    assets.shader_sdf_rect.SetValue(assets.sdf_rect_loc_color_bl, uniform_color.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC4);
+    assets.shader_sdf_rect.SetValue(assets.sdf_rect_loc_color_tl, uniform_color.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC4);
+
     assets.shader_sdf_rect.SetValue(assets.sdf_rect_loc_size, uniform_size.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC2);
     assets.shader_sdf_rect.SetValue(assets.sdf_rect_loc_roundness_size, &uniform_roundness_size, ShaderUniformDataType::SHADER_UNIFORM_FLOAT);
     assets.shader_sdf_rect.SetValue(assets.sdf_rect_loc_outline_color, uniform_outline_color.data(), ShaderUniformDataType::SHADER_UNIFORM_VEC4);

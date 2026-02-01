@@ -57,7 +57,7 @@ void music_analyzer::update()
 
     for (std::size_t i = 0; i < music_analyzer::fft_resolution; i++)
     {
-        const float x = (2.f * std::numbers::pi * i) / (music_analyzer::fft_resolution - 1.f);
+        const float x = (2.f * std::numbers::pi_v<float> * i) / (music_analyzer::fft_resolution - 1.f);
         const float blackman_weight = 0.42f - 0.5f * std::cosf(x) + 0.08f * std::cosf(2 * x);
         fft_work_buffer[i] = fft_pcm_floats[i] * blackman_weight;
     }
@@ -79,7 +79,7 @@ void music_analyzer::update()
 
     for (int len = 2; len <= music_analyzer::fft_resolution; len <<= 1)
     {
-        const float angle = -2.f * std::numbers::pi / len;
+        const float angle = -2.f * std::numbers::pi_v<float> / len;
         const std::complex<float> twiddle_unit(std::cosf(angle), std::sinf(angle));
 
         for (int i = 0; i < music_analyzer::fft_resolution; i += len)
@@ -108,7 +108,7 @@ void music_analyzer::update()
         }
     }
 
-    for (std::size_t bin = 0; bin < music_analyzer::bins; bin++)
+    for (std::size_t bin = 0; bin < music_analyzer::fft_bins; bin++)
     {
         const float linear_mag = std::abs(fft_work_buffer[bin]) / music_analyzer::fft_resolution;
         const float prev_contribution = music_analyzer::smoothing_time_const * fft_prev_mags[bin];
@@ -119,7 +119,108 @@ void music_analyzer::update()
 
         const float db = 20 * std::log10f(std::max(smoothed_mag, 1e-40f));
         const float normalized = (db - music_analyzer::min_db) * music_analyzer::inv_db_range;
-        visualizer_bins[bin] = std::clamp(normalized, 0.f, 1.f);
+        fft_curr_mags[bin] = std::clamp(normalized, 0.f, 1.f);
+    }
+
+    for (std::size_t bin = 0; bin < music_analyzer::bins; bin++)
+    {
+        static constexpr std::size_t fft_bin_beg = 4;
+        static constexpr std::size_t fft_bin_end = 1200;
+        static constexpr float spectrum_scale = 2.5f;
+
+        const float fft_bin = std::powf(static_cast<float>(bin) / music_analyzer::bins, spectrum_scale) * (fft_bin_end - fft_bin_beg) + fft_bin_beg;
+        const std::size_t fft_bin_floor = static_cast<std::size_t>(std::floor(fft_bin));
+        
+        const float fft_bin_decimal = fft_bin - std::floor(fft_bin);
+        const float fft_bin_prev_contribution = fft_curr_mags[fft_bin_floor] * fft_bin_decimal;
+        const float fft_bin_next_contribution = fft_curr_mags[fft_bin_floor + 1] * (1.f - fft_bin_decimal);
+        visualizer_bins[bin] = fft_bin_prev_contribution + fft_bin_next_contribution;
+    }
+
+    std::array<float, music_analyzer::bins> avg_transform;
+    for (std::size_t bin = 0; bin < 2 * music_analyzer::bins; bin++)
+    {
+        static constexpr std::size_t bin_dc = 0;
+        static constexpr std::size_t bin_nyquist = music_analyzer::bins - 1;
+
+        const std::size_t pass = bin / music_analyzer::bins;
+        const std::size_t i = bin % music_analyzer::bins;
+
+        float value = 0.f;
+        switch (i)
+        {
+        case bin_dc:
+            value = visualizer_bins[i];
+            break;
+        case bin_nyquist:
+            value = visualizer_bins[i - 1] * 0.5f + visualizer_bins[i] * 0.5f;
+            break;
+        default: {
+            const float prev_bin = visualizer_bins[i - 1];  
+            const float curr_bin = visualizer_bins[i];  
+            const float next_bin = visualizer_bins[i + 1];
+
+            if (curr_bin < prev_bin || curr_bin < next_bin)
+                value = (pass == 0)
+                    ? curr_bin / 2.f + std::max(prev_bin, next_bin) / 2.f
+                    : curr_bin / 2.f + std::max(prev_bin, next_bin) / 3.f + std::min(prev_bin, next_bin) / 6.f;
+            else
+                value = curr_bin;
+        }}
+
+        avg_transform[i] = std::min(value, 1.f);
+        if (i == music_analyzer::bins - 1)
+            visualizer_bins = avg_transform;
+    }
+
+    for (std::size_t i = 0; i < music_analyzer::bins; i++)
+    {
+        static constexpr float min_margin_weight = 0.7f;
+        static constexpr float margin_decay = 1.6f;
+        static constexpr std::size_t head_margin = 7;
+
+        float tail_transform_factor = 1.f;
+        if (i < head_margin)
+        {
+            const float head_margin_slope = (1.f - min_margin_weight) / std::powf(static_cast<float>(head_margin), margin_decay);
+            tail_transform_factor = head_margin_slope * std::powf(static_cast<float>(i) + 1.f, margin_decay) + min_margin_weight;
+        }
+
+        visualizer_bins[i] *= tail_transform_factor;
+    }
+
+    static constexpr std::size_t smoothing_points = 3;
+    static_assert(smoothing_points % 2 == 1, "smoothing_points must be odd");
+
+    static constexpr std::size_t side_points = smoothing_points / 2;
+    static constexpr int side_points_int = static_cast<int>(side_points);
+    static constexpr float cn = 1.f / (2.f * side_points + 1.f);
+
+    std::array<float, music_analyzer::bins> savitsky_golay_smooth_workspace = visualizer_bins;
+    for (std::size_t i = 0; i < side_points; i++)
+    {
+        visualizer_bins[i] = savitsky_golay_smooth_workspace[i];
+        visualizer_bins[music_analyzer::bins - 1 - i] = savitsky_golay_smooth_workspace[music_analyzer::bins - 1 - i];
+    }
+
+    for (std::size_t i = side_points; i < music_analyzer::bins - side_points; i++)
+    {
+        float sum = 0.f;
+        for (int n = -side_points_int; n <= side_points_int; n++)
+            sum += savitsky_golay_smooth_workspace[i + n] + n;
+            
+        visualizer_bins[i] = sum * cn;
+    }
+
+    for (std::size_t i = 0; i < music_analyzer::bins; i++)
+    {
+        static constexpr float spectrum_max_exp = 6.f;
+        static constexpr float spectrum_min_exp = 3.f;
+        static constexpr float spectrum_exponent_scale = 2.f;
+
+        const float exp = (spectrum_max_exp - spectrum_min_exp) * (1.f - std::powf(static_cast<float>(i) / music_analyzer::bins, spectrum_exponent_scale)) + spectrum_min_exp;
+        const float bin_final = std::powf(visualizer_bins[i], exp);
+        visualizer_bins[i] = std::max(bin_final, 0.f);
     }
 }
 
@@ -700,8 +801,8 @@ void menu::update_element(float dt)
     analyzer.update();
     for (std::size_t i = 0; i < music_analyzer::bins; i++)
     {
-        std::get<kee::dims>(visualizer_bot[i].ref.dimensions).h.val = 0.3f * analyzer.get_visualizer_bin(i);
-        std::get<kee::dims>(visualizer_top[i].ref.dimensions).h.val = 0.3f * analyzer.get_visualizer_bin(music_analyzer::bins - i - 1);
+        std::get<kee::dims>(visualizer_bot[i].ref.dimensions).h.val = 0.5f * analyzer.get_visualizer_bin(i);
+        std::get<kee::dims>(visualizer_top[i].ref.dimensions).h.val = 0.5f * analyzer.get_visualizer_bin(music_analyzer::bins - i - 1);
     }
 }
 
