@@ -437,7 +437,7 @@ music_transitions::music_transitions(menu& menu_scene) :
         switch (button_event)
         {
         case ui::button::event::on_hot:
-            pause_play_color.set(std::nullopt, kee::color(255, 255, 255, 200), 0.5f, kee::transition_type::exp);
+            pause_play_color.set(std::nullopt, kee::color(200, 200, 200), 0.5f, kee::transition_type::exp);
             pause_play_border.set(std::nullopt, 0.f, 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_down_l:
@@ -472,7 +472,7 @@ music_transitions::music_transitions(menu& menu_scene) :
         switch (button_event)
         {
         case ui::button::event::on_hot:
-            step_l_color.set(std::nullopt, kee::color(255, 255, 255, 200), 0.5f, kee::transition_type::exp);
+            step_l_color.set(std::nullopt, kee::color(200, 200, 200), 0.5f, kee::transition_type::exp);
             step_l_border.set(std::nullopt, 0.f, 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_down_l:
@@ -497,7 +497,7 @@ music_transitions::music_transitions(menu& menu_scene) :
         switch (button_event)
         {
         case ui::button::event::on_hot:
-            step_r_color.set(std::nullopt, kee::color(255, 255, 255, 200), 0.5f, kee::transition_type::exp);
+            step_r_color.set(std::nullopt, kee::color(200, 200, 200), 0.5f, kee::transition_type::exp);
             step_r_border.set(std::nullopt, 0.f, 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_down_l:
@@ -522,7 +522,7 @@ music_transitions::music_transitions(menu& menu_scene) :
         switch (button_event)
         {
         case ui::button::event::on_hot:
-            setting_color.set(std::nullopt, kee::color(255, 255, 255, 200), 0.5f, kee::transition_type::exp);
+            setting_color.set(std::nullopt, kee::color(200, 200, 200), 0.5f, kee::transition_type::exp);
             setting_border.set(std::nullopt, 0.f, 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_down_l:
@@ -547,7 +547,7 @@ music_transitions::music_transitions(menu& menu_scene) :
         switch (button_event)
         {
         case ui::button::event::on_hot:
-            exit_color.set(std::nullopt, kee::color(255, 255, 255, 200), 0.5f, kee::transition_type::exp);
+            exit_color.set(std::nullopt, kee::color(200, 200, 200), 0.5f, kee::transition_type::exp);
             exit_border.set(std::nullopt, 0.f, 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_down_l:
@@ -571,13 +571,28 @@ music_transitions::music_transitions(menu& menu_scene) :
 menu::menu(kee::game& game, kee::global_assets& assets, const beatmap_dir_info& beatmap_info) :
     kee::scene::base(game, assets),
     k_text_alpha(add_transition<float>(0.0f)),
-    k_rect(add_child<kee::ui::rect>(2,
-        kee::color::blank,
+    k_scale(add_transition<float>(1.0f)),
+    e1_scale(add_transition<float>(1.0f)),
+    e2_scale(add_transition<float>(1.0f)),
+    edit_text_alpha(add_transition<float>(0.f)),
+    play_text_alpha(add_transition<float>(0.f)),
+    browse_text_alpha(add_transition<float>(0.f)),
+    k_button(add_child<kee::ui::button>(2,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         dims(
             dim(dim::type::aspect, 1),
             dim(dim::type::rel, 0.25f)
+        ),
+        true
+    )),
+    k_rect(k_button.ref.add_child<kee::ui::rect>(2,
+        kee::color::blank,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        dims(
+            dim(dim::type::rel, 1.f),
+            dim(dim::type::rel, 1.f)
         ),
         true,
         ui::rect_outline(ui::rect_outline::type::rel_h, 0.025f, kee::color(255, 255, 255, 0)),
@@ -590,13 +605,29 @@ menu::menu(kee::game& game, kee::global_assets& assets, const beatmap_dir_info& 
         ui::text_size(ui::text_size::type::rel_h, 0.8f),
         std::nullopt, true, assets.font_semi_bold, "K", false
     )),
-    e1_rect(add_child<kee::ui::rect>(2,
-        kee::color::blank,
+    edit_text(k_button.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color(255, 255, 255, edit_text_alpha.get()),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, -0.08f),
+        ui::text_size(ui::text_size::type::rel_h, 0.1f),
+        std::nullopt, true, assets.font_regular, "EDIT", false
+    )),
+    e1_button(add_child<kee::ui::button>(2,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         dims(
             dim(dim::type::aspect, 1),
             dim(dim::type::rel, 0.25f)
+        ),
+        true
+    )),
+    e1_rect(e1_button.ref.add_child<kee::ui::rect>(2,
+        kee::color::blank,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        dims(
+            dim(dim::type::rel, 1.f),
+            dim(dim::type::rel, 1.f)
         ),
         true,
         ui::rect_outline(ui::rect_outline::type::rel_h, 0.025f, kee::color(255, 255, 255, 0)),
@@ -609,13 +640,29 @@ menu::menu(kee::game& game, kee::global_assets& assets, const beatmap_dir_info& 
         ui::text_size(ui::text_size::type::rel_h, 0.8f),
         std::nullopt, true, assets.font_semi_bold, "E", false
     )),
-    e2_rect(add_child<kee::ui::rect>(2,
-        kee::color::blank,
+    play_text(e1_button.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color(255, 255, 255, play_text_alpha.get()),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, -0.08f),
+        ui::text_size(ui::text_size::type::rel_h, 0.1f),
+        std::nullopt, true, assets.font_regular, "PLAY", false
+    )),
+    e2_button(add_child<kee::ui::button>(2,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         dims(
             dim(dim::type::aspect, 1),
             dim(dim::type::rel, 0.25f)
+        ),
+        true
+    )),
+    e2_rect(e2_button.ref.add_child<kee::ui::rect>(2,
+        kee::color::blank,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        dims(
+            dim(dim::type::rel, 1.f),
+            dim(dim::type::rel, 1.f)
         ),
         true,
         ui::rect_outline(ui::rect_outline::type::rel_h, 0.025f, kee::color(255, 255, 255, 0)),
@@ -627,6 +674,13 @@ menu::menu(kee::game& game, kee::global_assets& assets, const beatmap_dir_info& 
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.8f),
         std::nullopt, true, assets.font_semi_bold, "E", false
+    )),
+    browse_text(e2_button.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color(255, 255, 255, browse_text_alpha.get()),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, -0.08f),
+        ui::text_size(ui::text_size::type::rel_h, 0.1f),
+        std::nullopt, true, assets.font_regular, "BROWSE", false
     )),
     music_cover_art_texture(beatmap_info.dir_state.has_image
         ? std::make_optional(beatmap_info.dir_state.path / beatmap_dir_state::standard_img_filename)
@@ -705,12 +759,90 @@ menu::menu(kee::game& game, kee::global_assets& assets, const beatmap_dir_info& 
     const float music_cover_art_frame_rel_end = (music_cover_art_frame_rect.x + music_cover_art_frame_rect.width)/ kee::window_w;
     music_info_text_frame.ref.x.val = music_cover_art_frame_rel_end + music_cover_art_frame_rel_beg / 2.f;
 
+    k_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        if (!music_trns.has_value())
+            return;
+
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            k_scale.set(std::nullopt, 1.1f, 0.5f, kee::transition_type::exp);
+            edit_text_alpha.set(std::nullopt, 255.f, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            k_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
+            edit_text_alpha.set(std::nullopt, 0.f, 0.5f, kee::transition_type::exp);
+            break;
+        }
+    };
+
+    k_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        if (!music_trns.has_value())
+            return;
+
+        /* TODO: impl */
+    };
+
+    e1_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        if (!music_trns.has_value())
+            return;
+
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            e1_scale.set(std::nullopt, 1.1f, 0.5f, kee::transition_type::exp);
+            play_text_alpha.set(std::nullopt, 255.f, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            e1_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
+            play_text_alpha.set(std::nullopt, 0.f, 0.5f, kee::transition_type::exp);
+            break;
+        }
+    };
+
+    e1_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        if (!music_trns.has_value())
+            return;
+
+        /* TODO: impl */
+    };
+
+    e2_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        if (!music_trns.has_value())
+            return;
+
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            e2_scale.set(std::nullopt, 1.1f, 0.5f, kee::transition_type::exp);
+            browse_text_alpha.set(std::nullopt, 255.f, 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            e2_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
+            browse_text_alpha.set(std::nullopt, 0.f, 0.5f, kee::transition_type::exp);
+            break;
+        }
+    };
+
+    e2_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        if (!music_trns.has_value())
+            return;
+
+        /* TODO: impl */
+    };
+
     visualizer_bot.reserve(music_analyzer::bins);
     visualizer_top.reserve(music_analyzer::bins);
     for (std::size_t i = 0; i < music_analyzer::bins; i++)
     {
         visualizer_bot.push_back(add_child<kee::ui::rect>(1,
-            kee::color(255, 255, 255, 15),
+            kee::color(255, 255, 255, 30),
             pos(pos::type::rel, (0.075f + static_cast<float>(i)) / music_analyzer::bins),
             pos(pos::type::end, 0),
             dims(
@@ -721,7 +853,7 @@ menu::menu(kee::game& game, kee::global_assets& assets, const beatmap_dir_info& 
         ));
 
         visualizer_top.push_back(add_child<kee::ui::rect>(1,
-            kee::color(255, 255, 255, 15),
+            kee::color(255, 255, 255, 30),
             pos(pos::type::rel, (0.075f + static_cast<float>(i)) / music_analyzer::bins),
             pos(pos::type::beg, 0),
             dims(
@@ -788,15 +920,27 @@ void menu::update_element(float dt)
     }
 
     k_text.ref.color.a = k_text_alpha.get();
+    k_text.ref.set_scale(k_scale.get());
+    edit_text.ref.set_scale(k_scale.get());
+    edit_text.ref.color.a = edit_text_alpha.get();
     k_rect.ref.outline.value().color.a = opening_trns.has_value() ? opening_trns.value().k_rect_alpha.get() : 0.f;
-    k_rect.ref.x.val = opening_trns.has_value() ? opening_trns.value().k_rect_x.get() : 0.5f;
+    k_button.ref.x.val = opening_trns.has_value() ? opening_trns.value().k_rect_x.get() : 0.5f;
+    std::get<kee::dims>(k_button.ref.dimensions).h.val = 0.25f * k_scale.get();
 
     e1_text.ref.color.a = opening_trns.has_value() ? opening_trns.value().e1_text_alpha.get() : 0.f;
+    e1_text.ref.set_scale(e1_scale.get());
+    play_text.ref.set_scale(e1_scale.get());
+    play_text.ref.color.a = play_text_alpha.get();
     e1_rect.ref.outline.value().color.a = opening_trns.has_value() ? opening_trns.value().e1_rect_alpha.get() : 0.f;
+    std::get<kee::dims>(e1_button.ref.dimensions).h.val = 0.25f * e1_scale.get();
 
     e2_text.ref.color.a = opening_trns.has_value() ? opening_trns.value().e2_text_alpha.get() : 0.f;
+    e2_text.ref.set_scale(e2_scale.get());
+    browse_text.ref.set_scale(e2_scale.get());
+    browse_text.ref.color.a = browse_text_alpha.get();
     e2_rect.ref.outline.value().color.a = opening_trns.has_value() ? opening_trns.value().e2_rect_alpha.get() : 0.f;
-    e2_rect.ref.x.val = opening_trns.has_value() ? opening_trns.value().e2_rect_x.get() : 0.5f;
+    e2_button.ref.x.val = opening_trns.has_value() ? opening_trns.value().e2_rect_x.get() : 0.5f;
+    std::get<kee::dims>(e2_button.ref.dimensions).h.val = 0.25f * e2_scale.get();
 
     analyzer.update();
     for (std::size_t i = 0; i < music_analyzer::bins; i++)

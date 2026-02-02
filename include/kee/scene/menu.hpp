@@ -55,7 +55,7 @@ private:
     static constexpr int fft_resolution = 16384;
     static constexpr int frames_per_refresh = 2048;
 
-    static constexpr float smoothing_time_const = 0.8f;
+    static constexpr float smoothing_time_const = 0.75f;
     static constexpr float min_db = -100.f;
     static constexpr float max_db = -33.f;
     static constexpr float inv_db_range = 1.f / (music_analyzer::max_db - music_analyzer::min_db);
@@ -135,6 +135,11 @@ public:
     kee::ui::handle<kee::ui::image> exit_img;
 };
 
+/* WISHLIST: make bg more interesting, two ideas:
+    1. default bg img maybe (responding to mouse movement like it does in osu)
+    1. particle system (from vis.js) with music visualizer
+*/
+
 class menu final : public kee::scene::base
 {
 public:
@@ -149,14 +154,28 @@ private:
     std::optional<opening_transitions> opening_trns;
     std::optional<music_transitions> music_trns;
 
+    kee::transition<float>& k_scale;
+    kee::transition<float>& e1_scale;
+    kee::transition<float>& e2_scale;
+
+    kee::transition<float>& edit_text_alpha;
+    kee::transition<float>& play_text_alpha;
+    kee::transition<float>& browse_text_alpha;
+
+    kee::ui::handle<kee::ui::button> k_button;
     kee::ui::handle<kee::ui::rect> k_rect;
     kee::ui::handle<kee::ui::text> k_text;
+    kee::ui::handle<kee::ui::text> edit_text;
 
+    kee::ui::handle<kee::ui::button> e1_button;
     kee::ui::handle<kee::ui::rect> e1_rect;
     kee::ui::handle<kee::ui::text> e1_text;
+    kee::ui::handle<kee::ui::text> play_text;
 
+    kee::ui::handle<kee::ui::button> e2_button;
     kee::ui::handle<kee::ui::rect> e2_rect;
     kee::ui::handle<kee::ui::text> e2_text;
+    kee::ui::handle<kee::ui::text> browse_text;
 
     std::optional<kee::image_texture> music_cover_art_texture;
 
