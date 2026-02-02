@@ -29,7 +29,7 @@ window::window()
 }
 
 game::game() :
-    curr_scene(std::make_unique<kee::scene::menu>(*this, assets, beatmap_dir_info("local_0"))),
+    curr_scene(std::make_unique<kee::scene::menu>(*this, assets, beatmap_dir_info("local_1"))),
     main_loop_begun(false),
     game_should_exit(false)
 { }
@@ -42,6 +42,9 @@ void game::begin_main_loop()
     main_loop_begun = true;
     while (!game_should_exit)
     {
+        if (temp_scene != nullptr)
+            curr_scene = std::move(temp_scene);
+
         magic_enum::containers::bitset<kee::mods> mods;
         if (raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_LEFT_CONTROL) || raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_RIGHT_CONTROL))
             mods.set(kee::mods::ctrl, true);
@@ -90,11 +93,6 @@ void game::begin_main_loop()
 void game::queue_game_exit()
 {
     game_should_exit = true;
-}
-
-bool game::is_key_down(int key) const
-{
-    return raylib::Keyboard::IsKeyDown(key);
 }
 
 } // namespace kee

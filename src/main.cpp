@@ -1,5 +1,6 @@
 #include "kee/game.hpp"
 
+/* TODO: make transitioning scenes more smooth */
 /* TODO NEAR: start marketing (set up steam page + trailer + maybe devlog) */
 
 int main()

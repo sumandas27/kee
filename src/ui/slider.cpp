@@ -59,7 +59,9 @@ slider::slider(
     )),
     slider_state(mouse_state::off),
     menu_style(menu_style)
-{ }
+{ 
+    color = menu_style ? kee::color::blank : kee::color::white;
+}
 
 bool slider::is_down() const
 {

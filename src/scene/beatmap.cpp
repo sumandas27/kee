@@ -1106,7 +1106,7 @@ void beatmap::update_element(float dt)
             pause_menu_ui.reset();
             for (auto& [keycode, key_ui] : keys)
             {
-                const bool is_key_really_down = game_ref.is_key_down(keycode);
+                const bool is_key_really_down = raylib::Keyboard::IsKeyDown(keycode);
                 if (key_ui.ref.is_down != is_key_really_down)
                 {
                     if (is_key_really_down)
