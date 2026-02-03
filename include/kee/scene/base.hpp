@@ -1,5 +1,7 @@
 #pragma once
 
+#include <numbers>
+
 #include "kee/ui/base.hpp"
 
 namespace kee {

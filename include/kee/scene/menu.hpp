@@ -1,7 +1,6 @@
 #pragma once
 
 #include <complex>
-#include <numbers>
 #include <span>
 
 #include "kee/scene/base.hpp"
