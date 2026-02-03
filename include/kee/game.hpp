@@ -1,6 +1,7 @@
 #pragma once
 
 #include "kee/scene/base.hpp"
+#include "kee/scene/transition.hpp"
 #include "kee/global_assets.hpp"
 
 namespace kee {
@@ -36,6 +37,7 @@ private:
     boost::optional<kee::ui::base&> render_priority;
     std::unique_ptr<kee::scene::base> curr_scene;
     std::unique_ptr<kee::scene::base> temp_scene;
+    kee::scene::transition transition_scene;
     
     bool main_loop_begun;
     bool game_should_exit;

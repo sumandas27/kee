@@ -788,6 +788,7 @@ menu::menu(kee::game& game, kee::global_assets& assets, const beatmap_dir_info& 
         /* TODO: when exiting after transitioning to this scene from here, causes bad optional access 
             think it might not be just from here actually
         */
+        analyzer.pause();
         game_ref.queue_scene_set<kee::scene::editor::root>(std::nullopt);
     };
 

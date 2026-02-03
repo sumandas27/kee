@@ -30,6 +30,7 @@ window::window()
 
 game::game() :
     curr_scene(std::make_unique<kee::scene::menu>(*this, assets, beatmap_dir_info("local_1"))),
+    transition_scene(*this, assets, curr_scene, temp_scene),
     main_loop_begun(false),
     game_should_exit(false)
 { }
@@ -42,9 +43,6 @@ void game::begin_main_loop()
     main_loop_begun = true;
     while (!game_should_exit)
     {
-        if (temp_scene != nullptr)
-            curr_scene = std::move(temp_scene);
-
         magic_enum::containers::bitset<kee::mods> mods;
         if (raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_LEFT_CONTROL) || raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_RIGHT_CONTROL))
             mods.set(kee::mods::ctrl, true);
@@ -82,10 +80,14 @@ void game::begin_main_loop()
 
         const float dt = window.impl.GetFrameTime();
         curr_scene->update(dt);
+        transition_scene.update(dt);
 
         window.impl.BeginDrawing();
         window.impl.ClearBackground(raylib::Color::Black());
+
         curr_scene->render();
+        transition_scene.render();
+
         window.impl.EndDrawing();
     }
 }
