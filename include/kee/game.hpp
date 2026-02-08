@@ -22,8 +22,7 @@ public:
     void begin_main_loop(); 
     void queue_game_exit();
 
-    template <std::derived_from<kee::scene::base> T, typename... Args>
-    void queue_scene_set(Args&&... args);
+    kee::scene::transition scene_manager;
 
     boost::optional<kee::ui::base&> element_keyboard_capture;
 
@@ -36,13 +35,9 @@ private:
 
     boost::optional<kee::ui::base&> render_priority;
     std::unique_ptr<kee::scene::base> curr_scene;
-    std::unique_ptr<kee::scene::base> temp_scene;
-    kee::scene::transition transition_scene;
     
     bool main_loop_begun;
     bool game_should_exit;
 };
 
 } // namespace kee
-
-#include "kee/game.ipp"

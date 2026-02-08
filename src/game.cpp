@@ -29,8 +29,8 @@ window::window()
 }
 
 game::game() :
+    scene_manager(*this, assets, curr_scene),
     curr_scene(std::make_unique<kee::scene::menu>(*this, assets, beatmap_dir_info("local_1"))),
-    transition_scene(*this, assets, curr_scene, temp_scene),
     main_loop_begun(false),
     game_should_exit(false)
 { }
@@ -80,13 +80,13 @@ void game::begin_main_loop()
 
         const float dt = window.impl.GetFrameTime();
         curr_scene->update(dt);
-        transition_scene.update(dt);
+        scene_manager.update(dt);
 
         window.impl.BeginDrawing();
         window.impl.ClearBackground(raylib::Color::Black());
 
         curr_scene->render();
-        transition_scene.render();
+        scene_manager.render();
 
         window.impl.EndDrawing();
     }

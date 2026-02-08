@@ -777,6 +777,8 @@ menu::menu(kee::game& game, kee::global_assets& assets, const beatmap_dir_info& 
             k_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
             edit_text_alpha.set(std::nullopt, 0.f, 0.5f, kee::transition_type::exp);
             break;
+        default:
+            break;
         }
     };
 
@@ -789,7 +791,7 @@ menu::menu(kee::game& game, kee::global_assets& assets, const beatmap_dir_info& 
             think it might not be just from here actually
         */
         analyzer.pause();
-        game_ref.queue_scene_set<kee::scene::editor::root>(std::nullopt);
+        game_ref.scene_manager.set_scene<kee::scene::editor::root>(std::nullopt);
     };
 
     e1_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -806,6 +808,8 @@ menu::menu(kee::game& game, kee::global_assets& assets, const beatmap_dir_info& 
         case ui::button::event::on_leave:
             e1_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
             play_text_alpha.set(std::nullopt, 0.f, 0.5f, kee::transition_type::exp);
+            break;
+        default:
             break;
         }
     };
@@ -832,6 +836,8 @@ menu::menu(kee::game& game, kee::global_assets& assets, const beatmap_dir_info& 
         case ui::button::event::on_leave:
             e2_scale.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
             browse_text_alpha.set(std::nullopt, 0.f, 0.5f, kee::transition_type::exp);
+            break;
+        default:
             break;
         }
     };
