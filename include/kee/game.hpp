@@ -1,7 +1,7 @@
 #pragma once
 
 #include "kee/scene/base.hpp"
-#include "kee/scene/transition.hpp"
+#include "kee/scene/manager.hpp"
 #include "kee/global_assets.hpp"
 
 namespace kee {
@@ -22,9 +22,8 @@ public:
     void begin_main_loop(); 
     void queue_game_exit();
 
-    kee::scene::transition scene_manager;
-
-    boost::optional<kee::ui::base&> element_keyboard_capture;
+    template <std::derived_from<kee::scene::base> T, typename... Args>
+    std::unique_ptr<T> make_scene(Args&&... args);
 
 private:
     NFD::Guard nfd_guard;
@@ -33,7 +32,12 @@ private:
     kee::global_assets assets;
     raylib::AudioDevice audio;
 
-    boost::optional<kee::ui::base&> render_priority;
+public:
+    kee::scene::manager scene_manager;
+
+    boost::optional<kee::ui::base&> element_keyboard_capture;
+
+private:
     std::unique_ptr<kee::scene::base> curr_scene;
     
     bool main_loop_begun;
@@ -41,3 +45,5 @@ private:
 };
 
 } // namespace kee
+
+#include "kee/game.ipp"

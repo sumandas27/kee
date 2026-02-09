@@ -708,91 +708,8 @@ void end_screen::update_element([[maybe_unused]] float dt)
     exit_text.ref.color = exit_text_color.get();
 }
 
-beatmap::beatmap(kee::game& game, kee::global_assets& assets, const std::filesystem::path& beatmap_dir_name) :
-    beatmap(game, assets, beatmap_dir_info(beatmap_dir_name))
-{ }
-
-float beatmap::get_beat() const
-{
-    const float music_time = load_time_paused.has_value()
-        ? game_time - load_time
-        : music.GetTimePlayed();
-
-    return (music_time - music_start_offset) * music_bpm / 60.0f;
-}
-
-void beatmap::combo_increment(bool play_sfx)
-{
-    max_combo++;
-    combo++;
-    combo_gain.set(1.0f, 0.0f, 0.25f, transition_type::lin);
-
-    if (play_sfx)
-        hitsound.Play();
-}
-
-void beatmap::combo_lose(bool is_miss)
-{
-    prev_total_combo += combo;
-    if (prev_highest_combo < combo)
-        prev_highest_combo = combo;
-
-    combo = 0;
-    combo_gain.set(0.0f);
-
-    if (is_miss)
-    {
-        misses++;
-        combo_lost_sfx.Play();
-    }
-}
-
-void beatmap::pause()
-{
-    if (music.IsPlaying())
-        music.Pause();
-    else
-        load_time_paused = true;
-}
-
-void beatmap::unpause()
-{
-    if (load_time_paused.has_value())
-        load_time_paused = false;
-    else
-        music.Resume();
-}
-
-bool beatmap::has_game_bg() const
-{
-    return !std::holds_alternative<std::monostate>(game_bg);
-}
-
-std::optional<float> beatmap::get_bg_opacity() const
-{
-    std::optional<float> res = std::nullopt;
-    std::visit([&](auto&& ui)
-    {
-        using T = std::decay_t<decltype(ui)>;
-        if constexpr (std::is_same_v<T, kee::ui::handle<kee::ui::image>> || std::is_same_v<T, kee::ui::handle<kee::ui::video_player>>)
-            res = ui.ref.color.a;
-    }, game_bg);
-
-    return res;
-}
-
-void beatmap::set_bg_opacity(float opacity)
-{
-    if (std::holds_alternative<std::monostate>(game_bg))
-        return;
-    else if (auto* image_ptr = std::get_if<kee::ui::handle<kee::ui::image>>(&game_bg))
-        image_ptr->ref.color.a = opacity;
-    else if (auto* video_ptr = std::get_if<kee::ui::handle<kee::ui::video_player>>(&game_bg))
-        video_ptr->ref.color.a = opacity;
-}
-
-beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&& beatmap_info) :
-    kee::scene::base(game, assets),
+beatmap::beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_info) :
+    kee::scene::base(reqs),
     beat_forgiveness(beatmap_info.beat_forgiveness),
     approach_beats(beatmap_info.approach_beats),
     song_name(beatmap_info.song_name),
@@ -921,6 +838,85 @@ beatmap::beatmap(kee::game& game, kee::global_assets& assets, beatmap_dir_info&&
     combo_lost_sfx("assets/sfx/combo_lost.wav")
 { 
     reset_level();
+}
+
+float beatmap::get_beat() const
+{
+    const float music_time = load_time_paused.has_value()
+        ? game_time - load_time
+        : music.GetTimePlayed();
+
+    return (music_time - music_start_offset) * music_bpm / 60.0f;
+}
+
+void beatmap::combo_increment(bool play_sfx)
+{
+    max_combo++;
+    combo++;
+    combo_gain.set(1.0f, 0.0f, 0.25f, transition_type::lin);
+
+    if (play_sfx)
+        hitsound.Play();
+}
+
+void beatmap::combo_lose(bool is_miss)
+{
+    prev_total_combo += combo;
+    if (prev_highest_combo < combo)
+        prev_highest_combo = combo;
+
+    combo = 0;
+    combo_gain.set(0.0f);
+
+    if (is_miss)
+    {
+        misses++;
+        combo_lost_sfx.Play();
+    }
+}
+
+void beatmap::pause()
+{
+    if (music.IsPlaying())
+        music.Pause();
+    else
+        load_time_paused = true;
+}
+
+void beatmap::unpause()
+{
+    if (load_time_paused.has_value())
+        load_time_paused = false;
+    else
+        music.Resume();
+}
+
+bool beatmap::has_game_bg() const
+{
+    return !std::holds_alternative<std::monostate>(game_bg);
+}
+
+std::optional<float> beatmap::get_bg_opacity() const
+{
+    std::optional<float> res = std::nullopt;
+    std::visit([&](auto&& ui)
+    {
+        using T = std::decay_t<decltype(ui)>;
+        if constexpr (std::is_same_v<T, kee::ui::handle<kee::ui::image>> || std::is_same_v<T, kee::ui::handle<kee::ui::video_player>>)
+            res = ui.ref.color.a;
+    }, game_bg);
+
+    return res;
+}
+
+void beatmap::set_bg_opacity(float opacity)
+{
+    if (std::holds_alternative<std::monostate>(game_bg))
+        return;
+    else if (auto* image_ptr = std::get_if<kee::ui::handle<kee::ui::image>>(&game_bg))
+        image_ptr->ref.color.a = opacity;
+    else if (auto* video_ptr = std::get_if<kee::ui::handle<kee::ui::video_player>>(&game_bg))
+        video_ptr->ref.color.a = opacity;
 }
 
 void beatmap::reset_level()

@@ -7,6 +7,12 @@
 namespace kee {
 namespace ui {
 
+required::required(kee::ui::base& parent, kee::game& game_ref, kee::global_assets& assets) :
+    parent(parent),
+    game_ref(game_ref),
+    assets(assets)
+{ }
+
 base::base(
     const kee::ui::required& reqs, 
     const kee::pos& x, 
@@ -375,12 +381,6 @@ raylib::Vector2 base::get_dims(const raylib::Rectangle& parent_raw_rect) const
 
     return res;
 }
-
-required::required(boost::optional<kee::ui::base&> parent, kee::game& game_ref, kee::global_assets& assets) :
-    parent(parent),
-    game_ref(game_ref),
-    assets(assets)
-{ }
 
 } // namespace ui
 } // namespace kee

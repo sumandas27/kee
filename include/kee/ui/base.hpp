@@ -44,19 +44,16 @@ private:
 class required
 {
 public:
-    required(boost::optional<kee::ui::base&> parent, kee::game& game_ref, kee::global_assets& assets);
-    required(const required&) = default;
+    required(kee::ui::base& parent, kee::game& game_ref, kee::global_assets& assets);
 
-    required& operator=(const required&) = delete;
-
-    boost::optional<kee::ui::base&> parent;
+    kee::ui::base& parent;
     kee::game& game_ref;
     kee::global_assets& assets;
 };
 
 /**
  * Contractually the first parameter of any non-scene subclass's constructor must be of 
- * type `const kee::required&` containing all required references for a UI element.
+ * type `const kee::ui::required&` containing all required data for a UI element.
  */
 class base
 {

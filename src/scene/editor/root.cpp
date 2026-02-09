@@ -758,8 +758,8 @@ hitsound_state::hitsound_state(const std::filesystem::path& path, root& root_ele
         root_elem.set_error(custom_hitsounds.error(), true);
 }
 
-root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_dir_info>&& dir_info) :
-    kee::scene::base(game, assets),
+root::root(const kee::scene::required& reqs, std::optional<beatmap_dir_info>&& dir_info) :
+    kee::scene::base(reqs),
     save_state(dir_info.has_value() 
         ? std::make_optional(beatmap_file(dir_info.value().dir_state, false)) 
         : std::nullopt
@@ -1063,9 +1063,10 @@ root::root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_di
 
 std::optional<beatmap_save_info> root::get_save_info() const
 {
-    const bool save_hit_objs_needed = (!compose_info.events_since_save.has_value() || compose_info.events_since_save.value() != 0);
     if (!save_state.has_value())
         return std::nullopt;
+
+    const bool save_hit_objs_needed = (!compose_info.events_since_save.has_value() || compose_info.events_since_save.value() != 0);
 
     bool need_img_save;
     if (!setup_info.img_state.has_value() && !save_state.value().dir_state.has_image)
@@ -1105,7 +1106,10 @@ std::optional<beatmap_save_info> root::get_save_info() const
 
 bool root::needs_save(const std::optional<beatmap_save_info>& save_info) const
 {
-    return !save_info.has_value() || (
+    if (!save_info.has_value())
+        return setup_info.new_song_path.has_value();
+
+    return
         save_info.value().need_save_metadata ||
         save_info.value().need_save_song ||
         save_info.value().need_save_img ||
@@ -1113,8 +1117,7 @@ bool root::needs_save(const std::optional<beatmap_save_info>& save_info) const
         save_info.value().need_save_vid_offset ||
         save_info.value().need_save_hit_objs ||
         save_info.value().need_save_key_color ||
-        save_info.value().need_save_hitsound
-    );
+        save_info.value().need_save_hitsound;
 }
 
 void root::save()

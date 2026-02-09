@@ -250,7 +250,7 @@ public:
 class root final : public kee::scene::base
 {
 public:
-    root(kee::game& game, kee::global_assets& assets, std::optional<beatmap_dir_info>&& dir_info);
+    root(const kee::scene::required& reqs, std::optional<beatmap_dir_info>&& dir_info);
 
     std::optional<beatmap_save_info> get_save_info() const;
     bool needs_save(const std::optional<beatmap_save_info>& save_info) const;

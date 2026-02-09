@@ -142,7 +142,7 @@ public:
 class menu final : public kee::scene::base
 {
 public:
-    menu(kee::game& game, kee::global_assets& assets, const beatmap_dir_info& beatmap_info);
+    menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info);
 
 private:
     friend class music_transitions;

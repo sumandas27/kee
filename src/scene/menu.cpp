@@ -3,6 +3,8 @@
 #include "kee/game.hpp"
 #include "kee/scene/editor/root.hpp"
 
+#include <thread>
+
 namespace kee {
 namespace scene {
 
@@ -565,14 +567,14 @@ music_transitions::music_transitions(menu& menu_scene) :
         }
     };
 
-    setting_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    exit_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     { 
         /* TODO: impl*/
     };
 }
 
-menu::menu(kee::game& game, kee::global_assets& assets, const beatmap_dir_info& beatmap_info) :
-    kee::scene::base(game, assets),
+menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info) :
+    kee::scene::base(reqs),
     k_text_alpha(add_transition<float>(0.0f)),
     k_scale(add_transition<float>(1.0f)),
     e1_scale(add_transition<float>(1.0f)),
@@ -787,11 +789,10 @@ menu::menu(kee::game& game, kee::global_assets& assets, const beatmap_dir_info& 
         if (!music_trns.has_value())
             return;
 
-        /* TODO: when exiting after transitioning to this scene from here, causes bad optional access 
-            think it might not be just from here actually
-        */
         analyzer.pause();
-        game_ref.scene_manager.set_scene<kee::scene::editor::root>(std::nullopt);
+        game_ref.scene_manager.request_scene_switch([&]() {
+            return game_ref.make_scene<kee::scene::editor::root>(std::nullopt);
+        });
     };
 
     e1_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)

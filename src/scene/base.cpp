@@ -3,8 +3,9 @@
 namespace kee {
 namespace scene {
 
-base::base(kee::game& game, kee::global_assets& assets) :
-    kee::ui::base(game, assets)
+required::required(kee::game& game_ref, kee::global_assets& assets) :
+    game_ref(game_ref),
+    assets(assets)
 { }
 
 bool base::on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods)
@@ -30,6 +31,10 @@ void base::render() const
     if (render_priority.has_value())
         render_priority.value().render();
 }
+
+base::base(const kee::scene::required& reqs) :
+    kee::ui::base(reqs.game_ref, reqs.assets)
+{ }
 
 } // namespace scene
 } // namespace kee
