@@ -32,14 +32,12 @@ private:
     kee::global_assets assets;
     raylib::AudioDevice audio;
 
+    std::unique_ptr<kee::scene::base> curr_scene;
+
 public:
     kee::scene::manager scene_manager;
 
-    boost::optional<kee::ui::base&> element_keyboard_capture;
-
-private:
-    std::unique_ptr<kee::scene::base> curr_scene;
-    
+private:    
     bool main_loop_begun;
     bool game_should_exit;
 };

@@ -1,5 +1,6 @@
 #include "kee/scene/editor/root.hpp"
 
+#include "kee/scene/menu.hpp"
 #include "kee/game.hpp"
 
 namespace kee {
@@ -117,7 +118,9 @@ confirm_save_ui::confirm_save_ui(const kee::ui::required& reqs, const kee::image
 
     leave_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        this->game_ref.queue_game_exit();
+        this->game_ref.scene_manager.request_scene_switch([&]() {
+            return game_ref.make_scene<kee::scene::menu>(beatmap_dir_info("local_1"), false);
+        });
     };
 
     save_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -138,7 +141,9 @@ confirm_save_ui::confirm_save_ui(const kee::ui::required& reqs, const kee::image
     save_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
         this->root_elem.save();
-        this->game_ref.queue_game_exit();
+        this->game_ref.scene_manager.request_scene_switch([&]() {
+            return game_ref.make_scene<kee::scene::menu>(beatmap_dir_info("local_1"), false);
+        });
     };
 
     render_prio_owner.release_render_priority();
@@ -264,7 +269,9 @@ confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, root& root_elem,
         if (this->root_elem.needs_save(this->root_elem.get_save_info()))
             this->confirm_save.emplace(this->root_elem.add_child<confirm_save_ui>(2, this->error_png, this->root_elem, *this));
         else
-            this->game_ref.queue_game_exit();
+            this->game_ref.scene_manager.request_scene_switch([&]() {
+                return game_ref.make_scene<kee::scene::menu>(beatmap_dir_info("local_1"), false);
+            });
     };
 
     go_back_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -1406,7 +1413,9 @@ bool root::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::
         else if (!confirm_exit.value().ref.confirm_save.has_value())
             confirm_exit.value().ref.confirm_button.ref.on_click_l(mods);
         else
-            game_ref.queue_game_exit();
+            game_ref.scene_manager.request_scene_switch([&]() {
+                return game_ref.make_scene<kee::scene::menu>(beatmap_dir_info("local_1"), false);
+            });
 
         return true;
     case KeyboardKey::KEY_S: {

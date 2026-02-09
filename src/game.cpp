@@ -2,7 +2,7 @@
 
 #include <avcpp/av.h>
 
-#include "kee/scene/editor/root.hpp"
+#include "kee/scene/menu.hpp"
 
 namespace kee {
 
@@ -29,8 +29,8 @@ window::window()
 }
 
 game::game() :
+    curr_scene(make_scene<kee::scene::menu>(beatmap_dir_info("local_1"), true)),
     scene_manager(kee::scene::required(*this, assets), curr_scene),
-    curr_scene(make_scene<kee::scene::editor::root>(std::nullopt)),
     main_loop_begun(false),
     game_should_exit(false)
 { }
@@ -49,18 +49,17 @@ void game::begin_main_loop()
         if (raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_LEFT_SHIFT) || raylib::Keyboard::IsKeyDown(KeyboardKey::KEY_RIGHT_SHIFT))
             mods.set(kee::mods::shift, true);
 
-        kee::ui::base& keyboard_handler = element_keyboard_capture.value_or(*curr_scene);
         for (int key = KeyboardKey::KEY_NULL; key <= KeyboardKey::KEY_KB_MENU; key++)
         {
             if (raylib::Keyboard::IsKeyPressed(key))
-                keyboard_handler.on_key_down(key, mods);
+                curr_scene->on_key_down(key, mods);
 
             if (raylib::Keyboard::IsKeyReleased(key))
-                keyboard_handler.on_key_up(key, mods);
+                curr_scene->on_key_up(key, mods);
         }
 
         for (int key = raylib::Keyboard::GetCharPressed(); key > 0; key = raylib::Keyboard::GetCharPressed())
-            keyboard_handler.on_char_press(static_cast<char>(key));
+            curr_scene->on_char_press(static_cast<char>(key));
 
         const raylib::Vector2 mouse_pos = raylib::Mouse::GetPosition();
         curr_scene->on_mouse_move(mouse_pos, mods);

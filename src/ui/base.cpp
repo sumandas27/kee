@@ -229,21 +229,39 @@ void base::release_render_priority()
 
 void base::take_keyboard_capture()
 {
-    if (game_ref.element_keyboard_capture.has_value())
-        throw std::runtime_error("take_keyboard_capture: keyboard capture already owned");
+    std::reference_wrapper<kee::ui::base> scene = *this;
+    while (scene.get().parent.has_value())
+        scene = scene.get().parent.value();
 
-    game_ref.element_keyboard_capture = *this;
+    if (auto scene_ptr = dynamic_cast<kee::scene::base*>(&scene.get()))
+    {
+        if (scene_ptr->element_keyboard_capture.has_value())
+            throw std::runtime_error("take_keyboard_capture: keyboard capture already owned");
+
+        scene_ptr->element_keyboard_capture = *this;
+    }
+    else
+        throw std::logic_error("Root element is not a scene!");
 }
 
 void base::release_keyboard_capture()
 {
-    if (!game_ref.element_keyboard_capture.has_value())
+    std::reference_wrapper<kee::ui::base> scene = *this;
+    while (scene.get().parent.has_value())
+        scene = scene.get().parent.value();
+
+    if (auto scene_ptr = dynamic_cast<kee::scene::base*>(&scene.get()))
+    {
+        if (!scene_ptr->element_keyboard_capture.has_value())
         throw std::runtime_error("release_keyboard_capture: keyboard capture not owned");
 
-    if (&game_ref.element_keyboard_capture.value() != this)
-        throw std::runtime_error("release_keyboard_capture: this does not own keyboard capture");
+        if (&scene_ptr->element_keyboard_capture.value() != this)
+            throw std::runtime_error("release_keyboard_capture: this does not own keyboard capture");
 
-    game_ref.element_keyboard_capture.reset();
+        scene_ptr->element_keyboard_capture.reset();
+    }
+    else
+        throw std::logic_error("Root element is not a scene!");
 }
 
 base::base(kee::game& game_ref, kee::global_assets& assets) :

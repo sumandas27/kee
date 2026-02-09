@@ -72,12 +72,13 @@ public:
     base& operator=(const base&) = delete;
     base& operator=(base&&) = delete;
 
-    void on_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods);
-    void on_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods);
-    void on_char_press(char c);
+    virtual void on_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods);
+    virtual void on_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods);
+    virtual void on_char_press(char c);
 
     virtual bool on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods);
     virtual bool on_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods);
+    
     void on_mouse_move(const raylib::Vector2& mouse_pos, magic_enum::containers::bitset<kee::mods> mods);
     bool on_mouse_scroll(float scroll_amount);
 

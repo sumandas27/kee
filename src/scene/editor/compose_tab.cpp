@@ -5,6 +5,8 @@
 
 #include "kee/scene/editor/root.hpp"
 
+/* TODO: segfault when deleting hit objs ;( analyze on mac */
+
 namespace kee {
 namespace scene {
 namespace editor {
@@ -634,8 +636,6 @@ void object_editor::hitsound_dropdowns_enable(std::string_view start, std::optio
 
     if (end.has_value())
     {
-        std::println("{}", end.value());
-
         dropdown_hitsound_end.ref.enable();
         dropdown_hitsound_end.ref.string_set(end.value());
         label_hitsound_end.ref.color = kee::color::white;

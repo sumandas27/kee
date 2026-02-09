@@ -569,11 +569,12 @@ music_transitions::music_transitions(menu& menu_scene) :
 
     exit_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     { 
-        /* TODO: impl*/
+        /* TODO: impl some sort of closing trns */
+        this->menu_scene.game_ref.queue_game_exit();
     };
 }
 
-menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info) :
+menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info, bool from_game_init) :
     kee::scene::base(reqs),
     k_text_alpha(add_transition<float>(0.0f)),
     k_scale(add_transition<float>(1.0f)),
@@ -718,15 +719,17 @@ menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_inf
         ),
         false, std::nullopt, std::nullopt
     )),
-    music_cover_art(music_cover_art_frame.ref.add_child<kee::ui::image>(std::nullopt,
-        /* TODO: if cover art texture doesn't exist handle */
-        music_cover_art_texture.value(), 
-        kee::color(255, 255, 255, 0),
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.5f),
-        border(border::type::abs, 0),
-        true, ui::image::display::shrink_to_fit, false, false, 0.0f
-    )),
+    music_cover_art(music_cover_art_texture.has_value() ?
+        std::make_optional(music_cover_art_frame.ref.add_child<kee::ui::image>(std::nullopt,
+            music_cover_art_texture.value(), 
+            kee::color(255, 255, 255, 0),
+            pos(pos::type::rel, 0.5f),
+            pos(pos::type::rel, 0.5f),
+            border(border::type::abs, 0),
+            true, ui::image::display::shrink_to_fit, false, false, 0.0f
+        )) :
+        std::nullopt
+    ),
     music_info_text_frame(song_ui_frame_outer.ref.add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.25f),
@@ -880,6 +883,13 @@ menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_inf
 
     k_text_alpha.set(std::nullopt, 255.0f, 2.0f, kee::transition_type::lin);
     analyzer.set_volume(1.f);
+
+    if (!from_game_init)
+    {
+        opening_trns.emplace(*this);
+        music_trns.emplace(*this);
+        analyzer.play();
+    }
 }
 
 void menu::update_element(float dt)
@@ -930,7 +940,8 @@ void menu::update_element(float dt)
         music_time_text.ref.color.a = music_trns.value().song_ui_alpha.get();
         music_name_text.ref.color.a = music_trns.value().song_ui_alpha.get();
         music_artist_text.ref.color.a = (100.f * music_trns.value().song_ui_alpha.get()) / 255.f;
-        music_cover_art.ref.color.a = music_trns.value().song_ui_alpha.get();
+        if (music_cover_art.has_value())
+            music_cover_art.value().ref.color.a = music_trns.value().song_ui_alpha.get();
     }
 
     k_text.ref.color.a = k_text_alpha.get();

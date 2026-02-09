@@ -142,7 +142,8 @@ public:
 class menu final : public kee::scene::base
 {
 public:
-    menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info);
+    /* TODO: have ts be randomly selected i think */
+    menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info, bool from_game_init);
 
 private:
     friend class music_transitions;
@@ -184,7 +185,8 @@ private:
     kee::ui::handle<kee::ui::base> song_ui_frame_outer;
     kee::ui::handle<kee::ui::base> song_ui_frame_inner;
     kee::ui::handle<kee::ui::rect> music_cover_art_frame;
-    kee::ui::handle<kee::ui::image> music_cover_art;
+    std::optional<kee::ui::handle<kee::ui::image>> music_cover_art;
+
     kee::ui::handle<kee::ui::base> music_info_text_frame;
     kee::ui::handle<kee::ui::text> music_name_text;
     kee::ui::handle<kee::ui::text> music_artist_text;

@@ -23,11 +23,16 @@ public:
 class base : public kee::ui::base
 {
 public:
+    void on_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
+    void on_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
+    void on_char_press(char c) override;
+
     bool on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods) override;
     bool on_mouse_up(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods) override;
 
     void render() const override;
 
+    boost::optional<kee::ui::base&> element_keyboard_capture;
     boost::optional<kee::ui::base&> render_priority;
 
 protected:
