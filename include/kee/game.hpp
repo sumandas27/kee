@@ -23,7 +23,7 @@ public:
     void queue_game_exit();
 
     template <std::derived_from<kee::scene::base> T, typename... Args>
-    std::unique_ptr<T> make_scene(Args&&... args);
+    std::unique_ptr<kee::scene::base> make_scene(Args&&... args);
 
 private:
     NFD::Guard nfd_guard;

@@ -53,21 +53,21 @@ void base::on_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mo
 {
     const bool consumed = on_element_key_down(keycode, mods);
     if (!consumed && parent.has_value())
-        parent.value().on_key_down(keycode, mods);
+        parent.value().on_element_key_down(keycode, mods);
 }
 
 void base::on_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods)
 {
     const bool consumed = on_element_key_up(keycode, mods);
     if (!consumed && parent.has_value())
-        parent.value().on_key_up(keycode, mods);
+        parent.value().on_element_key_up(keycode, mods);
 }
 
 void base::on_char_press(char c)
 {
     const bool consumed = on_element_char_press(c);
     if (!consumed && parent.has_value())
-        parent.value().on_char_press(c);
+        parent.value().on_element_char_press(c);
 }
 
 bool base::on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods)

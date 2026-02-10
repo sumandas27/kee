@@ -3,7 +3,7 @@
 namespace kee {
 
 template <std::derived_from<kee::scene::base> T, typename... Args>
-std::unique_ptr<T> game::make_scene(Args&&... args)
+std::unique_ptr<kee::scene::base> game::make_scene(Args&&... args)
 {
     return std::make_unique<T>(
         kee::scene::required(*this, assets),

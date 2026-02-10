@@ -8,30 +8,28 @@ required::required(kee::game& game_ref, kee::global_assets& assets) :
     assets(assets)
 { }
 
-/* TODO: some infinite loops going on here investigate */
-
 void base::on_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods)
 {
     if (element_keyboard_capture.has_value())
         element_keyboard_capture.value().on_key_down(keycode, mods);
-    //else
-    //    kee::ui::base::on_key_down(keycode, mods);
+    else
+        kee::ui::base::on_key_down(keycode, mods);
 }
 
 void base::on_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods)
 {
     if (element_keyboard_capture.has_value())
         element_keyboard_capture.value().on_key_up(keycode, mods);
-    //else
-    //    kee::ui::base::on_key_up(keycode, mods);
+    else
+        kee::ui::base::on_key_up(keycode, mods);
 }
 
 void base::on_char_press(char c)
 {
     if (element_keyboard_capture.has_value())
         element_keyboard_capture.value().on_char_press(c);
-    //else
-    //    kee::ui::base::on_char_press(c);
+    else
+        kee::ui::base::on_char_press(c);
 }
 
 bool base::on_mouse_down(const raylib::Vector2& mouse_pos, bool is_mouse_l, magic_enum::containers::bitset<kee::mods> mods)
