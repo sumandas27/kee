@@ -1,5 +1,7 @@
 #include "kee/ui/file_dialog.hpp"
 
+#include "kee/game.hpp"
+
 namespace kee {
 namespace ui {
 
@@ -168,20 +170,9 @@ void file_dialog::render_element() const
     fd_rect.render();
     fd_image.render();
 
-    /**
-     * `raylib-cpp` does not support `Begin/EndScissorMode`.
-     */
-    const raylib::Rectangle text_frame_rect = fd_text_frame.get_raw_rect();
-    BeginScissorMode(
-        static_cast<int>(text_frame_rect.x),
-        static_cast<int>(text_frame_rect.y),
-        static_cast<int>(text_frame_rect.width),
-        static_cast<int>(text_frame_rect.height)
-    );
-
+    game_ref.scissor_mode.push(fd_text_frame.get_raw_rect());
     fd_text.render();
-
-    EndScissorMode();
+    game_ref.scissor_mode.pop();
 }
 
 void file_dialog::set_path(const std::filesystem::path& path)

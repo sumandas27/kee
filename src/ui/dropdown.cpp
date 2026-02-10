@@ -1,5 +1,7 @@
 #include "kee/ui/dropdown.hpp"
 
+#include "kee/game.hpp"
+
 namespace kee {
 namespace ui {
 
@@ -321,15 +323,16 @@ void dropdown::update_element([[maybe_unused]] float dt)
 void dropdown::render_element() const
 {
     /**
-     * NOTE: `Begin/EndScissorMode` isn't available on `raylib-cpp`, so we must use the C API directly here.
-     * Avoid clipping by incrementing its dimensions.
+     * NOTE: Avoid clipping by incrementing its dimensions.
      */
-    BeginScissorMode(
-        static_cast<int>(options_render_rect.x),
-        static_cast<int>(options_render_rect.y),
-        static_cast<int>(options_render_rect.width) + 1,
-        static_cast<int>(options_render_rect.height) + 1
+    const raylib::Rectangle options_scissor_rect(
+        options_render_rect.x,
+        options_render_rect.y,
+        options_render_rect.width + 1.f,
+        options_render_rect.height + 1.f
     );
+
+    game_ref.scissor_mode.push(options_scissor_rect);
 
     options_rect.render();
     options_curr_rect.render();
@@ -337,7 +340,7 @@ void dropdown::render_element() const
         options_button_text.render();
     options_rect_border.render();
 
-    EndScissorMode();
+    game_ref.scissor_mode.pop();
 
     dropdown_rect.render();
     dropdown_text.render();

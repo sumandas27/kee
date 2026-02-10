@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stack>
+
 #include "kee/scene/base.hpp"
 #include "kee/scene/manager.hpp"
 #include "kee/global_assets.hpp"
@@ -12,6 +14,22 @@ public:
     window();
 
     raylib::Window impl;
+};
+
+/**
+ * NOTE: Raylib doesn't have supported for nested scissor modes, we implement 
+ * it ourselves here. `raylib-cpp` doesn't have Begin/EndScissorMode bindings,
+ * so we use them directly.
+ */
+class nested_scissor_mode
+{
+public:
+    void push(const raylib::Rectangle& scissor_rect);
+    void pop();
+
+private:
+    std::optional<raylib::Rectangle> curr_scissor;
+    std::stack<raylib::Rectangle> scissor_stack;
 };
 
 class game
@@ -36,6 +54,8 @@ private:
 
 public:
     kee::scene::manager scene_manager;
+
+    kee::nested_scissor_mode scissor_mode;
 
 private:    
     bool main_loop_begun;

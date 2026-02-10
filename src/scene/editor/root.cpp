@@ -324,26 +324,13 @@ void confirm_exit_ui::update_element(float dt)
 
 void confirm_exit_ui::render_element() const
 {
-    const raylib::Rectangle confirm_button_rect = confirm_button.ref.get_raw_rect();
-    const raylib::Rectangle go_back_button_rect = go_back_button.ref.get_raw_rect();
-
-    BeginScissorMode(
-        static_cast<int>(confirm_button_rect.x),
-        static_cast<int>(confirm_button_rect.y),
-        static_cast<int>(confirm_button_rect.width),
-        static_cast<int>(confirm_button_rect.height)
-    );
+    game_ref.scissor_mode.push(confirm_button.ref.get_raw_rect());
     confirm_button_text.render();
-    EndScissorMode();
+    game_ref.scissor_mode.pop();
 
-    BeginScissorMode(
-        static_cast<int>(go_back_button_rect.x),
-        static_cast<int>(go_back_button_rect.y),
-        static_cast<int>(go_back_button_rect.width),
-        static_cast<int>(go_back_button_rect.height)
-    );
+    game_ref.scissor_mode.push(go_back_button.ref.get_raw_rect());
     go_back_button_text.render();
-    EndScissorMode();
+    game_ref.scissor_mode.pop();
 }
 
 void confirm_exit_ui::queue_for_destruction()

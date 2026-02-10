@@ -574,6 +574,15 @@ music_transitions::music_transitions(menu& menu_scene) :
     };
 }
 
+play::play(const kee::ui::required& reqs) :
+    kee::ui::button(reqs,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::abs, 0),
+        true
+    )
+{ }
+
 menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info, bool from_game_init) :
     kee::scene::base(reqs),
     k_text_alpha(add_transition<float>(0.0f)),
@@ -823,7 +832,7 @@ menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_inf
         if (!music_trns.has_value())
             return;
 
-        /* TODO: impl */
+        play_ui.emplace(add_child<play>(3));
     };
 
     e2_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)

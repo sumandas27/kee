@@ -28,6 +28,47 @@ window::window()
     impl.SetTargetFPS(window_fps);
 }
 
+void nested_scissor_mode::push(const raylib::Rectangle& scissor_rect)
+{
+    if (!scissor_stack.empty())
+    {
+        const float x = std::max(scissor_stack.top().x, scissor_rect.x);
+        const float y = std::max(scissor_stack.top().y, scissor_rect.y);
+        const float w = std::min(scissor_stack.top().x + scissor_stack.top().width, scissor_rect.x + scissor_rect.width) - x;
+        const float h = std::min(scissor_stack.top().y + scissor_stack.top().height, scissor_rect.y + scissor_rect.height) - y;
+
+        const raylib::Rectangle intersection = (w > 0.f && h > 0.f)
+            ? raylib::Rectangle(x, y, w, h)
+            : raylib::Rectangle(0, 0, 0, 0);
+            
+        scissor_stack.push(intersection);
+    }
+    else
+        scissor_stack.push(scissor_rect);
+
+    BeginScissorMode(
+        static_cast<int>(scissor_stack.top().x),
+        static_cast<int>(scissor_stack.top().y),
+        static_cast<int>(scissor_stack.top().width),
+        static_cast<int>(scissor_stack.top().height)
+    );
+}
+
+void nested_scissor_mode::pop()
+{
+    scissor_stack.pop();
+
+    if (!scissor_stack.empty())
+        BeginScissorMode(
+            static_cast<int>(scissor_stack.top().x),
+            static_cast<int>(scissor_stack.top().y),
+            static_cast<int>(scissor_stack.top().width),
+            static_cast<int>(scissor_stack.top().height)
+        );
+    else
+        EndScissorMode();
+}
+
 game::game() :
     curr_scene(make_scene<kee::scene::menu>(beatmap_dir_info("local_1"), true)),
     scene_manager(kee::scene::required(*this, assets), curr_scene),

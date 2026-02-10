@@ -5,8 +5,6 @@
 
 #include "kee/scene/editor/root.hpp"
 
-/* TODO: segfault when deleting hit objs ;( analyze on mac */
-
 namespace kee {
 namespace scene {
 namespace editor {

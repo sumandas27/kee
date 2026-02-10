@@ -1,5 +1,9 @@
 #include "kee/ui/textbox.hpp"
 
+#include "kee/game.hpp"
+
+/* TODO: holding backspace only deletes once >:( */
+
 namespace kee {
 namespace ui {
 
@@ -465,16 +469,7 @@ void textbox::render_element() const
 {
     textbox_rect.render();
 
-    /**
-     * NOTE: `Begin/EndScissorMode` isn't available on `raylib-cpp`, so we must use the C API directly here.
-     */
-    const raylib::Rectangle text_frame_rect = textbox_text_frame.get_raw_rect();
-    BeginScissorMode(
-        static_cast<int>(text_frame_rect.x),
-        static_cast<int>(text_frame_rect.y),
-        static_cast<int>(text_frame_rect.width),
-        static_cast<int>(text_frame_rect.height)
-    );
+    game_ref.scissor_mode.push(textbox_text_frame.get_raw_rect());
 
     textbox_text.render();
     if (auto* cursor_ptr = std::get_if<cursor>(&selection_ui))
@@ -482,7 +477,7 @@ void textbox::render_element() const
     else if (auto* multiselect_ptr = std::get_if<multiselect>(&selection_ui))
         multiselect_ptr->ui.render();
 
-    EndScissorMode();
+    game_ref.scissor_mode.pop();
 }
 
 float textbox::char_idx_to_pos_x(std::size_t char_idx) const

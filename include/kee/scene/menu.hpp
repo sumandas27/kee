@@ -10,6 +10,8 @@
 #include "kee/ui/slider.hpp"
 #include "kee/ui/text.hpp"
 
+/* TODO NEXT: fade out ui elements on play click  */
+
 namespace kee {
 namespace scene {
 
@@ -134,6 +136,16 @@ public:
     kee::ui::handle<kee::ui::image> exit_img;
 };
 
+/**
+ * NOTE: Inherits button so this consumes all mouse inputs, nothing in the
+ * background gets interacted with.
+ */
+class play final : public kee::ui::button
+{
+public:
+    play(const kee::ui::required& reqs);
+};
+
 /* WISHLIST: make bg more interesting, two ideas:
     1. default bg img maybe (responding to mouse movement like it does in osu)
     1. particle system (from vis.js) with music visualizer
@@ -194,6 +206,8 @@ private:
 
     std::vector<kee::ui::handle<kee::ui::rect>> visualizer_bot;
     std::vector<kee::ui::handle<kee::ui::rect>> visualizer_top;
+
+    std::optional<kee::ui::handle<play>> play_ui;
 
     float scene_time;
 };
