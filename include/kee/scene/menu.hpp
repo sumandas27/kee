@@ -143,7 +143,7 @@ public:
 class play final : public kee::ui::button
 {
 public:
-    play(const kee::ui::required& reqs);
+    play(const kee::ui::required& reqs, menu& menu_scene);
 };
 
 /* WISHLIST: make bg more interesting, two ideas:
@@ -158,7 +158,9 @@ public:
     menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info, bool from_game_init);
 
 private:
+    /* TODO: `friend` is kind of a bad workaround, think about ts */
     friend class music_transitions;
+    friend class play;
 
     void update_element(float dt) override;
 

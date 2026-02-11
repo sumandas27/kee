@@ -439,6 +439,9 @@ music_transitions::music_transitions(menu& menu_scene) :
 
     pause_play.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
+        if (menu_scene.play_ui.has_value())
+            return;
+
         switch (button_event)
         {
         case ui::button::event::on_hot:
@@ -474,6 +477,9 @@ music_transitions::music_transitions(menu& menu_scene) :
 
     step_l.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
+        if (menu_scene.play_ui.has_value())
+            return;
+
         switch (button_event)
         {
         case ui::button::event::on_hot:
@@ -499,6 +505,9 @@ music_transitions::music_transitions(menu& menu_scene) :
 
     step_r.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
+        if (menu_scene.play_ui.has_value())
+            return;
+
         switch (button_event)
         {
         case ui::button::event::on_hot:
@@ -524,6 +533,9 @@ music_transitions::music_transitions(menu& menu_scene) :
 
     setting_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
+        if (menu_scene.play_ui.has_value())
+            return;
+
         switch (button_event)
         {
         case ui::button::event::on_hot:
@@ -549,6 +561,9 @@ music_transitions::music_transitions(menu& menu_scene) :
 
     exit_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
+        if (menu_scene.play_ui.has_value())
+            return;
+
         switch (button_event)
         {
         case ui::button::event::on_hot:
@@ -574,14 +589,35 @@ music_transitions::music_transitions(menu& menu_scene) :
     };
 }
 
-play::play(const kee::ui::required& reqs) :
+play::play(const kee::ui::required& reqs, menu& menu_scene) :
     kee::ui::button(reqs,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::abs, 0),
         true
     )
-{ }
+{ 
+    menu_scene.k_text_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
+    menu_scene.edit_text_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
+    menu_scene.play_text_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
+    menu_scene.browse_text_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
+
+    assert(menu_scene.opening_trns.has_value());
+    menu_scene.opening_trns.value().k_rect_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
+    menu_scene.opening_trns.value().e1_text_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
+    menu_scene.opening_trns.value().e1_rect_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
+    menu_scene.opening_trns.value().e2_text_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
+    menu_scene.opening_trns.value().e2_rect_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
+
+    assert(menu_scene.music_trns.has_value());
+    menu_scene.music_trns.value().slider_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
+    menu_scene.music_trns.value().pause_play_color.set(std::nullopt, kee::color::blank, 0.75f, kee::transition_type::exp);
+    menu_scene.music_trns.value().step_l_color.set(std::nullopt, kee::color::blank, 0.75f, kee::transition_type::exp);
+    menu_scene.music_trns.value().step_r_color.set(std::nullopt, kee::color::blank, 0.75f, kee::transition_type::exp);
+    menu_scene.music_trns.value().setting_color.set(std::nullopt, kee::color::blank, 0.75f, kee::transition_type::exp);
+    menu_scene.music_trns.value().exit_color.set(std::nullopt, kee::color::blank, 0.75f, kee::transition_type::exp);
+    menu_scene.music_trns.value().song_ui_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
+}
 
 menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info, bool from_game_init) :
     kee::scene::base(reqs),
@@ -778,7 +814,7 @@ menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_inf
 
     k_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        if (!music_trns.has_value())
+        if (!music_trns.has_value() || play_ui.has_value())
             return;
 
         switch (button_event)
@@ -809,7 +845,7 @@ menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_inf
 
     e1_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        if (!music_trns.has_value())
+        if (!music_trns.has_value() || play_ui.has_value())
             return;
 
         switch (button_event)
@@ -832,12 +868,12 @@ menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_inf
         if (!music_trns.has_value())
             return;
 
-        play_ui.emplace(add_child<play>(3));
+        play_ui.emplace(add_child<play>(3, *this));
     };
 
     e2_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        if (!music_trns.has_value())
+        if (!music_trns.has_value() || play_ui.has_value())
             return;
 
         switch (button_event)
