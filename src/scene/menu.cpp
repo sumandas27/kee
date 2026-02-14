@@ -595,8 +595,112 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
         pos(pos::type::rel, 0.5f),
         border(border::type::abs, 0),
         true
-    )
-{ 
+    ),
+    /* TODO: change once u download a real search png */
+    search_png("assets/img/directory.png"),
+    back_rect_color(add_transition<kee::color>(kee::color(40, 40, 40))),
+    top_bar_frame(add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::rel, 0.f),
+        dims(
+            dim(dim::type::rel, 1.f),
+            dim(dim::type::rel, 0.1f)
+        ),
+        false
+    )),
+    back_button(top_bar_frame.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::beg, 0.f),
+        pos(pos::type::rel, 0.f),
+        dims(
+            dim(dim::type::aspect, 1.f),
+            dim(dim::type::rel, 1.f)
+        ),
+        false
+    )),
+    back_rect(back_button.ref.add_child<kee::ui::rect>(std::nullopt,
+        back_rect_color.get(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::abs, 0.f),
+        true, std::nullopt, std::nullopt
+    )),
+    back_image(back_rect.ref.add_child<kee::ui::image>(std::nullopt,
+        assets.arrow_png, kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_h, 0.15f),
+        true, ui::image::display::shrink_to_fit, false, false, 0.f
+    )),
+    search_button(top_bar_frame.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::end, 0.f),
+        pos(pos::type::rel, 0.f),
+        dims(
+            dim(dim::type::aspect, 1.f),
+            dim(dim::type::rel, 1.f)
+        ),
+        false
+    )),
+    search_rect(search_button.ref.add_child<kee::ui::rect>(std::nullopt,
+        kee::color(40, 40, 40),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::abs, 0.f),
+        true, std::nullopt, std::nullopt
+    )),
+    search_image(search_rect.ref.add_child<kee::ui::image>(std::nullopt,
+        search_png, kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_h, 0.15f),
+        true, ui::image::display::shrink_to_fit, false, false, 0.f
+    )),
+    search_bar(top_bar_frame.ref.add_child<kee::ui::rect>(std::nullopt,
+        kee::color(12, 12, 12),
+        pos(pos::type::beg, 0.f),
+        pos(pos::type::rel, 0.f),
+        dims(
+            dim(dim::type::abs, 0.f),
+            dim(dim::type::rel, 1.f)
+        ),
+        false, std::nullopt, std::nullopt
+    )),
+    level_select_frame(add_child<kee::ui::rect>(std::nullopt,
+        kee::color(50, 50, 50, 100),
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::rel, 0.1f),
+        dims(
+            dim(dim::type::rel, 1.f),
+            dim(dim::type::rel, 0.9f)
+        ),
+        false, std::nullopt, std::nullopt
+    ))
+{
+    const float back_rect_w = back_rect.ref.get_raw_rect().width;
+    const float search_rect_x = search_rect.ref.get_raw_rect().x;
+
+    search_bar.ref.x.val = back_rect_w;
+    std::get<kee::dims>(search_bar.ref.dimensions).w.val = search_rect_x - back_rect_w;
+
+    back_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            back_rect_color.set(std::nullopt, kee::color(30, 30, 30), 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            back_rect_color.set(std::nullopt, kee::color(40, 40, 40), 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    back_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        /* TODO: impl */
+    };
+
     menu_scene.k_text_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
     menu_scene.edit_text_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
     menu_scene.play_text_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
@@ -617,6 +721,11 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
     menu_scene.music_trns.value().setting_color.set(std::nullopt, kee::color::blank, 0.75f, kee::transition_type::exp);
     menu_scene.music_trns.value().exit_color.set(std::nullopt, kee::color::blank, 0.75f, kee::transition_type::exp);
     menu_scene.music_trns.value().song_ui_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
+}
+
+void play::update_element([[maybe_unused]] float dt)
+{
+    back_rect.ref.color = back_rect_color.get();
 }
 
 menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info, bool from_game_init) :

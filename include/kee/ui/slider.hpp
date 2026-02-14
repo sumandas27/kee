@@ -3,6 +3,8 @@
 #include "kee/ui/base.hpp"
 #include "kee/ui/rect.hpp"
 
+/* TODO NEXT: rethink `menu_style`, seems kinda hacky and bad */
+
 namespace kee {
 namespace ui {
 

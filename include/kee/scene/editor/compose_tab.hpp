@@ -329,7 +329,6 @@ public:
     static constexpr std::array<int, tick_freq_count> tick_freqs = { 1, 2, 3, 4, 5, 6, 8, 12, 16 };
 
     compose_tab_info(
-        const kee::image_texture& arrow_png,
         const std::optional<image_state>& img_state,
         const std::optional<video_state>& vid_state,
         const key_color_state& key_colors,
@@ -339,7 +338,6 @@ public:
 
     std::vector<std::string> get_hitsound_names() const;
 
-    const kee::image_texture& arrow_png;
     const std::optional<image_state>& img_state;
     const std::optional<video_state>& vid_state;
     const key_color_state& key_colors;

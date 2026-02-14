@@ -1117,14 +1117,12 @@ const std::unordered_map<int, int> compose_tab::key_to_prio = []
 }();
 
 compose_tab_info::compose_tab_info(
-    const kee::image_texture& arrow_png,
     const std::optional<image_state>& img_state,
     const std::optional<video_state>& vid_state,
     const key_color_state& key_colors,
     hitsound_state& hitsounds,
     std::unordered_map<int, std::map<float, editor_hit_object>>& hit_objs
 ) :
-    arrow_png(arrow_png),
     img_state(img_state),
     vid_state(vid_state),
     key_colors(key_colors),
@@ -1196,7 +1194,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         true
     )),
     tick_l_img(tick_l_button.ref.add_child<kee::ui::image>(std::nullopt,
-        compose_info.arrow_png, kee::color::white,
+        assets.arrow_png, kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         dims(
@@ -1215,7 +1213,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
         true
     )),
     tick_r_img(tick_r_button.ref.add_child<kee::ui::image>(std::nullopt,
-        compose_info.arrow_png, kee::color::white,
+        assets.arrow_png, kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         dims(

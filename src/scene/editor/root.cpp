@@ -343,11 +343,11 @@ void confirm_exit_ui::queue_for_destruction()
     base_w.set(std::nullopt, 0, confirm_exit_ui::transition_time, kee::transition_type::exp);
 }
 
-song_ui::song_ui(const kee::ui::required& reqs, const kee::image_texture& arrow_png, const std::filesystem::path& music_path) :
-    song_ui(reqs, arrow_png, raylib::Music(music_path.string()), 60.f, 0.f)
+song_ui::song_ui(const kee::ui::required& reqs, const std::filesystem::path& music_path) :
+    song_ui(reqs, raylib::Music(music_path.string()), 60.f, 0.f)
 { }
 
-song_ui::song_ui(const kee::ui::required& reqs, const kee::image_texture& arrow_png, raylib::Music&& music, float music_bpm, float music_start_offset) :
+song_ui::song_ui(const kee::ui::required& reqs, raylib::Music&& music, float music_bpm, float music_start_offset) :
     kee::ui::base(reqs,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
@@ -414,7 +414,7 @@ song_ui::song_ui(const kee::ui::required& reqs, const kee::image_texture& arrow_
         false, std::nullopt, std::nullopt
     )),
     playback_l_img(playback_l_button.ref.add_child<kee::ui::image>(1,
-        arrow_png, kee::color::white,
+        assets.arrow_png, kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_h, 0.15f),
@@ -455,7 +455,7 @@ song_ui::song_ui(const kee::ui::required& reqs, const kee::image_texture& arrow_
         false, std::nullopt, std::nullopt
     )),
     playback_r_img(playback_r_button.ref.add_child<kee::ui::image>(std::nullopt,
-        arrow_png, kee::color::white,
+        assets.arrow_png, kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_h, 0.15f),
@@ -758,7 +758,6 @@ root::root(const kee::scene::required& reqs, std::optional<beatmap_dir_info>&& d
         ? std::make_optional(beatmap_file(dir_info.value().dir_state, false)) 
         : std::nullopt
     ),
-    arrow_png("assets/img/arrow.png"),
     error_png("assets/img/error.png"),
     info_png("assets/img/info.png"),
     img_state(dir_info.has_value() && dir_info.value().dir_state.has_image
@@ -779,7 +778,7 @@ root::root(const kee::scene::required& reqs, std::optional<beatmap_dir_info>&& d
     ),
     approach_beats(dir_info.has_value() ? dir_info.value().approach_beats : 2.0f),
     setup_info(dir_info, img_state, vid_state, key_colors, hitsounds, hit_objs),
-    compose_info(arrow_png, img_state, vid_state, key_colors, hitsounds, hit_objs),
+    compose_info(img_state, vid_state, key_colors, hitsounds, hit_objs),
     active_tab_elem(add_child<setup_tab>(std::nullopt, *this, setup_info, approach_beats)),
     active_tab(root::tabs::setup),
     tab_active_rect_rel_x(add_transition<float>(static_cast<float>(active_tab) / magic_enum::enum_count<root::tabs>())),
@@ -856,8 +855,7 @@ root::root(const kee::scene::required& reqs, std::optional<beatmap_dir_info>&& d
     )),
     playback_ui(dir_info.has_value() ?
         std::variant<kee::ui::handle<song_ui>, kee::ui::handle<kee::ui::text>>(
-            playback_ui_frame.ref.add_child<song_ui>(std::nullopt, 
-                arrow_png, 
+            playback_ui_frame.ref.add_child<song_ui>(std::nullopt,
                 (dir_info.value().dir_state.path / beatmap_dir_state::standard_music_filename).string(), 
                 dir_info.value().song_bpm, 
                 dir_info.value().song_start_offset
@@ -1381,7 +1379,7 @@ void root::set_info(std::string_view info_str)
 
 void root::set_song(const std::filesystem::path& song_path)
 {
-    playback_ui.emplace<kee::ui::handle<song_ui>>(playback_ui_frame.ref.add_child<song_ui>(std::nullopt, arrow_png, song_path));
+    playback_ui.emplace<kee::ui::handle<song_ui>>(playback_ui_frame.ref.add_child<song_ui>(std::nullopt, song_path));
 }
 
 bool root::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods)

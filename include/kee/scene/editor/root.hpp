@@ -105,8 +105,8 @@ private:
 class song_ui : public kee::ui::base
 {
 public:
-    song_ui(const kee::ui::required& reqs, const kee::image_texture& arrow_png, const std::filesystem::path& music_path);
-    song_ui(const kee::ui::required& reqs, const kee::image_texture& arrow_png, raylib::Music&& music, float music_bpm, float music_start_offset);
+    song_ui(const kee::ui::required& reqs, const std::filesystem::path& music_path);
+    song_ui(const kee::ui::required& reqs, raylib::Music&& music, float music_bpm, float music_start_offset);
 
     const raylib::Music& get_music() const;
     const std::optional<float>& get_prev_beat() const;
@@ -273,7 +273,6 @@ private:
     bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
     void update_element(float dt) override;
 
-    kee::image_texture arrow_png;
     kee::image_texture error_png;
     kee::image_texture info_png;
 

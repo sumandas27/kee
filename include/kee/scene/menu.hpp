@@ -10,8 +10,6 @@
 #include "kee/ui/slider.hpp"
 #include "kee/ui/text.hpp"
 
-/* TODO NEXT: fade out ui elements on play click  */
-
 namespace kee {
 namespace scene {
 
@@ -144,6 +142,28 @@ class play final : public kee::ui::button
 {
 public:
     play(const kee::ui::required& reqs, menu& menu_scene);
+  
+private:
+    void update_element(float dt) override;
+
+    const kee::image_texture search_png;
+
+    kee::transition<kee::color>& back_rect_color;
+
+    kee::ui::handle<kee::ui::base> top_bar_frame;
+
+    kee::ui::handle<kee::ui::button> back_button;
+    kee::ui::handle<kee::ui::rect> back_rect;
+    kee::ui::handle<kee::ui::image> back_image;
+
+    kee::ui::handle<kee::ui::button> search_button;
+    kee::ui::handle<kee::ui::rect> search_rect;
+    kee::ui::handle<kee::ui::image> search_image;
+
+    /* TODO: will move to being a textbox */
+    kee::ui::handle<kee::ui::rect> search_bar;
+
+    kee::ui::handle<kee::ui::rect> level_select_frame;
 };
 
 /* WISHLIST: make bg more interesting, two ideas:
