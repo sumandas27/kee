@@ -1,11 +1,11 @@
-#include "kee/ui/scissor.hpp"
+#include "kee/ui/scrollable.hpp"
 
 #include "kee/game.hpp"
 
 namespace kee {
 namespace ui {
 
-scissor::scissor(
+scrollable::scrollable(
     const kee::ui::required& reqs,
     const kee::pos& x,
     const kee::pos& y,
@@ -15,7 +15,7 @@ scissor::scissor(
     kee::ui::base(reqs, x, y, dimensions, centered)
 { }
 
-void scissor::render() const
+void scrollable::render() const
 {
     game_ref.scissor_mode.push(get_raw_rect());
     kee::ui::base::render();

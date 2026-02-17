@@ -712,7 +712,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
         border(border::type::rel_h, 0.2f),
         true, ui::image::display::shrink_to_fit, true, false, 0.f
     )),
-    level_list_frame(add_child<kee::ui::scissor>(std::nullopt,
+    level_list_frame(add_child<kee::ui::scrollable>(std::nullopt,
         pos(pos::type::rel, 0.f),
         pos(pos::type::rel, 0.1f),
         dims(

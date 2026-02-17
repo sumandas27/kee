@@ -7,10 +7,10 @@
 namespace kee {
 namespace ui {
 
-class scissor : public kee::ui::base
+class scrollable : public kee::ui::base
 {
 public:
-    scissor(
+    scrollable(
         const kee::ui::required& reqs,
         const kee::pos& x,
         const kee::pos& y,

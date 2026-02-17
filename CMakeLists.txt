@@ -21,6 +21,8 @@ add_subdirectory(externals/raylib-cpp)
 file(GLOB_RECURSE KEE_SRC CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 add_executable(${PROJECT_NAME} ${KEE_SRC})
 
+# TODO -Wno-dev for apple to suppress opengl errors
+
 # /W4 /permissive-          - Enable all compile-time warnings.
 # -Wall -Wextra -Wpedantic  - '' (Non-MSVC)
 if (MSVC)
