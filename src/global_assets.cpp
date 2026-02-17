@@ -1,14 +1,7 @@
 #include "kee/global_assets.hpp"
 
 namespace kee {
-
-image_texture::image_texture(const std::filesystem::path& img_path) :
-    texture(img_path.string())
-{
-    texture.GenMipmaps();
-    texture.SetFilter(TextureFilter::TEXTURE_FILTER_TRILINEAR);
-}
-
+    
 global_assets::global_assets() :
     font_light(global_assets::gen_sdf_font("assets/fonts/Montserrat-Light.ttf")),
     font_regular(global_assets::gen_sdf_font("assets/fonts/Montserrat-Regular.ttf")),

@@ -162,7 +162,7 @@ private:
 class beatmap final : public kee::scene::base
 {
 public:
-    beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_info);
+    beatmap(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info);
 
     float get_beat() const;
 
@@ -209,7 +209,7 @@ private:
     kee::transition<float>& combo_gain;
     kee::transition<float>& end_fade_out_alpha;
 
-    std::optional<kee::image_texture> game_bg_img;
+    std::optional<raylib::Image> game_bg_img;
     std::variant<
         std::monostate,
         kee::ui::handle<kee::ui::image>,

@@ -14,14 +14,6 @@
 #endif
 
 namespace kee {
-    
-class image_texture
-{
-public:
-    image_texture(const std::filesystem::path& img_path);
-
-    raylib::Texture texture;
-};
 
 class global_assets
 {
@@ -54,11 +46,11 @@ public:
     const int sdf_triangle_loc_p1;
     const int sdf_triangle_loc_p2;
 
-    const kee::image_texture arrow_png;
-    const kee::image_texture pause_png;
-    const kee::image_texture play_png;
-    const kee::image_texture directory_png;
-    const kee::image_texture exit_png;
+    const raylib::Image arrow_png;
+    const raylib::Image pause_png;
+    const raylib::Image play_png;
+    const raylib::Image directory_png;
+    const raylib::Image exit_png;
 
 private:
     static raylib::Font gen_sdf_font(const std::filesystem::path& font_path);

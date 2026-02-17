@@ -1381,7 +1381,7 @@ compose_tab::compose_tab(const kee::ui::required& reqs, const float& approach_be
             );
         else if (compose_info.img_state.has_value())
             return game_display_frame.ref.add_child<kee::ui::image>(std::nullopt,
-                compose_info.img_state.value().texture,
+                compose_info.img_state.value().img,
                 kee::color(255, 255, 255, 255 * kee::game_start_bg_opacity),
                 pos(pos::type::rel, 0.5f),
                 pos(pos::type::rel, 0.5f),

@@ -5,7 +5,7 @@ namespace ui {
 
 image::image(
     const kee::ui::required& reqs,
-    const kee::image_texture& img_texture,
+    const raylib::Image& img,
     const kee::color& color_param,
     const kee::pos& x, 
     const kee::pos& y,
@@ -21,36 +21,40 @@ image::image(
     display_setting(display_setting),
     flip_horizontal(flip_horizontal),
     flip_vertical(flip_vertical),
-    img_texture_ref(img_texture)
-{ 
+    texture(img)
+{
+    texture.GenMipmaps();
+    texture.SetFilter(TextureFilter::TEXTURE_FILTER_TRILINEAR);
+
     color = color_param;
 }
 
-void image::set_image(const kee::image_texture& new_img_texture)
+void image::set_image(const raylib::Image& new_img)
 {
-    img_texture_ref = new_img_texture;
+    texture = new_img;
+    texture.GenMipmaps();
+    texture.SetFilter(TextureFilter::TEXTURE_FILTER_TRILINEAR);
 }
 
 void image::render_element() const
 {
     const raylib::Rectangle raw_rect = get_raw_rect();
-    const raylib::Texture& img_texture = img_texture_ref.get().texture;
 
     float scale;
-    if (img_texture.width * raw_rect.height >= img_texture.height * raw_rect.width)
+    if (texture.width * raw_rect.height >= texture.height * raw_rect.width)
     {
         scale = (display_setting == image::display::shrink_to_fit) 
-            ? raw_rect.width / img_texture.width
-            : raw_rect.height / img_texture.height;
+            ? raw_rect.width / texture.width
+            : raw_rect.height / texture.height;
     }
     else
     {
         scale = (display_setting == image::display::shrink_to_fit) 
-            ? raw_rect.height / img_texture.height
-            : raw_rect.width / img_texture.width;
+            ? raw_rect.height / texture.height
+            : raw_rect.width / texture.width;
     }
 
-    const raylib::Vector2 img_size = img_texture.GetSize();
+    const raylib::Vector2 img_size = texture.GetSize();
     const raylib::Vector2 img_size_scaled = img_size * scale;
 
     raylib::Rectangle img_src(raylib::Vector2(0, 0), img_size);
@@ -73,7 +77,7 @@ void image::render_element() const
         static_cast<int>(raw_rect.height)
     );
 
-    img_texture.Draw(img_src, img_dst, img_size_scaled / 2, rotation, color.raylib());
+    texture.Draw(img_src, img_dst, img_size_scaled / 2, rotation, color.raylib());
 
     EndScissorMode();
 }

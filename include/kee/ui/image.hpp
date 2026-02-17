@@ -12,7 +12,7 @@ public:
 
     image(
         const kee::ui::required& reqs,
-        const kee::image_texture& img_texture,
+        const raylib::Image& img,
         const kee::color& color_param,
         const kee::pos& x, 
         const kee::pos& y,
@@ -24,7 +24,7 @@ public:
         float rotation
     );
 
-    void set_image(const kee::image_texture& new_img_texture);
+    void set_image(const raylib::Image& new_img);
 
     float rotation;
 
@@ -35,7 +35,7 @@ private:
     const bool flip_horizontal;
     const bool flip_vertical;
 
-    std::reference_wrapper<const kee::image_texture> img_texture_ref;
+    raylib::Texture texture;
 };
 
 enum class image::display

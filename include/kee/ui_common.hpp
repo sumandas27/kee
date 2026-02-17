@@ -260,7 +260,7 @@ public:
     static std::expected<boost::json::object, std::string> parse_key_colors(const std::filesystem::path& key_color_json_path);
     static std::vector<key_decoration> get_key_decorations(const boost::json::array& key_color_decos);
 
-    beatmap_dir_info(const std::filesystem::path& beatmap_dir_name);
+    beatmap_dir_info(const std::filesystem::path& beatmap_dir_path);
 
     beatmap_dir_state dir_state;
     
@@ -278,7 +278,7 @@ public:
     boost::json::object keys_json_obj;
     std::optional<boost::json::object> key_colors_json_obj;
     
-    std::optional<std::unordered_map<std::string, raylib::Sound>>   custom_hitsounds;
+    std::optional<std::unordered_map<std::string, raylib::Sound>> custom_hitsounds;
 };
 
 class key_pos_data

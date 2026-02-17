@@ -12,7 +12,7 @@ beatmap_file::beatmap_file(const beatmap_dir_state& dir_state, bool save_metadat
     save_metadata_needed(save_metadata_needed)
 { }
 
-confirm_save_ui::confirm_save_ui(const kee::ui::required& reqs, const kee::image_texture& error_png, root& root_elem, confirm_exit_ui& render_prio_owner) :
+confirm_save_ui::confirm_save_ui(const kee::ui::required& reqs, const raylib::Image& error_png, root& root_elem, confirm_exit_ui& render_prio_owner) :
     kee::ui::rect(reqs,
         kee::color(0, 0, 0, 230),
         pos(pos::type::rel, 0.5f),
@@ -181,7 +181,7 @@ void confirm_save_ui::update_element([[maybe_unused]] float dt)
     save_text.ref.color = save_color.get();
 }
 
-confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, root& root_elem, const kee::image_texture& error_png, float menu_width) :
+confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, root& root_elem, const raylib::Image& error_png, float menu_width) :
     kee::ui::base(reqs,
         pos(pos::type::end, 0),
         pos(pos::type::beg, 0),
@@ -692,7 +692,7 @@ beatmap_save_info::beatmap_save_info(bool need_save_metadata, bool need_save_son
 
 image_state::image_state(const std::filesystem::path& path) :
     path(path),
-    texture(kee::image_texture(path))
+    img(path.string())
 { }
 
 video_state::video_state(const std::filesystem::path& path, float offset) :

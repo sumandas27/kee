@@ -27,7 +27,7 @@ public:
 class confirm_save_ui : public kee::ui::rect
 {
 public:
-    confirm_save_ui(const kee::ui::required& reqs, const kee::image_texture& error_png, root& root_elem, confirm_exit_ui& render_prio_owner);
+    confirm_save_ui(const kee::ui::required& reqs, const raylib::Image& error_png, root& root_elem, confirm_exit_ui& render_prio_owner);
     confirm_save_ui(const confirm_save_ui&) = delete;
     confirm_save_ui(confirm_save_ui&&) = delete;
     ~confirm_save_ui();
@@ -67,7 +67,7 @@ private:
 class confirm_exit_ui : public kee::ui::base
 {
 public:
-    confirm_exit_ui(const kee::ui::required& reqs, root& root_elem, const kee::image_texture& error_png, float menu_width);
+    confirm_exit_ui(const kee::ui::required& reqs, root& root_elem, const raylib::Image& error_png, float menu_width);
 
     bool should_destruct() const;
 
@@ -84,7 +84,7 @@ private:
 
     void queue_for_destruction();
 
-    const kee::image_texture& error_png;
+    const raylib::Image& error_png;
 
     kee::transition<float>& base_w;
     kee::transition<kee::color>& confirm_button_color;
@@ -207,7 +207,7 @@ public:
     image_state(const std::filesystem::path& path);
 
     std::filesystem::path path;
-    kee::image_texture texture;
+    raylib::Image img;
 };
 
 class video_state
@@ -273,8 +273,8 @@ private:
     bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
     void update_element(float dt) override;
 
-    kee::image_texture error_png;
-    kee::image_texture info_png;
+    raylib::Image error_png;
+    raylib::Image info_png;
 
     std::optional<image_state> img_state;
     std::optional<video_state> vid_state;

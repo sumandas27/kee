@@ -708,7 +708,7 @@ void end_screen::update_element([[maybe_unused]] float dt)
     exit_text.ref.color = exit_text_color.get();
 }
 
-beatmap::beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_info) :
+beatmap::beatmap(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info) :
     kee::scene::base(reqs),
     beat_forgiveness(beatmap_info.beat_forgiveness),
     approach_beats(beatmap_info.approach_beats),
@@ -725,7 +725,7 @@ beatmap::beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_in
     combo_gain(add_transition<float>(0.0f)),
     end_fade_out_alpha(add_transition<float>(0.0f)),
     game_bg_img(beatmap_info.dir_state.has_image
-        ? std::make_optional(kee::image_texture(beatmap_info.dir_state.path / beatmap_dir_state::standard_img_filename))
+        ? std::make_optional<raylib::Image>((beatmap_info.dir_state.path / beatmap_dir_state::standard_img_filename).string())
         : std::nullopt
     ),
     game_bg([&]() -> std::variant<std::monostate, kee::ui::handle<kee::ui::image>, kee::ui::handle<kee::ui::video_player>>

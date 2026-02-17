@@ -242,10 +242,10 @@ std::vector<key_decoration> beatmap_dir_info::get_key_decorations(const boost::j
     return res;
 }
 
-beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_name) :
-    dir_state(beatmap_dir_info::app_data_dir / beatmap_dir_name)
+beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_path) :
+    dir_state(beatmap_dir_path)
 {
-    const std::filesystem::path json_path = beatmap_dir_info::app_data_dir / beatmap_dir_name / "metadata.json";
+    const std::filesystem::path json_path = beatmap_dir_path / "metadata.json";
     std::ifstream json_stream = std::ifstream(json_path);
     if (!json_stream)
         throw std::runtime_error("Failed to open `metadata.json`");
@@ -287,7 +287,7 @@ beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_name
     if (!json_object.contains("hit_objects") || !json_object.at("hit_objects").is_object())
         throw std::runtime_error("`metadata.json` has malformed `song_start_offset` key.");
 
-    if (std::filesystem::exists(beatmap_dir_info::app_data_dir / beatmap_dir_name / beatmap_dir_state::standard_vid_filename))
+    if (std::filesystem::exists(beatmap_dir_path / beatmap_dir_state::standard_vid_filename))
     {
         if (!json_object.contains("video_offset") || !json_object.at("video_offset").is_double())
             throw std::runtime_error("`metadata.json` has malformed `video_offset` key while a video exists.");
@@ -295,6 +295,7 @@ beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_name
         dir_state.video_dir_info = static_cast<float>(json_object.at("video_offset").as_double());    
     }
 
+    
     const boost::json::object& hit_objs = json_object.at("hit_objects").as_object();
     for (const key_pos_data& key_data : kee::key_ui_data)
     {
@@ -336,7 +337,7 @@ beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_name
 
     if (dir_state.has_key_colors)
     {
-        const auto parsed_json = beatmap_dir_info::parse_key_colors(beatmap_dir_info::app_data_dir / beatmap_dir_name / beatmap_dir_state::standard_key_colors_filename);
+        const auto parsed_json = beatmap_dir_info::parse_key_colors(beatmap_dir_path / beatmap_dir_state::standard_key_colors_filename);
         if (parsed_json.has_value())
             key_colors_json_obj = parsed_json.value();
         else
@@ -345,7 +346,7 @@ beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_name
 
     if (dir_state.has_custom_hitsounds)
     {
-        auto custom_hitsounds_result = beatmap_dir_info::validate_custom_hitsounds(beatmap_dir_info::app_data_dir / beatmap_dir_name / beatmap_dir_state::standard_custom_hitsound_dirname);
+        auto custom_hitsounds_result = beatmap_dir_info::validate_custom_hitsounds(beatmap_dir_path / beatmap_dir_state::standard_custom_hitsound_dirname);
         if (custom_hitsounds_result.has_value())
             custom_hitsounds = std::move(custom_hitsounds_result.value());
         else

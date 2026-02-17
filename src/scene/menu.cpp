@@ -1,9 +1,11 @@
 #include "kee/scene/menu.hpp"
 
+#include <chrono>
+
 #include "kee/game.hpp"
 #include "kee/scene/editor/root.hpp"
 
-#include <thread>
+using namespace std::chrono_literals;
 
 namespace kee {
 namespace scene {
@@ -589,6 +591,53 @@ music_transitions::music_transitions(menu& menu_scene) :
     };
 }
 
+level_ui_assets::level_ui_assets(const std::filesystem::path& beatmap_dir_path)
+{
+    const beatmap_dir_info dir_info(beatmap_dir_path);
+    if (dir_info.dir_state.has_image)
+        img.emplace((dir_info.dir_state.path / beatmap_dir_state::standard_img_filename).string());
+}
+
+level_ui::level_ui(
+    const kee::ui::required& reqs,
+    const kee::pos& x,
+    const kee::pos& y,
+    const std::variant<kee::dims, kee::border>& dims,
+    bool centered,
+    const level_ui_assets& ui_assets
+) :
+    kee::ui::base(reqs, x, y, dims, centered),
+    frame(add_child<kee::ui::rect>(std::nullopt,
+        kee::color(10, 10, 10),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::abs, 0.f),
+        true, std::nullopt,
+        ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.2f, std::nullopt)
+    )),
+    image_frame(frame.ref.add_child<kee::ui::rect>(std::nullopt,
+        kee::color(15, 15, 15),
+        pos(pos::type::beg, 0),
+        pos(pos::type::beg, 0),
+        kee::dims(
+            dim(dim::type::aspect, static_cast<float>(kee::window_w) / kee::window_h),
+            dim(dim::type::rel, 1)
+        ),
+        false, std::nullopt, std::nullopt
+    )),
+    image(ui_assets.img.has_value() ?
+        std::make_optional(image_frame.ref.add_child<kee::ui::image>(std::nullopt,
+            ui_assets.img.value(), 
+            kee::color::white,
+            pos(pos::type::rel, 0.5f),
+            pos(pos::type::rel, 0.5f),
+            border(border::type::abs, 0),
+            true, ui::image::display::shrink_to_fit, false, false, 0.0f
+        )) :
+        std::nullopt
+    )
+{ }
+
 play::play(const kee::ui::required& reqs, menu& menu_scene) :
     kee::ui::button(reqs,
         pos(pos::type::rel, 0.5f),
@@ -596,8 +645,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
         border(border::type::abs, 0),
         true
     ),
-    /* TODO: change once u download a real search png */
-    search_png("assets/img/directory.png"),
+    search_png("assets/img/search.png"),
     back_rect_color(add_transition<kee::color>(kee::color(40, 40, 40))),
     top_bar_frame(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.f),
@@ -631,6 +679,16 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
         border(border::type::rel_h, 0.15f),
         true, ui::image::display::shrink_to_fit, false, false, 0.f
     )),
+    search_bar(top_bar_frame.ref.add_child<kee::ui::rect>(std::nullopt,
+        kee::color(12, 12, 12),
+        pos(pos::type::beg, 0.f),
+        pos(pos::type::rel, 0.f),
+        dims(
+            dim(dim::type::abs, 0.f),
+            dim(dim::type::rel, 1.f)
+        ),
+        false, std::nullopt, std::nullopt
+    )),
     search_button(top_bar_frame.ref.add_child<kee::ui::button>(std::nullopt,
         pos(pos::type::end, 0.f),
         pos(pos::type::rel, 0.f),
@@ -651,25 +709,40 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
         search_png, kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
-        border(border::type::rel_h, 0.15f),
-        true, ui::image::display::shrink_to_fit, false, false, 0.f
+        border(border::type::rel_h, 0.2f),
+        true, ui::image::display::shrink_to_fit, true, false, 0.f
     )),
-    search_bar(top_bar_frame.ref.add_child<kee::ui::rect>(std::nullopt,
-        kee::color(12, 12, 12),
-        pos(pos::type::beg, 0.f),
+    level_list_frame(add_child<kee::ui::scissor>(std::nullopt,
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::rel, 0.1f),
+        dims(
+            dim(dim::type::rel, 0.5f),
+            dim(dim::type::rel, 0.9f)
+        ),
+        false
+    )),
+    level_list_bg(level_list_frame.ref.add_child<kee::ui::rect>(std::nullopt,
+        kee::color(50, 50, 50, 100),
+        pos(pos::type::rel, 0.03f),
         pos(pos::type::rel, 0.f),
         dims(
-            dim(dim::type::abs, 0.f),
+            dim(dim::type::rel, 0.97f),
             dim(dim::type::rel, 1.f)
         ),
         false, std::nullopt, std::nullopt
     )),
+    level_list_inner(level_list_bg.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_w, 0.01f),
+        true
+    )),
     level_select_frame(add_child<kee::ui::rect>(std::nullopt,
-        kee::color(50, 50, 50, 100),
-        pos(pos::type::rel, 0.f),
+        kee::color(25, 25, 25, 100),
+        pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.1f),
         dims(
-            dim(dim::type::rel, 1.f),
+            dim(dim::type::rel, 0.5f),
             dim(dim::type::rel, 0.9f)
         ),
         false, std::nullopt, std::nullopt
@@ -680,6 +753,22 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
 
     search_bar.ref.x.val = back_rect_w;
     std::get<kee::dims>(search_bar.ref.dimensions).w.val = search_rect_x - back_rect_w;
+
+    /* TODO: need rework */
+
+    level_list.reserve(menu_scene.play_imgs.size());
+    for (std::size_t i = 0; i < menu_scene.play_imgs.size(); i++)
+    {
+        level_list.emplace_back(level_list_inner.ref.add_child<level_ui>(std::nullopt,
+            pos(pos::type::rel, 0.5f),
+            pos(pos::type::rel, static_cast<float>(i) * 0.11f + 0.05f),
+            dims(
+                dim(dim::type::rel, 1.f),
+                dim(dim::type::rel, 0.1f)
+            ),
+            true, menu_scene.play_imgs[i]
+        ));
+    }
 
     back_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
@@ -843,7 +932,7 @@ menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_inf
         std::nullopt, true, assets.font_regular, "BROWSE", false
     )),
     music_cover_art_texture(beatmap_info.dir_state.has_image
-        ? std::make_optional(beatmap_info.dir_state.path / beatmap_dir_state::standard_img_filename)
+        ? std::make_optional((beatmap_info.dir_state.path / beatmap_dir_state::standard_img_filename).string())
         : std::nullopt
     ),
     analyzer(beatmap_info.dir_state.path / beatmap_dir_state::standard_music_filename),
@@ -1008,6 +1097,16 @@ menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_inf
         /* TODO: impl */
     };
 
+    play_imgs_future = std::async(std::launch::async, [] 
+    {
+        std::vector<level_ui_assets> res;
+        for (const auto& entry : std::filesystem::directory_iterator(beatmap_dir_info::app_data_dir / "play"))
+            if (entry.is_directory())
+                res.emplace_back(entry.path());
+
+        return res;
+    });
+
     visualizer_bot.reserve(music_analyzer::bins);
     visualizer_top.reserve(music_analyzer::bins);
     for (std::size_t i = 0; i < music_analyzer::bins; i++)
@@ -1048,9 +1147,16 @@ menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_inf
 
 void menu::update_element(float dt)
 {
-    scene_time += dt;
     if (scene_time >= 3.0f && !opening_trns.has_value())
+    {
+        if (!play_imgs_future.valid() || play_imgs_future.wait_for(0s) != std::future_status::ready)
+            return;
+
+        play_imgs = play_imgs_future.get();
         opening_trns.emplace(*this);
+    }
+    else
+        scene_time += dt;
 
     if (scene_time >= 3.5f && !music_trns.has_value())
     {

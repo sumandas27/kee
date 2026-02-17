@@ -70,7 +70,7 @@ void nested_scissor_mode::pop()
 }
 
 game::game() :
-    curr_scene(make_scene<kee::scene::menu>(beatmap_dir_info("local_1"), true)),
+    curr_scene(make_scene<kee::scene::menu>(beatmap_dir_info(beatmap_dir_info::app_data_dir / "play/local_1"), true)),
     scene_manager(kee::scene::required(*this, assets), curr_scene),
     main_loop_begun(false),
     game_should_exit(false)
