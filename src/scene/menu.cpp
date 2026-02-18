@@ -662,6 +662,20 @@ level_ui::level_ui(
         pos(pos::type::rel, 0.f),
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
         std::nullopt, false, assets.font_regular, ui_assets.song_name, false
+    )),
+    song_artist_text(text_inner_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color(200, 200, 200),
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::rel, 0.5f),
+        ui::text_size(ui::text_size::type::rel_h, 0.25f),
+        std::nullopt, false, assets.font_semi_bold, ui_assets.song_artist, false
+    )),
+    level_name_text(text_inner_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color(200, 200, 200),
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::rel, 0.75f),
+        ui::text_size(ui::text_size::type::rel_h, 0.25f),
+        std::nullopt, false, assets.font_semi_bold, ui_assets.mapper + "'s " + ui_assets.level_name, false
     ))
 { 
     const float image_frame_w = image_frame.ref.get_raw_rect().width;
@@ -784,8 +798,6 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
 
     search_bar.ref.x.val = back_rect_w;
     std::get<kee::dims>(search_bar.ref.dimensions).w.val = search_rect_x - back_rect_w;
-
-    /* TODO: need rework */
 
     level_list.reserve(menu_scene.play_imgs.size());
     for (std::size_t i = 0; i < menu_scene.play_imgs.size(); i++)

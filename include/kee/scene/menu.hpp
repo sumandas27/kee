@@ -170,6 +170,8 @@ private:
     kee::ui::handle<kee::ui::base> text_frame;
     kee::ui::handle<kee::ui::base> text_inner_frame;
     kee::ui::handle<kee::ui::text> song_name_text;
+    kee::ui::handle<kee::ui::text> song_artist_text;
+    kee::ui::handle<kee::ui::text> level_name_text;
 };
 
 /**
