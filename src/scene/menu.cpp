@@ -596,6 +596,11 @@ level_ui_assets::level_ui_assets(const std::filesystem::path& beatmap_dir_path)
     const beatmap_dir_info dir_info(beatmap_dir_path);
     if (dir_info.dir_state.has_image)
         img.emplace((dir_info.dir_state.path / beatmap_dir_state::standard_img_filename).string());
+
+    song_name = dir_info.song_name;
+    song_artist = dir_info.song_artist;
+    mapper = dir_info.mapper;
+    level_name = dir_info.level_name;
 }
 
 level_ui::level_ui(
@@ -635,8 +640,34 @@ level_ui::level_ui(
             true, ui::image::display::shrink_to_fit, false, false, 0.0f
         )) :
         std::nullopt
-    )
-{ }
+    ),
+    text_frame(frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::beg, 0.f),
+        pos(pos::type::rel, 0.f),
+        kee::dims(
+            dim(dim::type::abs, 0.f),
+            dim(dim::type::rel, 1.f)
+        ),
+        false
+    )),
+    text_inner_frame(text_frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_h, 0.1f),
+        true
+    )),
+    song_name_text(text_inner_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::rel, 0.f),
+        ui::text_size(ui::text_size::type::rel_h, 0.5f),
+        std::nullopt, false, assets.font_regular, ui_assets.song_name, false
+    ))
+{ 
+    const float image_frame_w = image_frame.ref.get_raw_rect().width;
+    text_frame.ref.x.val = image_frame_w;
+    std::get<kee::dims>(text_frame.ref.dimensions).w.val = frame.ref.get_raw_rect().width - image_frame_w;
+}
 
 play::play(const kee::ui::required& reqs, menu& menu_scene) :
     kee::ui::button(reqs,

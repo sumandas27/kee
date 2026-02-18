@@ -142,6 +142,11 @@ public:
     level_ui_assets(const std::filesystem::path& beatmap_dir_path);
 
     std::optional<raylib::Image> img;
+
+    std::string song_name;
+    std::string song_artist;
+    std::string mapper;
+    std::string level_name;
 };
 
 class level_ui final : public kee::ui::base
@@ -161,6 +166,10 @@ private:
 
     kee::ui::handle<kee::ui::rect> image_frame;
     std::optional<kee::ui::handle<kee::ui::image>> image;
+
+    kee::ui::handle<kee::ui::base> text_frame;
+    kee::ui::handle<kee::ui::base> text_inner_frame;
+    kee::ui::handle<kee::ui::text> song_name_text;
 };
 
 /**
