@@ -41,7 +41,7 @@ slider::slider(
         ),
         false,
         std::nullopt,
-        !menu_style
+        (!menu_style)
             ? std::make_optional(rect_roundness(rect_roundness::type::rel_h, 0.5f, std::nullopt))
             : std::nullopt
     )),
@@ -71,17 +71,8 @@ bool slider::is_down() const
 void slider::on_element_mouse_move(const raylib::Vector2& mouse_pos, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
 {
     const raylib::Rectangle raw_rect = get_raw_rect();
-    const raylib::Rectangle raw_rect_thumb = thumb.get_raw_rect();
-
-    const bool is_mouse_on_rect =
-        mouse_pos.x >= raw_rect.x && mouse_pos.x <= raw_rect.x + raw_rect.width &&
-        mouse_pos.y >= raw_rect.y && mouse_pos.y <= raw_rect.y + raw_rect.height;
-
-    const bool is_mouse_on_thumb =
-        mouse_pos.x >= raw_rect_thumb.x && mouse_pos.x <= raw_rect_thumb.x + raw_rect_thumb.width &&
-        mouse_pos.y >= raw_rect_thumb.y && mouse_pos.y <= raw_rect_thumb.y + raw_rect_thumb.height;
-
-    const bool is_mouse_on_slider = is_mouse_on_rect || is_mouse_on_thumb;
+    const bool is_mouse_on_slider = raw_rect.CheckCollision(mouse_pos) || thumb.get_raw_rect().CheckCollision(mouse_pos);
+    
     if (slider_state == mouse_state::down)
     {
         const float mouse_progress = (mouse_pos.x - raw_rect.x) / raw_rect.width;

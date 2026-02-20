@@ -757,26 +757,20 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
         border(border::type::rel_h, 0.2f),
         true, ui::image::display::shrink_to_fit, true, false, 0.f
     )),
-    level_list_frame(add_child<kee::ui::scrollable>(std::nullopt,
+    level_list_scrollable(add_child<kee::ui::scrollable>(std::nullopt,
         pos(pos::type::rel, 0.f),
         pos(pos::type::rel, 0.1f),
         dims(
             dim(dim::type::rel, 0.5f),
             dim(dim::type::rel, 0.9f)
         ),
-        false
-    )),
-    level_list_bg(level_list_frame.ref.add_child<kee::ui::rect>(std::nullopt,
-        kee::color(50, 50, 50, 100),
-        pos(pos::type::rel, 0.03f),
+        false,
         pos(pos::type::rel, 0.f),
-        dims(
-            dim(dim::type::rel, 0.97f),
-            dim(dim::type::rel, 1.f)
-        ),
-        false, std::nullopt, std::nullopt
+        dim(dim::type::rel, 0.03f),
+        pos(pos::type::rel, 0.03f),
+        dim(dim::type::rel, 0.97f)
     )),
-    level_list_inner(level_list_bg.ref.add_child<kee::ui::base>(std::nullopt,
+    level_list_inner(level_list_scrollable.ref.add_scrollable_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_w, 0.01f),
@@ -799,7 +793,9 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
     search_bar.ref.x.val = back_rect_w;
     std::get<kee::dims>(search_bar.ref.dimensions).w.val = search_rect_x - back_rect_w;
 
+    level_list_scrollable.ref.set_scrollable_rel_h(2.f); /* TODO: test */
     level_list.reserve(menu_scene.play_imgs.size());
+    
     for (std::size_t i = 0; i < menu_scene.play_imgs.size(); i++)
     {
         level_list.emplace_back(level_list_inner.ref.add_child<level_ui>(std::nullopt,

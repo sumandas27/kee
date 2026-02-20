@@ -202,8 +202,7 @@ private:
     kee::ui::handle<kee::ui::rect> search_rect;
     kee::ui::handle<kee::ui::image> search_image;
 
-    kee::ui::handle<kee::ui::scrollable> level_list_frame;
-    kee::ui::handle<kee::ui::rect> level_list_bg;
+    kee::ui::handle<kee::ui::scrollable> level_list_scrollable;
     kee::ui::handle<kee::ui::base> level_list_inner;
     std::vector<kee::ui::handle<level_ui>> level_list;
 
