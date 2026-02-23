@@ -611,13 +611,18 @@ level_ui::level_ui(
     bool centered,
     const level_ui_assets& ui_assets
 ) :
-    kee::ui::rect(reqs, 
-        kee::color(10, 10, 10),
-        x, y, dims, centered, std::nullopt,
-        ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.2f, std::nullopt)
-    ),
-    image_frame(add_child<kee::ui::rect>(std::nullopt,
-        kee::color(15, 15, 15),
+    kee::ui::button(reqs, x, y, dims, centered),
+    frame_color(add_transition<kee::color>(kee::color(10, 10, 10))),
+    image_frame_color(add_transition<kee::color>(kee::color(15, 15, 15))),
+    frame(add_child<kee::ui::rect>(std::nullopt,
+        frame_color.get(),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::abs, 0),
+        true, std::nullopt, std::nullopt
+    )),
+    image_frame(frame.ref.add_child<kee::ui::rect>(std::nullopt,
+        image_frame_color.get(),
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         kee::dims(
@@ -637,7 +642,7 @@ level_ui::level_ui(
         )) :
         std::nullopt
     ),
-    text_frame(add_child<kee::ui::base>(std::nullopt,
+    text_frame(frame.ref.add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::beg, 0.f),
         pos(pos::type::rel, 0.f),
         kee::dims(
@@ -673,10 +678,38 @@ level_ui::level_ui(
         ui::text_size(ui::text_size::type::rel_h, 0.25f),
         std::nullopt, false, assets.font_semi_bold, ui_assets.mapper + "'s " + ui_assets.level_name, false
     ))
-{ 
+{
+    on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            frame_color.set(std::nullopt, kee::color(40, 40, 40), 0.5f, kee::transition_type::exp);
+            image_frame_color.set(std::nullopt, kee::color(60, 60, 60), 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            frame_color.set(std::nullopt, kee::color(10, 10, 10), 0.5f, kee::transition_type::exp);
+            image_frame_color.set(std::nullopt, kee::color(15, 15, 15), 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        /* TODO: impl */
+    };
+
     const float image_frame_w = image_frame.ref.get_raw_rect().width;
     text_frame.ref.x.val = image_frame_w;
     std::get<kee::dims>(text_frame.ref.dimensions).w.val = get_raw_rect().width - image_frame_w;
+}
+
+void level_ui::update_element([[maybe_unused]] float dt)
+{
+    frame.ref.color = frame_color.get();
+    image_frame.ref.color = image_frame_color.get();
 }
 
 play::play(const kee::ui::required& reqs, menu& menu_scene) :
@@ -856,7 +889,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
 
 void play::update_element([[maybe_unused]] float dt)
 {
-    //back_rect.ref.color = back_rect_color.get();
+    back_rect.ref.color = back_rect_color.get();
 }
 
 menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info, bool from_game_init) :

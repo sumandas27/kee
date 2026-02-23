@@ -149,7 +149,7 @@ public:
     std::string level_name;
 };
 
-class level_ui final : public kee::ui::rect
+class level_ui final : public kee::ui::button
 {
 public:
     level_ui(
@@ -162,6 +162,13 @@ public:
     );
 
 private:
+    void update_element(float dt) override;
+
+    kee::transition<kee::color>& frame_color;
+    kee::transition<kee::color>& image_frame_color;
+
+    kee::ui::handle<kee::ui::rect> frame;
+
     kee::ui::handle<kee::ui::rect> image_frame;
     std::optional<kee::ui::handle<kee::ui::image>> image;
 
