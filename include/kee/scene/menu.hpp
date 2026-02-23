@@ -222,7 +222,6 @@ private:
 class menu final : public kee::scene::base
 {
 public:
-    /* TODO: have ts be randomly selected i think */
     menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info, bool from_game_init);
 
 private:

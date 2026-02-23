@@ -3,7 +3,7 @@
 #include "kee/ui/base.hpp"
 #include "kee/ui/rect.hpp"
 
-/* TODO: mouse input */
+/* TODO: mouse bound within rect + scroll + arrow (only relevant in menu) input */
 
 namespace kee {
 namespace ui {
