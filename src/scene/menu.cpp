@@ -789,9 +789,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
     search_bar.ref.x.val = back_rect_w;
     std::get<kee::dims>(search_bar.ref.dimensions).w.val = search_rect_x - back_rect_w;
 
-    level_list_scrollable.ref.set_scrollable_rel_h(2.f); /* TODO: test */
     level_list.reserve(menu_scene.play_imgs.size());
-    
     for (std::size_t i = 0; i < menu_scene.play_imgs.size(); i++)
     {
         level_list.emplace_back(level_list_inner.ref.add_child<level_ui>(std::nullopt,
@@ -804,6 +802,15 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
             true, menu_scene.play_imgs[i]
         ));
     }
+
+    const raylib::Rectangle level_list_scrollable_rect = level_list_scrollable.ref.scroll_frame_ui.ref.get_raw_rect();
+    const float abs_margin = level_list_inner.ref.get_raw_rect().x - level_list_scrollable_rect.x;
+    const float level_list_back_end_y = level_list.back().ref.get_raw_rect().y + level_list.back().ref.get_raw_rect().height;
+    const float level_list_h = level_list_back_end_y - level_list.front().ref.get_raw_rect().y;
+
+    const float abs_scrollable_h = level_list_h + 2 * abs_margin;
+    const float rel_scrollable_h = abs_scrollable_h / level_list_scrollable_rect.height;
+    level_list_scrollable.ref.set_scrollable_rel_h(rel_scrollable_h);
 
     back_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
