@@ -10,8 +10,9 @@ using namespace std::chrono_literals;
 namespace kee {
 namespace scene {
 
-music_analyzer::music_analyzer(const std::filesystem::path& music_path) :
-    wave(music_path.string()),
+music_analyzer::music_analyzer(const std::filesystem::path& beatmap_dir_path) :
+    beatmap_dir_path(beatmap_dir_path),
+    wave((beatmap_dir_path / beatmap_dir_state::standard_music_filename).string()),
     frame_cursor(0),
     fft_pcm_floats{},
     fft_prev_mags{},
@@ -27,6 +28,11 @@ music_analyzer::music_analyzer(const std::filesystem::path& music_path) :
 music_analyzer::~music_analyzer()
 {
     UnloadAudioStream(audio_stream);
+}
+
+const std::filesystem::path& music_analyzer::get_beatmap_dir_path() const
+{
+    return beatmap_dir_path;
 }
 
 void music_analyzer::update()
@@ -591,7 +597,8 @@ music_transitions::music_transitions(menu& menu_scene) :
     };
 }
 
-level_ui_assets::level_ui_assets(const std::filesystem::path& beatmap_dir_path)
+level_ui_assets::level_ui_assets(const std::filesystem::path& beatmap_dir_path) :
+    beatmap_dir_path(beatmap_dir_path)
 {
     const beatmap_dir_info dir_info(beatmap_dir_path);
     if (dir_info.dir_state.has_image)
@@ -609,17 +616,24 @@ level_ui::level_ui(
     const kee::pos& y,
     const std::variant<kee::dims, kee::border>& dims,
     bool centered,
-    const level_ui_assets& ui_assets
+    bool is_selected,
+    play& play_ui,
+    const level_ui_assets& ui_assets,
+    std::size_t idx
 ) :
     kee::ui::button(reqs, x, y, dims, centered),
-    frame_color(add_transition<kee::color>(kee::color(10, 10, 10))),
-    image_frame_color(add_transition<kee::color>(kee::color(15, 15, 15))),
+    is_selected(is_selected),
+    idx(idx),
+    play_ui(play_ui),
+    frame_color(add_transition<kee::color>(is_selected ? kee::color(30, 30, 30) : kee::color(10, 10, 10))),
+    image_frame_color(add_transition<kee::color>(is_selected ? kee::color(45, 45, 45) : kee::color(15, 15, 15))),
     frame(add_child<kee::ui::rect>(std::nullopt,
         frame_color.get(),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         border(border::type::abs, 0),
-        true, std::nullopt, std::nullopt
+        true, std::nullopt,
+        ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.2f, std::nullopt)
     )),
     image_frame(frame.ref.add_child<kee::ui::rect>(std::nullopt,
         image_frame_color.get(),
@@ -681,11 +695,14 @@ level_ui::level_ui(
 {
     on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
+        if (this->is_selected)
+            return;
+
         switch (button_event)
         {
         case ui::button::event::on_hot:
-            frame_color.set(std::nullopt, kee::color(40, 40, 40), 0.5f, kee::transition_type::exp);
-            image_frame_color.set(std::nullopt, kee::color(60, 60, 60), 0.5f, kee::transition_type::exp);
+            frame_color.set(std::nullopt, kee::color(0, 0, 0), 0.5f, kee::transition_type::exp);
+            image_frame_color.set(std::nullopt, kee::color(5, 5, 5), 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_leave:
             frame_color.set(std::nullopt, kee::color(10, 10, 10), 0.5f, kee::transition_type::exp);
@@ -698,12 +715,28 @@ level_ui::level_ui(
 
     on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        /* TODO: impl */
+        this->play_ui.set_selected_level(this->idx);
     };
 
     const float image_frame_w = image_frame.ref.get_raw_rect().width;
     text_frame.ref.x.val = image_frame_w;
     std::get<kee::dims>(text_frame.ref.dimensions).w.val = get_raw_rect().width - image_frame_w;
+}
+
+void level_ui::select()
+{
+    is_selected = true;
+
+    frame_color.set(std::nullopt, kee::color(30, 30, 30), 0.3f, kee::transition_type::exp);
+    image_frame_color.set(std::nullopt, kee::color(45, 45, 45), 0.3f, kee::transition_type::exp);
+}
+
+void level_ui::unselect()
+{
+    is_selected = false;
+
+    frame_color.set(std::nullopt, kee::color(15, 15, 15), 0.3f, kee::transition_type::exp);
+    image_frame_color.set(std::nullopt, kee::color(10, 10, 10), 0.3f, kee::transition_type::exp);
 }
 
 void level_ui::update_element([[maybe_unused]] float dt)
@@ -712,7 +745,7 @@ void level_ui::update_element([[maybe_unused]] float dt)
     image_frame.ref.color = image_frame_color.get();
 }
 
-play::play(const kee::ui::required& reqs, menu& menu_scene) :
+play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesystem::path& music_analyzer_beatmap_dir) :
     kee::ui::button(reqs,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
@@ -726,7 +759,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
         pos(pos::type::rel, 0.f),
         dims(
             dim(dim::type::rel, 1.f),
-            dim(dim::type::rel, 0.1f)
+            dim(dim::type::rel, 0.075f)
         ),
         false
     )),
@@ -788,10 +821,10 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
     )),
     level_list_scrollable(add_child<kee::ui::scrollable>(std::nullopt,
         pos(pos::type::rel, 0.f),
-        pos(pos::type::rel, 0.1f),
+        pos(pos::type::rel, 0.075f),
         dims(
             dim(dim::type::rel, 0.5f),
-            dim(dim::type::rel, 0.9f)
+            dim(dim::type::rel, 0.925f)
         ),
         false,
         pos(pos::type::rel, 0.f),
@@ -808,10 +841,10 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
     level_select_frame(add_child<kee::ui::rect>(std::nullopt,
         kee::color(25, 25, 25, 100),
         pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.1f),
+        pos(pos::type::rel, 0.075f),
         dims(
             dim(dim::type::rel, 0.5f),
-            dim(dim::type::rel, 0.9f)
+            dim(dim::type::rel, 0.925f)
         ),
         false, std::nullopt, std::nullopt
     ))
@@ -822,9 +855,14 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
     search_bar.ref.x.val = back_rect_w;
     std::get<kee::dims>(search_bar.ref.dimensions).w.val = search_rect_x - back_rect_w;
 
-    level_list.reserve(menu_scene.play_imgs.size());
-    for (std::size_t i = 0; i < menu_scene.play_imgs.size(); i++)
+    level_list.reserve(menu_scene.play_assets.size());
+    for (std::size_t i = 0; i < menu_scene.play_assets.size(); i++)
     {
+        const level_ui_assets& ui_assets = menu_scene.play_assets[i];
+        const bool is_analyzer_playing = std::filesystem::equivalent(ui_assets.beatmap_dir_path, music_analyzer_beatmap_dir);
+        if (is_analyzer_playing)
+            level_list_selected_idx = i;
+
         level_list.emplace_back(level_list_inner.ref.add_child<level_ui>(std::nullopt,
             pos(pos::type::rel, 0.5f),
             pos(pos::type::rel, static_cast<float>(i) * 0.11f + 0.05f),
@@ -832,9 +870,12 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
                 dim(dim::type::rel, 1.f),
                 dim(dim::type::rel, 0.1f)
             ),
-            true, menu_scene.play_imgs[i]
+            true, is_analyzer_playing, *this, ui_assets, i
         ));
     }
+
+    if (!level_list_selected_idx.has_value())
+        throw std::runtime_error("Music analyzer's beatmap can't be found");
 
     const raylib::Rectangle level_list_scrollable_rect = level_list_scrollable.ref.scroll_frame_ui.ref.get_raw_rect();
     const float abs_margin = level_list_inner.ref.get_raw_rect().x - level_list_scrollable_rect.x;
@@ -885,6 +926,20 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
     menu_scene.music_trns.value().setting_color.set(std::nullopt, kee::color::blank, 0.75f, kee::transition_type::exp);
     menu_scene.music_trns.value().exit_color.set(std::nullopt, kee::color::blank, 0.75f, kee::transition_type::exp);
     menu_scene.music_trns.value().song_ui_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
+}
+
+void play::set_selected_level(std::size_t idx)
+{
+    if (!level_list_selected_idx.has_value())
+        throw std::runtime_error("should have `level_list_selected_idx` value by this point");
+
+    if (idx == level_list_selected_idx.value())
+        return;
+
+    level_list[level_list_selected_idx.value()].ref.unselect();
+    level_list[idx].ref.select();
+
+    level_list_selected_idx = idx;
 }
 
 void play::update_element([[maybe_unused]] float dt)
@@ -1010,7 +1065,7 @@ menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_inf
         ? std::make_optional((beatmap_info.dir_state.path / beatmap_dir_state::standard_img_filename).string())
         : std::nullopt
     ),
-    analyzer(beatmap_info.dir_state.path / beatmap_dir_state::standard_music_filename),
+    analyzer(beatmap_info.dir_state.path),
     music_time(0.f),
     song_ui_frame_outer(add_child<kee::ui::base>(2,
         pos(pos::type::rel, 0.f),
@@ -1141,7 +1196,7 @@ menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_inf
         if (!music_trns.has_value())
             return;
 
-        play_ui.emplace(add_child<play>(3, *this));
+        play_ui.emplace(add_child<play>(3, *this, analyzer.get_beatmap_dir_path()));
     };
 
     e2_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -1172,7 +1227,7 @@ menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_inf
         /* TODO: impl */
     };
 
-    play_imgs_future = std::async(std::launch::async, [] 
+    play_assets_future = std::async(std::launch::async, [] 
     {
         std::vector<level_ui_assets> res;
         for (const auto& entry : std::filesystem::directory_iterator(beatmap_dir_info::app_data_dir / "play"))
@@ -1224,10 +1279,10 @@ void menu::update_element(float dt)
 {
     if (scene_time >= 3.0f && !opening_trns.has_value())
     {
-        if (!play_imgs_future.valid() || play_imgs_future.wait_for(0s) != std::future_status::ready)
+        if (!play_assets_future.valid() || play_assets_future.wait_for(0s) != std::future_status::ready)
             return;
 
-        play_imgs = play_imgs_future.get();
+        play_assets = play_assets_future.get();
         opening_trns.emplace(*this);
     }
     else

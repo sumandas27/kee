@@ -16,19 +16,22 @@ namespace kee {
 namespace scene {
 
 class menu;
+class play;
 
 class music_analyzer
 {
 public:
     static constexpr std::size_t bins = 64;
 
-    music_analyzer(const std::filesystem::path& music_path);
+    music_analyzer(const std::filesystem::path& beatmap_dir_path);
     music_analyzer(const music_analyzer&) = delete;
     music_analyzer(music_analyzer&&) = delete;
     ~music_analyzer();
 
     music_analyzer& operator=(const music_analyzer&) = delete;
     music_analyzer& operator=(music_analyzer&&) = delete;
+
+    const std::filesystem::path& get_beatmap_dir_path() const;
 
     void update();
 
@@ -60,6 +63,8 @@ private:
     static constexpr float min_db = -100.f;
     static constexpr float max_db = -33.f;
     static constexpr float inv_db_range = 1.f / (music_analyzer::max_db - music_analyzer::min_db);
+
+    std::filesystem::path beatmap_dir_path;
 
     raylib::Wave wave;
     std::span<sample_t> samples;
@@ -141,6 +146,8 @@ class level_ui_assets
 public:
     level_ui_assets(const std::filesystem::path& beatmap_dir_path);
 
+    const std::filesystem::path beatmap_dir_path;
+
     std::optional<raylib::Image> img;
 
     std::string song_name;
@@ -158,11 +165,21 @@ public:
         const kee::pos& y,
         const std::variant<kee::dims, kee::border>& dims,
         bool centered,
-        const level_ui_assets& ui_assets
+        bool is_selected,
+        play& play_ui,
+        const level_ui_assets& ui_assets,
+        std::size_t idx
     );
+
+    void select();
+    void unselect();
 
 private:
     void update_element(float dt) override;
+
+    const std::size_t idx;
+
+    play& play_ui;
 
     kee::transition<kee::color>& frame_color;
     kee::transition<kee::color>& image_frame_color;
@@ -177,6 +194,8 @@ private:
     kee::ui::handle<kee::ui::text> song_name_text;
     kee::ui::handle<kee::ui::text> song_artist_text;
     kee::ui::handle<kee::ui::text> level_name_text;
+
+    bool is_selected;
 };
 
 /**
@@ -186,8 +205,10 @@ private:
 class play final : public kee::ui::button
 {
 public:
-    play(const kee::ui::required& reqs, menu& menu_scene);
-  
+    play(const kee::ui::required& reqs, menu& menu_scene, const std::filesystem::path& music_analyzer_beatmap_dir);
+
+    void set_selected_level(std::size_t idx);
+
 private:
     void update_element(float dt) override;
 
@@ -209,9 +230,11 @@ private:
 
     kee::ui::handle<kee::ui::scrollable> level_list_scrollable;
     kee::ui::handle<kee::ui::base> level_list_inner;
-    std::vector<kee::ui::handle<level_ui>> level_list;
+    std::vector<kee::ui::handle<level_ui>> level_list; /* TODO: member initialize */
 
     kee::ui::handle<kee::ui::rect> level_select_frame;
+
+    std::optional<std::size_t> level_list_selected_idx; /* TODO: dont make optional */
 };
 
 /* WISHLIST: make bg more interesting, two ideas:
@@ -243,8 +266,8 @@ private:
     kee::transition<float>& play_text_alpha;
     kee::transition<float>& browse_text_alpha;
 
-    std::future<std::vector<level_ui_assets>> play_imgs_future;
-    std::vector<level_ui_assets> play_imgs;
+    std::future<std::vector<level_ui_assets>> play_assets_future;
+    std::vector<level_ui_assets> play_assets;
 
     kee::ui::handle<kee::ui::button> k_button;
     kee::ui::handle<kee::ui::rect> k_rect;
