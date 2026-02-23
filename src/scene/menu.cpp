@@ -727,8 +727,8 @@ void level_ui::select()
 {
     is_selected = true;
 
-    frame_color.set(std::nullopt, kee::color(30, 30, 30), 0.3f, kee::transition_type::exp);
-    image_frame_color.set(std::nullopt, kee::color(45, 45, 45), 0.3f, kee::transition_type::exp);
+    frame_color.set(kee::color(30, 30, 30));
+    image_frame_color.set(kee::color(45, 45, 45));
 }
 
 void level_ui::unselect()
