@@ -27,8 +27,7 @@ public:
     void push(const raylib::Rectangle& scissor_rect);
     void pop();
 
-private:
-    std::optional<raylib::Rectangle> curr_scissor;
+//private:
     std::stack<raylib::Rectangle> scissor_stack;
 };
 

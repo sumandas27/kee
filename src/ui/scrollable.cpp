@@ -9,6 +9,7 @@ scrollbar::scrollbar(
     const kee::ui::required& reqs,
     const kee::pos& x,
     const kee::dim& w,
+    scrollable& scrollable_ui,
     float rel_h
 ) :
     kee::ui::base(reqs, x,
@@ -16,6 +17,8 @@ scrollbar::scrollbar(
         dims(w, dim(dim::type::rel, 1.f)),
         false
     ),
+    rel_h(rel_h),
+    scrollable_ui(scrollable_ui),
     thumb_color(add_transition<kee::color>(kee::color(50, 50, 50))),
     thumb_frame(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.5f),
@@ -74,9 +77,9 @@ bool scrollbar::on_element_mouse_down([[maybe_unused]] const raylib::Vector2& mo
 
     if (!thumb.ref.get_raw_rect().CheckCollision(mouse_pos))
     {
-        const float mouse_rel_h = (mouse_pos.y - get_raw_rect().y) / get_raw_rect().height;
+        const float thumb_raw_y = (mouse_pos.y - get_raw_rect().y) / get_raw_rect().height;
         const float thumb_rel_cutoff = std::get<kee::dims>(thumb.ref.dimensions).h.val / 2.f;
-        thumb.ref.y.val = std::clamp(mouse_rel_h, thumb_rel_cutoff, 1.f - thumb_rel_cutoff);
+        thumb.ref.y.val = std::clamp(thumb_raw_y, thumb_rel_cutoff, 1.f - thumb_rel_cutoff);
     }
 
     const raylib::Rectangle thumb_rect = thumb.ref.get_raw_rect();
@@ -102,6 +105,36 @@ bool scrollbar::on_element_mouse_up([[maybe_unused]] const raylib::Vector2& mous
 void scrollbar::update_element([[maybe_unused]] float dt)
 {
     thumb.ref.color = thumb_color.get();
+
+    const float thumb_rel_cutoff = std::get<kee::dims>(thumb.ref.dimensions).h.val / 2.f;
+    const float thumb_progress = (thumb.ref.y.val - thumb_rel_cutoff) / (1.f - 2.f * thumb_rel_cutoff);
+    scrollable_ui.scroll_frame_ui.ref.frame.ref.y.val = (1.f - rel_h) * thumb_progress + 0.5f;
+}
+
+scroll_frame::scroll_frame(
+    const kee::ui::required& reqs,
+    const kee::pos& x,
+    const kee::dim& w
+) :
+    kee::ui::rect(reqs,
+        kee::color(50, 50, 50, 100),
+        x, pos(pos::type::rel, 0.f), 
+        dims(w, dim(dim::type::rel, 1.f)), 
+        false, std::nullopt, std::nullopt
+    ),
+    frame(add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::abs, 0.f),
+        true
+    ))
+{ }
+
+void scroll_frame::render() const
+{
+    game_ref.scissor_mode.push(get_raw_rect());
+    kee::ui::rect::render();
+    game_ref.scissor_mode.pop();
 }
 
 scrollable::scrollable(
@@ -118,39 +151,17 @@ scrollable::scrollable(
     kee::ui::base(reqs, x, y, dimensions, centered),
     scrollbar_x(scrollbar_x),
     scrollbar_w(scrollbar_w),
-    scroll_frame_bg(add_child<kee::ui::rect>(std::nullopt,
-        kee::color(50, 50, 50, 100),
-        scroll_frame_x,
-        pos(pos::type::rel, 0.f),
-        dims(
-            scroll_frame_w,
-            dim(dim::type::rel, 1.f)
-        ),
-        false, std::nullopt, std::nullopt
-    )),
-    scroll_frame(scroll_frame_bg.ref.add_child<kee::ui::base>(std::nullopt,
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.5f),
-        border(border::type::abs, 0.f),
-        true
-    ))
+    scroll_frame_ui(add_child<scroll_frame>(std::nullopt, scroll_frame_x, scroll_frame_w))
 { }
 
 void scrollable::set_scrollable_rel_h(float rel_h)
 {
     if (rel_h > 1.f)
-        scrollbar_ui.emplace(add_child<scrollbar>(std::nullopt, scrollbar_x, scrollbar_w, rel_h));
+        scrollbar_ui.emplace(add_child<scrollbar>(std::nullopt, scrollbar_x, scrollbar_w, *this, rel_h));
     else
         scrollbar_ui.reset();
 
     /* TODO: reset scroll frame y */
-}
-
-void scrollable::render() const
-{
-    game_ref.scissor_mode.push(get_raw_rect());
-    kee::ui::base::render();
-    game_ref.scissor_mode.pop();
 }
 
 } // namespace ui

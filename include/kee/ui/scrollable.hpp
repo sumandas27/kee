@@ -8,13 +8,16 @@
 namespace kee {
 namespace ui {
 
-class scrollbar : public kee::ui::base
+class scrollable;
+
+class scrollbar final : public kee::ui::base
 {
 public:
     scrollbar(
         const kee::ui::required& reqs,
         const kee::pos& x,
         const kee::dim& w,
+        scrollable& scrollable_ui,
         float rel_h
     );
 
@@ -25,6 +28,10 @@ private:
 
     void update_element(float dt) override;
 
+    const float rel_h;
+
+    scrollable& scrollable_ui;
+
     kee::transition<kee::color>& thumb_color;
 
     kee::ui::handle<kee::ui::base> thumb_frame;
@@ -34,7 +41,22 @@ private:
     bool thumb_is_hot;
 };
 
-class scrollable : public kee::ui::base
+class scroll_frame final : public kee::ui::rect
+{
+public:
+    scroll_frame(
+        const kee::ui::required& reqs,
+        const kee::pos& x,
+        const kee::dim& w
+    );
+
+    kee::ui::handle<kee::ui::base> frame;
+
+private:
+    void render() const override;
+};
+
+class scrollable final : public kee::ui::base
 {
 public:
     scrollable(
@@ -54,14 +76,11 @@ public:
 
     void set_scrollable_rel_h(float rel_h);
 
-private:
-    void render() const override;
+    kee::ui::handle<scroll_frame> scroll_frame_ui;
 
+private:
     const kee::pos scrollbar_x;
     const kee::dim scrollbar_w;
-
-    kee::ui::handle<kee::ui::rect> scroll_frame_bg;
-    kee::ui::handle<kee::ui::base> scroll_frame;
 
     std::optional<kee::ui::handle<scrollbar>> scrollbar_ui;
 };
