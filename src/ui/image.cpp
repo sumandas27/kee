@@ -1,5 +1,7 @@
 #include "kee/ui/image.hpp"
 
+#include "kee/game.hpp"
+
 namespace kee {
 namespace ui {
 
@@ -70,16 +72,9 @@ void image::render_element() const
         img_size_scaled.y
     );
 
-    BeginScissorMode(
-        static_cast<int>(raw_rect.x),
-        static_cast<int>(raw_rect.y),
-        static_cast<int>(raw_rect.width),
-        static_cast<int>(raw_rect.height)
-    );
-
+    game_ref.scissor_mode.push(get_raw_rect());
     texture.Draw(img_src, img_dst, img_size_scaled / 2, rotation, color.raylib());
-
-    EndScissorMode();
+    game_ref.scissor_mode.pop();
 }
 
 } // namespace ui

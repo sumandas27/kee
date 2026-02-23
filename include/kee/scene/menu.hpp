@@ -149,7 +149,7 @@ public:
     std::string level_name;
 };
 
-class level_ui final : public kee::ui::base
+class level_ui final : public kee::ui::rect
 {
 public:
     level_ui(
@@ -162,8 +162,6 @@ public:
     );
 
 private:
-    kee::ui::handle<kee::ui::rect> frame;
-
     kee::ui::handle<kee::ui::rect> image_frame;
     std::optional<kee::ui::handle<kee::ui::image>> image;
 
@@ -190,21 +188,20 @@ private:
 
     kee::transition<kee::color>& back_rect_color;
 
-    //kee::ui::handle<kee::ui::base> top_bar_frame;
-//
-    //kee::ui::handle<kee::ui::button> back_button;
-    //kee::ui::handle<kee::ui::rect> back_rect;
-    //kee::ui::handle<kee::ui::image> back_image;
-//
-    ///* TODO: will move to being a textbox */
-    //kee::ui::handle<kee::ui::rect> search_bar;
-    //kee::ui::handle<kee::ui::button> search_button;
-    //kee::ui::handle<kee::ui::rect> search_rect;
-    //kee::ui::handle<kee::ui::image> search_image;
+    kee::ui::handle<kee::ui::base> top_bar_frame;
+
+    kee::ui::handle<kee::ui::button> back_button;
+    kee::ui::handle<kee::ui::rect> back_rect;
+    kee::ui::handle<kee::ui::image> back_image;
+
+    /* TODO: will move to being a textbox */
+    kee::ui::handle<kee::ui::rect> search_bar;
+    kee::ui::handle<kee::ui::button> search_button;
+    kee::ui::handle<kee::ui::rect> search_rect;
+    kee::ui::handle<kee::ui::image> search_image;
 
     kee::ui::handle<kee::ui::scrollable> level_list_scrollable;
     kee::ui::handle<kee::ui::base> level_list_inner;
-    kee::ui::handle<kee::ui::text> test;
     std::vector<kee::ui::handle<level_ui>> level_list;
 
     kee::ui::handle<kee::ui::rect> level_select_frame;

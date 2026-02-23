@@ -611,16 +611,12 @@ level_ui::level_ui(
     bool centered,
     const level_ui_assets& ui_assets
 ) :
-    kee::ui::base(reqs, x, y, dims, centered),
-    frame(add_child<kee::ui::rect>(std::nullopt,
+    kee::ui::rect(reqs, 
         kee::color(10, 10, 10),
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.5f),
-        border(border::type::abs, 0.f),
-        true, std::nullopt,
+        x, y, dims, centered, std::nullopt,
         ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.2f, std::nullopt)
-    )),
-    image_frame(frame.ref.add_child<kee::ui::rect>(std::nullopt,
+    ),
+    image_frame(add_child<kee::ui::rect>(std::nullopt,
         kee::color(15, 15, 15),
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
@@ -641,7 +637,7 @@ level_ui::level_ui(
         )) :
         std::nullopt
     ),
-    text_frame(frame.ref.add_child<kee::ui::base>(std::nullopt,
+    text_frame(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::beg, 0.f),
         pos(pos::type::rel, 0.f),
         kee::dims(
@@ -680,7 +676,7 @@ level_ui::level_ui(
 { 
     const float image_frame_w = image_frame.ref.get_raw_rect().width;
     text_frame.ref.x.val = image_frame_w;
-    std::get<kee::dims>(text_frame.ref.dimensions).w.val = frame.ref.get_raw_rect().width - image_frame_w;
+    std::get<kee::dims>(text_frame.ref.dimensions).w.val = get_raw_rect().width - image_frame_w;
 }
 
 play::play(const kee::ui::required& reqs, menu& menu_scene) :
@@ -692,7 +688,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
     ),
     search_png("assets/img/search.png"),
     back_rect_color(add_transition<kee::color>(kee::color(40, 40, 40))),
-    /*top_bar_frame(add_child<kee::ui::base>(std::nullopt,
+    top_bar_frame(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.f),
         pos(pos::type::rel, 0.f),
         dims(
@@ -756,7 +752,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
         pos(pos::type::rel, 0.5f),
         border(border::type::rel_h, 0.2f),
         true, ui::image::display::shrink_to_fit, true, false, 0.f
-    )),*/
+    )),
     level_list_scrollable(add_child<kee::ui::scrollable>(std::nullopt,
         pos(pos::type::rel, 0.f),
         pos(pos::type::rel, 0.1f),
@@ -776,13 +772,6 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
         border(border::type::rel_w, 0.01f),
         true
     )),
-    test(level_list_inner.ref.add_child<kee::ui::text>(std::nullopt,
-        kee::color::white,
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.5f),
-        ui::text_size(ui::text_size::type::rel_h, 0.1f),
-        std::nullopt, true, assets.font_regular, "TEST", false
-    )),
     level_select_frame(add_child<kee::ui::rect>(std::nullopt,
         kee::color(25, 25, 25, 100),
         pos(pos::type::rel, 0.5f),
@@ -794,11 +783,11 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
         false, std::nullopt, std::nullopt
     ))
 {
-    //const float back_rect_w = back_rect.ref.get_raw_rect().width;
-    //const float search_rect_x = search_rect.ref.get_raw_rect().x;
-//
-    //search_bar.ref.x.val = back_rect_w;
-    //std::get<kee::dims>(search_bar.ref.dimensions).w.val = search_rect_x - back_rect_w;
+    const float back_rect_w = back_rect.ref.get_raw_rect().width;
+    const float search_rect_x = search_rect.ref.get_raw_rect().x;
+
+    search_bar.ref.x.val = back_rect_w;
+    std::get<kee::dims>(search_bar.ref.dimensions).w.val = search_rect_x - back_rect_w;
 
     level_list_scrollable.ref.set_scrollable_rel_h(2.f); /* TODO: test */
     level_list.reserve(menu_scene.play_imgs.size());
@@ -816,25 +805,25 @@ play::play(const kee::ui::required& reqs, menu& menu_scene) :
         ));
     }
 
-    //back_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
-    //{
-    //    switch (button_event)
-    //    {
-    //    case ui::button::event::on_hot:
-    //        back_rect_color.set(std::nullopt, kee::color(30, 30, 30), 0.5f, kee::transition_type::exp);
-    //        break;
-    //    case ui::button::event::on_leave:
-    //        back_rect_color.set(std::nullopt, kee::color(40, 40, 40), 0.5f, kee::transition_type::exp);
-    //        break;
-    //    default:
-    //        break;
-    //    }
-    //};
-//
-    //back_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
-    //{
-    //    /* TODO: impl */
-    //};
+    back_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            back_rect_color.set(std::nullopt, kee::color(30, 30, 30), 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            back_rect_color.set(std::nullopt, kee::color(40, 40, 40), 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    back_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        /* TODO: impl */
+    };
 
     menu_scene.k_text_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
     menu_scene.edit_text_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
