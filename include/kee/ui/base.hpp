@@ -109,7 +109,6 @@ public:
      * Inefficient, if performance is a problem investigate and fix if applicable.
      */
     raylib::Rectangle get_raw_rect() const;
-    raylib::Rectangle get_raw_rect_parent() const;
 
     void take_render_priority();
     void release_render_priority();

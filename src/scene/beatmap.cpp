@@ -957,9 +957,12 @@ void beatmap::reset_level()
                 const float duration = static_cast<float>(hold_obj.at("duration").as_double());
                 const std::string end_hitsound = static_cast<std::string>(hold_obj.at("hitsound").as_string());
                  TODO: do stuff with all this
+                 ^^^^ FIX THIS WHEN REWORKING ACC PRIORITY
             }*/
 
-            /* TODO: add hitsounds as part of hit object class 
+            /* TODO: add hitsounds as part of hit object class,
+               ^^^^ FIX THIS WHEN REWORKING ACC PRIORITY
+
             also 0.f temp
             */
             keys.at(id).ref.push(beatmap_hit_object(beat, 0.f));
@@ -1181,11 +1184,11 @@ void beatmap::update_element(float dt)
     }
 
     combo_text.ref.set_string(std::to_string(combo) + "x");
-    combo_text.ref.set_scale(1.0f + 0.1f * combo_gain.get());
+    combo_text.ref.set_text_size_val(0.08f + 0.02f * combo_gain.get());
 
     combo_text_bg.ref.color = kee::color(255, 255, 255, 127.5f * combo_gain.get());
     combo_text_bg.ref.set_string(std::to_string(combo) + "x");
-    combo_text_bg.ref.set_scale(1.0f + 0.5f * combo_gain.get());
+    combo_text_bg.ref.set_text_size_val(0.08f + 0.04f * combo_gain.get());
 
     std::get<kee::dims>(progress_rect.ref.dimensions).w.val = std::clamp(get_beat() / end_beat, 0.0f, 1.0f);
     if (load_rect.has_value())

@@ -44,27 +44,23 @@ public:
     float get_base_scale() const;
 
     void set_string(std::string_view new_str);
-    void set_scale(float new_scale);
+    void set_text_size_val(float val);
 
     const raylib::Font& font;
 
 private:
     static constexpr float font_cap_height_multiplier_approx = 0.9f;
 
+    void update_element(float dt) override;
     void render_element() const override;
 
-    void update_dims(
-        std::optional<std::string_view> new_str, 
-        std::optional<kee::ui::text_size> new_str_size, 
-        std::optional<float> new_scale
-    );
-
-    const std::optional<kee::dim> clamped_width;
+    const bool has_clamped_width;
     const bool font_cap_height_only;
 
     std::string str;
-    float str_size;
-    float scale;
+    kee::ui::text_size str_size;
+public:
+    float str_render_size;
 };
 
 } // namespace ui

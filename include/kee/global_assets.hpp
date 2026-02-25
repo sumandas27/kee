@@ -22,6 +22,7 @@ public:
 
     global_assets();
 
+    const raylib::Font font_italic;
     const raylib::Font font_light;
     const raylib::Font font_regular;
     const raylib::Font font_semi_bold;

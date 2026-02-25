@@ -16,8 +16,6 @@ namespace kee {
 namespace scene {
 namespace editor {
 
-/* TODO MAYBE: add beatmap ui elements to editor down the line i.e. progress bar/combo/etc */
-
 class compose_tab;
 class editor_hit_object;
 class hitsound_state;

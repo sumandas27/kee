@@ -192,7 +192,7 @@ private:
     kee::ui::handle<kee::ui::base> text_frame;
     kee::ui::handle<kee::ui::base> text_inner_frame;
     kee::ui::handle<kee::ui::text> song_name_text;
-    kee::ui::handle<kee::ui::text> song_artist_text;
+    kee::ui::handle<kee::ui::text> song_artist_text; /* TODO: clamp these */
     kee::ui::handle<kee::ui::text> level_name_text;
 
     bool is_selected;
@@ -230,11 +230,24 @@ private:
 
     kee::ui::handle<kee::ui::scrollable> level_list_scrollable;
     kee::ui::handle<kee::ui::base> level_list_inner;
-    std::vector<kee::ui::handle<level_ui>> level_list; /* TODO: member initialize */
+    std::vector<kee::ui::handle<level_ui>> level_list;
 
-    kee::ui::handle<kee::ui::rect> level_select_frame;
+    kee::ui::handle<kee::ui::rect> selected_bg;
+    kee::ui::handle<kee::ui::base> selected_frame;
+    
+    kee::ui::handle<kee::ui::rect> selected_image_frame;
+    std::optional<kee::ui::handle<kee::ui::image>> selected_image;
 
-    std::optional<std::size_t> level_list_selected_idx; /* TODO: dont make optional */
+    kee::ui::handle<kee::ui::base> selected_text_frame;
+    kee::ui::handle<kee::ui::text> selected_song_name_text;
+    kee::ui::handle<kee::ui::text> selected_song_artist_text; /* TODO: clamp these */
+    kee::ui::handle<kee::ui::text> selected_level_name_text; /* TODO NEXT: work on ts */
+
+    /**
+     * `level_list` is never pushed to or popped from, meaning
+     * indexing is a valid pointer.
+     */
+    std::size_t level_list_selected_idx;
 };
 
 /* WISHLIST: make bg more interesting, two ideas:

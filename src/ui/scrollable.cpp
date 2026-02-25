@@ -117,7 +117,7 @@ scroll_frame::scroll_frame(
     const kee::dim& w
 ) :
     kee::ui::rect(reqs,
-        kee::color(50, 50, 50, 100),
+        kee::color(35, 35, 35, 100),
         x, pos(pos::type::rel, 0.f), 
         dims(w, dim(dim::type::rel, 1.f)), 
         false, std::nullopt, std::nullopt
@@ -149,9 +149,9 @@ scrollable::scrollable(
     const kee::dim& scroll_frame_w
 ) :
     kee::ui::base(reqs, x, y, dimensions, centered),
+    scroll_frame_ui(add_child<scroll_frame>(std::nullopt, scroll_frame_x, scroll_frame_w)),
     scrollbar_x(scrollbar_x),
-    scrollbar_w(scrollbar_w),
-    scroll_frame_ui(add_child<scroll_frame>(std::nullopt, scroll_frame_x, scroll_frame_w))
+    scrollbar_w(scrollbar_w)
 { }
 
 void scrollable::set_scrollable_rel_h(float rel_h)

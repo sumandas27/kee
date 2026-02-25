@@ -3,7 +3,9 @@
 #include "kee/ui/base.hpp"
 #include "kee/ui/rect.hpp"
 
-/* TODO NEXT: rethink `menu_style`, seems kinda hacky and bad */
+/* TODO NEXT: rethink `menu_style`, seems kinda hacky and bad 
+    maybe don't do this, revisit when implementing menu play textbox
+*/
 
 namespace kee {
 namespace ui {

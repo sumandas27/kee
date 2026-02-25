@@ -3,6 +3,7 @@
 namespace kee {
     
 global_assets::global_assets() :
+    font_italic(global_assets::gen_sdf_font("assets/fonts/Montserrat-Italic.ttf")),
     font_light(global_assets::gen_sdf_font("assets/fonts/Montserrat-Light.ttf")),
     font_regular(global_assets::gen_sdf_font("assets/fonts/Montserrat-Regular.ttf")),
     font_semi_bold(global_assets::gen_sdf_font("assets/fonts/Montserrat-SemiBold.ttf")),

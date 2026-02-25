@@ -591,8 +591,7 @@ music_transitions::music_transitions(menu& menu_scene) :
     };
 
     exit_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
-    { 
-        /* TODO: impl some sort of closing trns */
+    {
         this->menu_scene.game_ref.queue_game_exit();
     };
 }
@@ -622,7 +621,6 @@ level_ui::level_ui(
     std::size_t idx
 ) :
     kee::ui::button(reqs, x, y, dims, centered),
-    is_selected(is_selected),
     idx(idx),
     play_ui(play_ui),
     frame_color(add_transition<kee::color>(is_selected ? kee::color(30, 30, 30) : kee::color(10, 10, 10))),
@@ -675,23 +673,24 @@ level_ui::level_ui(
         kee::color::white,
         pos(pos::type::rel, 0.f),
         pos(pos::type::rel, 0.f),
-        ui::text_size(ui::text_size::type::rel_h, 0.5f),
-        std::nullopt, false, assets.font_regular, ui_assets.song_name, false
+        ui::text_size(ui::text_size::type::rel_h, 0.6f),
+        std::nullopt, false, assets.font_semi_bold, ui_assets.song_name, false
     )),
     song_artist_text(text_inner_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color(200, 200, 200),
         pos(pos::type::rel, 0.f),
-        pos(pos::type::rel, 0.5f),
-        ui::text_size(ui::text_size::type::rel_h, 0.25f),
-        std::nullopt, false, assets.font_semi_bold, ui_assets.song_artist, false
+        pos(pos::type::end, 0.f),
+        ui::text_size(ui::text_size::type::rel_h, 0.35f),
+        std::nullopt, false, assets.font_regular, ui_assets.song_artist, false
     )),
     level_name_text(text_inner_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        kee::color(200, 200, 200),
-        pos(pos::type::rel, 0.f),
-        pos(pos::type::rel, 0.75f),
-        ui::text_size(ui::text_size::type::rel_h, 0.25f),
-        std::nullopt, false, assets.font_semi_bold, ui_assets.mapper + "'s " + ui_assets.level_name, false
-    ))
+        kee::color(150, 150, 150),
+        pos(pos::type::beg, 0.f),
+        pos(pos::type::end, 0.f),
+        ui::text_size(ui::text_size::type::rel_h, 0.35f),
+        std::nullopt, false, assets.font_italic, " - " + ui_assets.mapper + "'s " + ui_assets.level_name, false
+    )),
+    is_selected(is_selected)
 {
     on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
@@ -701,8 +700,8 @@ level_ui::level_ui(
         switch (button_event)
         {
         case ui::button::event::on_hot:
-            frame_color.set(std::nullopt, kee::color(0, 0, 0), 0.5f, kee::transition_type::exp);
-            image_frame_color.set(std::nullopt, kee::color(5, 5, 5), 0.5f, kee::transition_type::exp);
+            frame_color.set(std::nullopt, kee::color(20, 20, 20), 0.5f, kee::transition_type::exp);
+            image_frame_color.set(std::nullopt, kee::color(30, 30, 30), 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_leave:
             frame_color.set(std::nullopt, kee::color(10, 10, 10), 0.5f, kee::transition_type::exp);
@@ -721,6 +720,8 @@ level_ui::level_ui(
     const float image_frame_w = image_frame.ref.get_raw_rect().width;
     text_frame.ref.x.val = image_frame_w;
     std::get<kee::dims>(text_frame.ref.dimensions).w.val = get_raw_rect().width - image_frame_w;
+
+    level_name_text.ref.x.val = song_artist_text.ref.get_raw_rect().width;
 }
 
 void level_ui::select()
@@ -838,7 +839,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
         border(border::type::rel_w, 0.01f),
         true
     )),
-    level_select_frame(add_child<kee::ui::rect>(std::nullopt,
+    selected_bg(add_child<kee::ui::rect>(std::nullopt,
         kee::color(25, 25, 25, 100),
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.075f),
@@ -847,6 +848,52 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
             dim(dim::type::rel, 0.925f)
         ),
         false, std::nullopt, std::nullopt
+    )),
+    selected_frame(selected_bg.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_w, 0.05f),
+        true
+    )),
+    selected_image_frame(selected_frame.ref.add_child<kee::ui::rect>(std::nullopt,
+        kee::color(50, 50, 50),
+        pos(pos::type::beg, 0),
+        pos(pos::type::beg, 0),
+        dims(
+            dim(dim::type::rel, 0.15f),
+            dim(dim::type::aspect, static_cast<float>(kee::window_h) / kee::window_w)
+        ),
+        false, std::nullopt, std::nullopt
+    )),
+    selected_text_frame(selected_frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::end, 0.f),
+        pos(pos::type::beg, 0.f),
+        dims(
+            dim(dim::type::rel, 0.8f),
+            dim(dim::type::abs, 0.f)
+        ),
+        false
+    )),
+    selected_song_name_text(selected_text_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::rel, 0.f),
+        ui::text_size(ui::text_size::type::rel_h, 0.6f),
+        std::nullopt, false, assets.font_semi_bold, std::string(), false
+    )),
+    selected_song_artist_text(selected_text_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color(200, 200, 200),
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::end, 0.f),
+        ui::text_size(ui::text_size::type::rel_h, 0.35f),
+        std::nullopt, false, assets.font_regular, std::string(), false
+    )),
+    selected_level_name_text(selected_text_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color(150, 150, 150),
+        pos(pos::type::beg, 0.f),
+        pos(pos::type::end, 0.f),
+        ui::text_size(ui::text_size::type::rel_h, 0.35f),
+        std::nullopt, false, assets.font_italic, std::string(), false
     ))
 {
     const float back_rect_w = back_rect.ref.get_raw_rect().width;
@@ -854,14 +901,19 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
 
     search_bar.ref.x.val = back_rect_w;
     std::get<kee::dims>(search_bar.ref.dimensions).w.val = search_rect_x - back_rect_w;
+    std::get<kee::dims>(selected_text_frame.ref.dimensions).h.val = selected_image_frame.ref.get_raw_rect().height;
 
+    std::size_t selected_found = 0;
     level_list.reserve(menu_scene.play_assets.size());
     for (std::size_t i = 0; i < menu_scene.play_assets.size(); i++)
     {
         const level_ui_assets& ui_assets = menu_scene.play_assets[i];
         const bool is_analyzer_playing = std::filesystem::equivalent(ui_assets.beatmap_dir_path, music_analyzer_beatmap_dir);
         if (is_analyzer_playing)
+        {
             level_list_selected_idx = i;
+            selected_found++;
+        }
 
         level_list.emplace_back(level_list_inner.ref.add_child<level_ui>(std::nullopt,
             pos(pos::type::rel, 0.5f),
@@ -874,8 +926,23 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
         ));
     }
 
-    if (!level_list_selected_idx.has_value())
-        throw std::runtime_error("Music analyzer's beatmap can't be found");
+    if (selected_found != 1)
+        throw std::runtime_error("Music analyzer's beatmap is malfomed");
+
+    /* TODO: abstract to its own func, prob want to reuse */
+    const level_ui_assets& ui_assets = menu_scene.play_assets[level_list_selected_idx];
+    if (ui_assets.img.has_value())
+        selected_image.emplace(selected_image_frame.ref.add_child<kee::ui::image>(std::nullopt,
+            ui_assets.img.value(), 
+            kee::color::white,
+            pos(pos::type::rel, 0.5f),
+            pos(pos::type::rel, 0.5f),
+            border(border::type::abs, 0),
+            true, ui::image::display::shrink_to_fit, false, false, 0.0f
+        ));
+
+    selected_song_name_text.ref.set_string(ui_assets.song_name);
+    selected_song_artist_text.ref.set_string(ui_assets.song_artist);
 
     const raylib::Rectangle level_list_scrollable_rect = level_list_scrollable.ref.scroll_frame_ui.ref.get_raw_rect();
     const float abs_margin = level_list_inner.ref.get_raw_rect().x - level_list_scrollable_rect.x;
@@ -930,13 +997,10 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
 
 void play::set_selected_level(std::size_t idx)
 {
-    if (!level_list_selected_idx.has_value())
-        throw std::runtime_error("should have `level_list_selected_idx` value by this point");
-
-    if (idx == level_list_selected_idx.value())
+    if (idx == level_list_selected_idx)
         return;
 
-    level_list[level_list_selected_idx.value()].ref.unselect();
+    level_list[level_list_selected_idx].ref.unselect();
     level_list[idx].ref.select();
 
     level_list_selected_idx = idx;
@@ -1335,23 +1399,17 @@ void menu::update_element(float dt)
     }
 
     k_text.ref.color.a = k_text_alpha.get();
-    k_text.ref.set_scale(k_scale.get());
-    edit_text.ref.set_scale(k_scale.get());
     edit_text.ref.color.a = edit_text_alpha.get();
     k_rect.ref.outline.value().color.a = opening_trns.has_value() ? opening_trns.value().k_rect_alpha.get() : 0.f;
     k_button.ref.x.val = opening_trns.has_value() ? opening_trns.value().k_rect_x.get() : 0.5f;
     std::get<kee::dims>(k_button.ref.dimensions).h.val = 0.25f * k_scale.get();
 
     e1_text.ref.color.a = opening_trns.has_value() ? opening_trns.value().e1_text_alpha.get() : 0.f;
-    e1_text.ref.set_scale(e1_scale.get());
-    play_text.ref.set_scale(e1_scale.get());
     play_text.ref.color.a = play_text_alpha.get();
     e1_rect.ref.outline.value().color.a = opening_trns.has_value() ? opening_trns.value().e1_rect_alpha.get() : 0.f;
     std::get<kee::dims>(e1_button.ref.dimensions).h.val = 0.25f * e1_scale.get();
 
     e2_text.ref.color.a = opening_trns.has_value() ? opening_trns.value().e2_text_alpha.get() : 0.f;
-    e2_text.ref.set_scale(e2_scale.get());
-    browse_text.ref.set_scale(e2_scale.get());
     browse_text.ref.color.a = browse_text_alpha.get();
     e2_rect.ref.outline.value().color.a = opening_trns.has_value() ? opening_trns.value().e2_rect_alpha.get() : 0.f;
     e2_button.ref.x.val = opening_trns.has_value() ? opening_trns.value().e2_rect_x.get() : 0.5f;

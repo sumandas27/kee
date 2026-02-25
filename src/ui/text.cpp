@@ -23,17 +23,23 @@ text::text(
     kee::ui::base(
         reqs, p_x, p_y, 
         dims(
-            dim(dim::type::abs, 0), 
-            dim(dim::type::abs, 0)
-        ), 
+            clamped_width.has_value() ? clamped_width.value() :dim(dim::type::abs, 0),
+            dim(p_str_size.text_size_type == text_size::type::abs ? dim::type::abs : dim::type::rel, p_str_size.val)
+        ),
         centered
     ),
     font(font),
-    clamped_width(clamped_width),
-    font_cap_height_only(font_cap_height_only)
+    has_clamped_width(clamped_width.has_value()),
+    font_cap_height_only(font_cap_height_only),
+    str(p_string),
+    str_size(p_str_size)
 {
     color = color_param;
-    update_dims(p_string, p_str_size, 1.0f);
+
+    /**
+     * Sets strings and dimensions at construction time.
+     */
+    update_element(0.f);
 }
 
 const std::string& text::get_string() const
@@ -43,17 +49,43 @@ const std::string& text::get_string() const
 
 float text::get_base_scale() const
 {
-    return str_size * scale / font.baseSize;
+    return str_render_size / font.baseSize;
 }
 
 void text::set_string(std::string_view new_str)
 {
-    update_dims(new_str, std::nullopt, std::nullopt);
+    str = new_str;
 }
 
-void text::set_scale(float new_scale)
+void text::set_text_size_val(float val)
 {
-    update_dims(std::nullopt, std::nullopt, new_scale);
+    std::get<kee::dims>(dimensions).h.val = val;
+}
+
+void text::update_element([[maybe_unused]] float dt)
+{
+    const raylib::Rectangle raw_rect = get_raw_rect();
+    str_render_size = raw_rect.height;
+
+    raylib::Vector2 ui_text_dims = font.MeasureText(str.data(), str_render_size, 0.0f);
+    if (has_clamped_width)
+    {
+        float clamped_width_val = raw_rect.width;
+
+        std::size_t str_end_char = str.size();
+        while (str_end_char > 0 && ui_text_dims.x > clamped_width_val)
+        {
+            str = str.substr(0, str_end_char) + "...";
+
+            ui_text_dims = font.MeasureText(str.data(), str_render_size, 0.0f);
+            str_end_char--;
+        }
+    }
+    else
+    {
+        auto& [w, h] = std::get<kee::dims>(dimensions);
+        w.val = ui_text_dims.x;
+    }
 }
 
 void text::render_element() const
@@ -63,64 +95,8 @@ void text::render_element() const
         raw_rect.y += raw_rect.height * (1.0f - font_cap_height_multiplier_approx);
 
     assets.shader_sdf_font.BeginMode();
-    font.DrawText(str.c_str(), raw_rect.GetPosition(), str_size * scale, 0.0f, color.raylib());
+    font.DrawText(str.c_str(), raw_rect.GetPosition(), str_render_size, 0.0f, color.raylib());
     assets.shader_sdf_font.EndMode();
-}
-
-void text::update_dims(
-    std::optional<std::string_view> new_str, 
-    std::optional<kee::ui::text_size> new_str_size, 
-    std::optional<float> new_scale
-) {
-    if (new_str.has_value())
-        str = new_str.value();
-
-    if (new_str_size.has_value())
-        switch (new_str_size.value().text_size_type)
-        {
-        case text_size::type::abs:
-            str_size = new_str_size.value().val;
-            break;
-        case text_size::type::rel_h:
-            str_size = get_raw_rect_parent().height * new_str_size.value().val;
-            break;
-        }
-
-    if (new_scale.has_value())
-        scale = new_scale.value();
-
-    raylib::Vector2 ui_text_dims = font.MeasureText(str.data(), str_size * scale, 0.0f);
-    if (clamped_width.has_value())
-    {
-        float clamped_width_val;
-        switch (clamped_width.value().dim_type)
-        {
-        case kee::dim::type::abs:
-            clamped_width_val = clamped_width.value().val;
-            break;
-        case kee::dim::type::rel:
-            clamped_width_val = get_raw_rect_parent().width * clamped_width.value().val;
-            break;
-        case kee::dim::type::aspect:
-            clamped_width_val = ui_text_dims.y * clamped_width.value().val; 
-            break;
-        default:
-            std::unreachable();
-        }
-
-        std::size_t str_end_char = str.size();
-        while (str_end_char > 0 && ui_text_dims.x > clamped_width_val)
-        {
-            str = str.substr(0, str_end_char) + "...";
-
-            ui_text_dims = font.MeasureText(str.data(), str_size * scale, 0.0f);
-            str_end_char--;
-        }
-    }
-
-    auto& [w, h] = std::get<kee::dims>(dimensions);
-    w.val = ui_text_dims.x;
-    h.val = ui_text_dims.y;
 }
 
 } // namespace ui

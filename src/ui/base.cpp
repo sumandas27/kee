@@ -186,11 +186,6 @@ raylib::Rectangle base::get_raw_rect() const
     return res;
 }
 
-raylib::Rectangle base::get_raw_rect_parent() const
-{
-    return parent.value().get_raw_rect();
-}
-
 void base::take_render_priority()
 {
     std::reference_wrapper<kee::ui::base> scene = *this;
