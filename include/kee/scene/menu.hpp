@@ -168,6 +168,7 @@ public:
         bool is_selected,
         play& play_ui,
         const level_ui_assets& ui_assets,
+        const raylib::Image& star_png,
         std::size_t idx
     );
 
@@ -194,6 +195,13 @@ private:
     kee::ui::handle<kee::ui::text> song_name_text;
     kee::ui::handle<kee::ui::text> song_artist_text; /* TODO: clamp these */
     kee::ui::handle<kee::ui::text> level_name_text;
+
+    kee::ui::handle<kee::ui::rect> rating_rect;
+    kee::ui::handle<kee::ui::base> rating_frame;
+    kee::ui::handle<kee::ui::image> rating_star_img;
+    kee::ui::handle<kee::ui::text> rating_text;
+
+    kee::ui::handle<kee::ui::text> progress_text;
 
     bool is_selected;
 };
@@ -259,6 +267,8 @@ class menu final : public kee::scene::base
 {
 public:
     menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info, bool from_game_init);
+
+    const raylib::Image star_png;
 
 private:
     /* TODO: `friend` is kind of a bad workaround, think about ts */

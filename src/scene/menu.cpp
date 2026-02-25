@@ -618,6 +618,7 @@ level_ui::level_ui(
     bool is_selected,
     play& play_ui,
     const level_ui_assets& ui_assets,
+    const raylib::Image& star_png,
     std::size_t idx
 ) :
     kee::ui::button(reqs, x, y, dims, centered),
@@ -690,6 +691,51 @@ level_ui::level_ui(
         ui::text_size(ui::text_size::type::rel_h, 0.35f),
         std::nullopt, false, assets.font_italic, " - " + ui_assets.mapper + "'s " + ui_assets.level_name, false
     )),
+    rating_rect(text_inner_frame.ref.add_child<kee::ui::rect>(std::nullopt,
+        kee::color(120, 120, 120),
+        pos(pos::type::rel, 0.94f),
+        pos(pos::type::rel, 0.15f),
+        kee::dims(
+            dim(dim::type::rel, 0.1f),
+            dim(dim::type::rel, 0.3f)
+        ),
+        true, std::nullopt,
+        ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.5f, std::nullopt)
+    )),
+    rating_frame(rating_rect.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.45f),
+        pos(pos::type::rel, 0.5f),
+        kee::dims(
+            dim(dim::type::abs, 0.f),
+            dim(dim::type::rel, 1.f)
+        ),
+        true
+    )),
+    rating_star_img(rating_frame.ref.add_child<kee::ui::image>(std::nullopt,
+        star_png,
+        kee::color::white,
+        pos(pos::type::beg, 0.f),
+        pos(pos::type::rel, 0.5f),
+        kee::dims(
+            dim(dim::type::aspect, 1.f),
+            dim(dim::type::rel, 0.8f)
+        ),
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
+    )),
+    rating_text(rating_star_img.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::rel, 1.25f),
+        pos(pos::type::rel, 0.f),
+        ui::text_size(ui::text_size::type::rel_h, 1.f),
+        std::nullopt, false, assets.font_semi_bold, /* TODO: temp */ "1", false
+    )),
+    progress_text(text_inner_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::rel, 0.94f),
+        pos(pos::type::rel, 0.65f),
+        ui::text_size(ui::text_size::type::rel_h, 0.6f),
+        std::nullopt, true, assets.font_semi_bold, "--", false
+    )),
     is_selected(is_selected)
 {
     on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -722,6 +768,9 @@ level_ui::level_ui(
     std::get<kee::dims>(text_frame.ref.dimensions).w.val = get_raw_rect().width - image_frame_w;
 
     level_name_text.ref.x.val = song_artist_text.ref.get_raw_rect().width;
+
+    rating_star_img.ref.x.val = rating_star_img.ref.get_raw_rect().width / 2;
+    std::get<kee::dims>(rating_frame.ref.dimensions).w.val = rating_star_img.ref.get_raw_rect().width + rating_text.ref.get_raw_rect().width;
 }
 
 void level_ui::select()
@@ -922,7 +971,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
                 dim(dim::type::rel, 1.f),
                 dim(dim::type::rel, 0.1f)
             ),
-            true, is_analyzer_playing, *this, ui_assets, i
+            true, is_analyzer_playing, *this, ui_assets, menu_scene.star_png, i
         ));
     }
 
@@ -1013,6 +1062,7 @@ void play::update_element([[maybe_unused]] float dt)
 
 menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info, bool from_game_init) :
     kee::scene::base(reqs),
+    star_png("assets/img/star.png"),
     k_text_alpha(add_transition<float>(0.0f)),
     k_scale(add_transition<float>(1.0f)),
     e1_scale(add_transition<float>(1.0f)),
