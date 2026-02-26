@@ -198,6 +198,7 @@ private:
 
     kee::ui::handle<kee::ui::base> performance_outer_frame;
     kee::ui::handle<kee::ui::base> performance_frame;
+
     kee::ui::handle<kee::ui::rect> rating_rect;
     kee::ui::handle<kee::ui::base> rating_frame;
     kee::ui::handle<kee::ui::image> rating_star_img;
@@ -221,6 +222,8 @@ public:
     void set_selected_level(std::size_t idx);
 
 private:
+    static constexpr float selected_info_text_size = 0.1f;
+
     void update_element(float dt) override;
 
     const raylib::Image search_png;
@@ -252,9 +255,33 @@ private:
     kee::ui::handle<kee::ui::base> selected_text_frame;
     kee::ui::handle<kee::ui::text> selected_song_name_text;
     kee::ui::handle<kee::ui::text> selected_song_artist_text; /* TODO: clamp these */
-    kee::ui::handle<kee::ui::text> selected_level_name_text; /* TODO NEXT: work on ts */
+    kee::ui::handle<kee::ui::text> selected_level_name_text;
 
-    /* TODO: */
+    kee::ui::handle<kee::ui::base> selected_performance_outer_frame;
+    kee::ui::handle<kee::ui::base> selected_performance_frame;
+
+    kee::ui::handle<kee::ui::rect> selected_rating_rect;
+    kee::ui::handle<kee::ui::base> selected_rating_frame;
+    kee::ui::handle<kee::ui::image> selected_rating_star_img;
+    kee::ui::handle<kee::ui::text> selected_rating_text;
+
+    kee::ui::handle<kee::ui::base> selected_progress_text_frame;
+    kee::ui::handle<kee::ui::text> selected_progress_text;
+
+    kee::ui::handle<kee::ui::base> selected_info_frame;
+    kee::ui::handle<kee::ui::text> selected_high_score_text;
+    kee::ui::handle<kee::ui::text> selected_misses_text;
+    kee::ui::handle<kee::ui::text> selected_acc_text;
+    kee::ui::handle<kee::ui::text> selected_combo_text;
+    kee::ui::handle<kee::ui::text> selected_best_streak_text;
+    kee::ui::handle<kee::ui::text> selected_attempts_text;
+
+    kee::ui::handle<kee::ui::text> selected_high_score;
+    kee::ui::handle<kee::ui::text> selected_misses;
+    kee::ui::handle<kee::ui::text> selected_acc;
+    kee::ui::handle<kee::ui::text> selected_combo;
+    kee::ui::handle<kee::ui::text> selected_best_streak;
+    kee::ui::handle<kee::ui::text> selected_attempts;
 
     /**
      * `level_list` is never pushed to or popped from, meaning

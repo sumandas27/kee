@@ -801,7 +801,6 @@ level_ui::level_ui(
     rating_text.ref.refresh_ui();
     rating_star_img.ref.x.val = rating_star_img.ref.get_raw_rect().width / 2;
     std::get<kee::dims>(rating_frame.ref.dimensions).w.val = rating_star_img.ref.get_raw_rect().width + rating_text.ref.get_raw_rect().width;
-
     std::get<kee::dims>(progress_text_frame.ref.dimensions).h.val = performance_frame.ref.get_raw_rect().height - rating_rect.ref.get_raw_rect().height;
 }
 
@@ -975,6 +974,168 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
         pos(pos::type::end, 0.f),
         ui::text_size(ui::text_size::type::rel_h, 0.35f),
         std::nullopt, false, assets.font_italic, std::string(), false
+    )),
+    selected_performance_outer_frame(selected_frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.21f),
+        kee::dims(
+            dim(dim::type::rel, 0.15f),
+            dim(dim::type::rel, 0.15f)
+        ),
+        true
+    )),
+    selected_performance_frame(selected_performance_outer_frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        kee::border(border::type::rel_h, 0.15f),
+        true
+    )),
+    selected_rating_rect(selected_performance_frame.ref.add_child<kee::ui::rect>(std::nullopt,
+        kee::color(120, 120, 120),
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::rel, 0.f),
+        kee::dims(
+            dim(dim::type::rel, 1.f),
+            dim(dim::type::aspect, 0.32f)
+        ),
+        false, std::nullopt,
+        ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.5f, std::nullopt)
+    )),
+    selected_rating_frame(selected_rating_rect.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.45f),
+        pos(pos::type::rel, 0.5f),
+        kee::dims(
+            dim(dim::type::abs, 0.f),
+            dim(dim::type::rel, 1.f)
+        ),
+        true
+    )),
+    selected_rating_star_img(selected_rating_frame.ref.add_child<kee::ui::image>(std::nullopt,
+        menu_scene.star_png,
+        kee::color::white,
+        pos(pos::type::beg, 0.f),
+        pos(pos::type::rel, 0.5f),
+        kee::dims(
+            dim(dim::type::aspect, 1.f),
+            dim(dim::type::rel, 0.8f)
+        ),
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
+    )),
+    selected_rating_text(selected_rating_star_img.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::rel, 1.25f),
+        pos(pos::type::rel, 0.f),
+        ui::text_size(ui::text_size::type::rel_h, 1.f),
+        std::nullopt, false, assets.font_semi_bold, /* TODO: temp */ "1", false
+    )),
+    selected_progress_text_frame(selected_performance_frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::end, 0.f),
+        kee::dims(
+            dim(dim::type::rel, 1.f),
+            dim(dim::type::abs, 0.f)
+        ),
+        false
+    )),
+    selected_progress_text(selected_progress_text_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        ui::text_size(ui::text_size::type::rel_h, 0.9f),
+        std::nullopt, true, assets.font_semi_bold, "99", true
+    )),
+    selected_info_frame(selected_frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.15f),
+        pos(pos::type::rel, 0.35f),
+        kee::dims(
+            dim(dim::type::rel, 0.7f),
+            dim(dim::type::rel, 0.45f)
+        ),
+        false
+    )),
+    selected_high_score_text(selected_info_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::beg, 0.f),
+        pos(pos::type::rel, 0.f),
+        ui::text_size(ui::text_size::type::rel_h, play::selected_info_text_size),
+        std::nullopt, false, assets.font_semi_bold, "High Score", false
+    )),
+    selected_misses_text(selected_info_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::beg, 0.f),
+        pos(pos::type::rel, 1.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, play::selected_info_text_size),
+        std::nullopt, false, assets.font_semi_bold, "Misses", false
+    )),
+    selected_acc_text(selected_info_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::beg, 0.f),
+        pos(pos::type::rel, 2.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, play::selected_info_text_size),
+        std::nullopt, false, assets.font_semi_bold, "Accuracy", false
+    )),
+    selected_combo_text(selected_info_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::beg, 0.f),
+        pos(pos::type::rel, 3.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, play::selected_info_text_size),
+        std::nullopt, false, assets.font_semi_bold, "Combo", false
+    )),
+    selected_best_streak_text(selected_info_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::beg, 0.f),
+        pos(pos::type::rel, 4.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, play::selected_info_text_size),
+        std::nullopt, false, assets.font_semi_bold, "Best Streak", false
+    )),
+    selected_attempts_text(selected_info_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::beg, 0.f),
+        pos(pos::type::rel, 5.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, play::selected_info_text_size),
+        std::nullopt, false, assets.font_semi_bold, "Attempts", false
+    )),
+    selected_high_score(selected_info_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::end, 0.f),
+        pos(pos::type::rel, 0.f),
+        ui::text_size(ui::text_size::type::rel_h, play::selected_info_text_size),
+        std::nullopt, false, assets.font_regular, "--", false
+    )),
+    selected_misses(selected_info_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::end, 0.f),
+        pos(pos::type::rel, 1.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, play::selected_info_text_size),
+        std::nullopt, false, assets.font_regular, "--", false
+    )),
+    selected_acc(selected_info_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::end, 0.f),
+        pos(pos::type::rel, 2.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, play::selected_info_text_size),
+        std::nullopt, false, assets.font_regular, "--", false
+    )),
+    selected_combo(selected_info_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::end, 0.f),
+        pos(pos::type::rel, 3.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, play::selected_info_text_size),
+        std::nullopt, false, assets.font_regular, "--", false
+    )),
+    selected_best_streak(selected_info_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::end, 0.f),
+        pos(pos::type::rel, 4.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, play::selected_info_text_size),
+        std::nullopt, false, assets.font_regular, "--", false
+    )),
+    selected_attempts(selected_info_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::end, 0.f),
+        pos(pos::type::rel, 5.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, play::selected_info_text_size),
+        std::nullopt, false, assets.font_regular, "0", false
     ))
 {
     const float back_rect_w = back_rect.ref.get_raw_rect().width;
@@ -1024,6 +1185,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
 
     selected_song_name_text.ref.set_string(ui_assets.song_name);
     selected_song_artist_text.ref.set_string(ui_assets.song_artist);
+    selected_song_artist_text.ref.refresh_ui();
 
     const raylib::Rectangle level_list_scrollable_rect = level_list_scrollable.ref.scroll_frame_ui.ref.get_raw_rect();
     const float abs_margin = level_list_inner.ref.get_raw_rect().x - level_list_scrollable_rect.x;
@@ -1033,6 +1195,13 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
     const float abs_scrollable_h = level_list_h + 2 * abs_margin;
     const float rel_scrollable_h = abs_scrollable_h / level_list_scrollable_rect.height;
     level_list_scrollable.ref.set_scrollable_rel_h(rel_scrollable_h);
+
+    selected_level_name_text.ref.set_string(" - " + ui_assets.mapper + "'s " + ui_assets.level_name);
+    selected_level_name_text.ref.x.val = selected_song_artist_text.ref.get_raw_rect().width;
+
+    selected_rating_star_img.ref.x.val = selected_rating_star_img.ref.get_raw_rect().width / 2;
+    std::get<kee::dims>(selected_rating_frame.ref.dimensions).w.val = selected_rating_star_img.ref.get_raw_rect().width + selected_rating_text.ref.get_raw_rect().width;
+    std::get<kee::dims>(selected_progress_text_frame.ref.dimensions).h.val = selected_performance_frame.ref.get_raw_rect().height - selected_rating_rect.ref.get_raw_rect().height;
 
     back_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
