@@ -701,12 +701,9 @@ level_ui::level_ui(
         false
     )),
     performance_frame(performance_outer_frame.ref.add_child<kee::ui::base>(std::nullopt,
-        pos(pos::type::rel, 0.35f),
         pos(pos::type::rel, 0.5f),
-        kee::dims(
-            dim(dim::type::rel, 0.7f),
-            dim(dim::type::rel, 0.7f)
-        ),
+        pos(pos::type::rel, 0.5f),
+        kee::border(border::type::rel_h, 0.15f),
         true
     )),
     rating_rect(performance_frame.ref.add_child<kee::ui::rect>(std::nullopt,
@@ -745,7 +742,7 @@ level_ui::level_ui(
         pos(pos::type::rel, 1.25f),
         pos(pos::type::rel, 0.f),
         ui::text_size(ui::text_size::type::rel_h, 1.f),
-        std::nullopt, false, assets.font_semi_bold, /* TODO: temp */ "10.25", false
+        std::nullopt, false, assets.font_semi_bold, /* TODO: temp */ "1", false
     )),
     progress_text_frame(performance_frame.ref.add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.f),
