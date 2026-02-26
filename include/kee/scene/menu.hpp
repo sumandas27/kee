@@ -196,11 +196,14 @@ private:
     kee::ui::handle<kee::ui::text> song_artist_text; /* TODO: clamp these */
     kee::ui::handle<kee::ui::text> level_name_text;
 
+    kee::ui::handle<kee::ui::base> performance_outer_frame;
+    kee::ui::handle<kee::ui::base> performance_frame;
     kee::ui::handle<kee::ui::rect> rating_rect;
     kee::ui::handle<kee::ui::base> rating_frame;
     kee::ui::handle<kee::ui::image> rating_star_img;
     kee::ui::handle<kee::ui::text> rating_text;
 
+    kee::ui::handle<kee::ui::base> progress_text_frame;
     kee::ui::handle<kee::ui::text> progress_text;
 
     bool is_selected;

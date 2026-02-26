@@ -23,7 +23,7 @@ text::text(
     kee::ui::base(
         reqs, p_x, p_y, 
         dims(
-            clamped_width.has_value() ? clamped_width.value() :dim(dim::type::abs, 0),
+            clamped_width.has_value() ? clamped_width.value() : dim(dim::type::abs, 0),
             dim(p_str_size.text_size_type == text_size::type::abs ? dim::type::abs : dim::type::rel, p_str_size.val)
         ),
         centered
@@ -35,11 +35,7 @@ text::text(
     str_size(p_str_size)
 {
     color = color_param;
-
-    /**
-     * Sets strings and dimensions at construction time.
-     */
-    update_element(0.f);
+    refresh_ui();
 }
 
 const std::string& text::get_string() const
@@ -62,7 +58,7 @@ void text::set_text_size_val(float val)
     std::get<kee::dims>(dimensions).h.val = val;
 }
 
-void text::update_element([[maybe_unused]] float dt)
+void text::refresh_ui()
 {
     const raylib::Rectangle raw_rect = get_raw_rect();
     str_render_size = raw_rect.height;
@@ -86,6 +82,11 @@ void text::update_element([[maybe_unused]] float dt)
         auto& [w, h] = std::get<kee::dims>(dimensions);
         w.val = ui_text_dims.x;
     }
+}
+
+void text::update_element([[maybe_unused]] float dt)
+{
+    refresh_ui();
 }
 
 void text::render_element() const

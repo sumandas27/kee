@@ -46,6 +46,8 @@ public:
     void set_string(std::string_view new_str);
     void set_text_size_val(float val);
 
+    void refresh_ui();
+
     const raylib::Font& font;
 
 private:

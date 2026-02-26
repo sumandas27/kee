@@ -691,15 +691,33 @@ level_ui::level_ui(
         ui::text_size(ui::text_size::type::rel_h, 0.35f),
         std::nullopt, false, assets.font_italic, " - " + ui_assets.mapper + "'s " + ui_assets.level_name, false
     )),
-    rating_rect(text_inner_frame.ref.add_child<kee::ui::rect>(std::nullopt,
-        kee::color(120, 120, 120),
-        pos(pos::type::rel, 0.94f),
-        pos(pos::type::rel, 0.15f),
+    performance_outer_frame(frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::beg, 0.f),
+        pos(pos::type::rel, 0.f),
         kee::dims(
-            dim(dim::type::rel, 0.1f),
-            dim(dim::type::rel, 0.3f)
+            dim(dim::type::abs, 0.f),
+            dim(dim::type::rel, 1.f)
         ),
-        true, std::nullopt,
+        false
+    )),
+    performance_frame(performance_outer_frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.35f),
+        pos(pos::type::rel, 0.5f),
+        kee::dims(
+            dim(dim::type::rel, 0.7f),
+            dim(dim::type::rel, 0.7f)
+        ),
+        true
+    )),
+    rating_rect(performance_frame.ref.add_child<kee::ui::rect>(std::nullopt,
+        kee::color(120, 120, 120),
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::rel, 0.f),
+        kee::dims(
+            dim(dim::type::rel, 1.f),
+            dim(dim::type::aspect, 0.32f)
+        ),
+        false, std::nullopt,
         ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.5f, std::nullopt)
     )),
     rating_frame(rating_rect.ref.add_child<kee::ui::base>(std::nullopt,
@@ -727,14 +745,23 @@ level_ui::level_ui(
         pos(pos::type::rel, 1.25f),
         pos(pos::type::rel, 0.f),
         ui::text_size(ui::text_size::type::rel_h, 1.f),
-        std::nullopt, false, assets.font_semi_bold, /* TODO: temp */ "1", false
+        std::nullopt, false, assets.font_semi_bold, /* TODO: temp */ "10.25", false
     )),
-    progress_text(text_inner_frame.ref.add_child<kee::ui::text>(std::nullopt,
+    progress_text_frame(performance_frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::end, 0.f),
+        kee::dims(
+            dim(dim::type::rel, 1.f),
+            dim(dim::type::abs, 0.f)
+        ),
+        false
+    )),
+    progress_text(progress_text_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
-        pos(pos::type::rel, 0.94f),
-        pos(pos::type::rel, 0.65f),
-        ui::text_size(ui::text_size::type::rel_h, 0.6f),
-        std::nullopt, true, assets.font_semi_bold, "--", false
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        ui::text_size(ui::text_size::type::rel_h, 0.9f),
+        std::nullopt, true, assets.font_semi_bold, "99", true
     )),
     is_selected(is_selected)
 {
@@ -764,13 +791,21 @@ level_ui::level_ui(
     };
 
     const float image_frame_w = image_frame.ref.get_raw_rect().width;
-    text_frame.ref.x.val = image_frame_w;
-    std::get<kee::dims>(text_frame.ref.dimensions).w.val = get_raw_rect().width - image_frame_w;
+    const float info_w = get_raw_rect().width - image_frame_w;
+    const float text_frame_w = info_w * 0.88f;
 
+    performance_outer_frame.ref.x.val = image_frame_w + text_frame_w;
+    std::get<kee::dims>(performance_outer_frame.ref.dimensions).w.val = info_w - text_frame_w;
+
+    text_frame.ref.x.val = image_frame_w;
+    std::get<kee::dims>(text_frame.ref.dimensions).w.val = text_frame_w;
     level_name_text.ref.x.val = song_artist_text.ref.get_raw_rect().width;
 
+    rating_text.ref.refresh_ui();
     rating_star_img.ref.x.val = rating_star_img.ref.get_raw_rect().width / 2;
     std::get<kee::dims>(rating_frame.ref.dimensions).w.val = rating_star_img.ref.get_raw_rect().width + rating_text.ref.get_raw_rect().width;
+
+    std::get<kee::dims>(progress_text_frame.ref.dimensions).h.val = performance_frame.ref.get_raw_rect().height - rating_rect.ref.get_raw_rect().height;
 }
 
 void level_ui::select()
