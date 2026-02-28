@@ -226,12 +226,20 @@ private:
 
     void update_element(float dt) override;
 
+    void set_selected_ui(std::size_t idx);
+
     const raylib::Image search_png;
+
+    menu& menu_scene;
 
     kee::transition<kee::color>& back_rect_color;
 
-    kee::ui::handle<kee::ui::base> top_bar_frame;
+    kee::transition<kee::color>& color_music;
+    kee::transition<kee::color>& color_play;
+    kee::transition<kee::color>& color_edit;
+    kee::transition<kee::color>& color_delete;
 
+    kee::ui::handle<kee::ui::base> top_bar_frame;
     kee::ui::handle<kee::ui::button> back_button;
     kee::ui::handle<kee::ui::rect> back_rect;
     kee::ui::handle<kee::ui::image> back_image;
@@ -283,6 +291,21 @@ private:
     kee::ui::handle<kee::ui::text> selected_best_streak;
     kee::ui::handle<kee::ui::text> selected_attempts;
 
+    kee::ui::handle<kee::ui::button> button_music;
+    kee::ui::handle<kee::ui::button> button_play;
+    kee::ui::handle<kee::ui::button> button_edit;
+    kee::ui::handle<kee::ui::button> button_delete;
+
+    kee::ui::handle<kee::ui::image> img_music;
+    kee::ui::handle<kee::ui::image> img_play;
+    kee::ui::handle<kee::ui::image> img_edit;
+    kee::ui::handle<kee::ui::image> img_delete;
+
+    kee::ui::handle<kee::ui::text> text_music;
+    kee::ui::handle<kee::ui::text> text_play;
+    kee::ui::handle<kee::ui::text> text_edit;
+    kee::ui::handle<kee::ui::text> text_delete;
+
     /**
      * `level_list` is never pushed to or popped from, meaning
      * indexing is a valid pointer.
@@ -300,6 +323,8 @@ class menu final : public kee::scene::base
 public:
     menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info, bool from_game_init);
 
+    const raylib::Image edit_png;
+    const raylib::Image music_png;
     const raylib::Image star_png;
 
 private:

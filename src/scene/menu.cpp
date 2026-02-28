@@ -742,7 +742,7 @@ level_ui::level_ui(
         pos(pos::type::rel, 1.25f),
         pos(pos::type::rel, 0.f),
         ui::text_size(ui::text_size::type::rel_h, 1.f),
-        std::nullopt, false, assets.font_semi_bold, /* TODO: temp */ "1", false
+        std::nullopt, false, assets.font_semi_bold, "1", false
     )),
     progress_text_frame(performance_frame.ref.add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.f),
@@ -834,7 +834,12 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
         true
     ),
     search_png("assets/img/search.png"),
+    menu_scene(menu_scene),
     back_rect_color(add_transition<kee::color>(kee::color(40, 40, 40))),
+    color_music(add_transition<kee::color>(kee::color::white)),
+    color_play(add_transition<kee::color>(kee::color::white)),
+    color_edit(add_transition<kee::color>(kee::color::white)),
+    color_delete(add_transition<kee::color>(kee::color::white)),
     top_bar_frame(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.f),
         pos(pos::type::rel, 0.f),
@@ -1011,8 +1016,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
         true
     )),
     selected_rating_star_img(selected_rating_frame.ref.add_child<kee::ui::image>(std::nullopt,
-        menu_scene.star_png,
-        kee::color::white,
+        menu_scene.star_png, kee::color::white,
         pos(pos::type::beg, 0.f),
         pos(pos::type::rel, 0.5f),
         kee::dims(
@@ -1026,7 +1030,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
         pos(pos::type::rel, 1.25f),
         pos(pos::type::rel, 0.f),
         ui::text_size(ui::text_size::type::rel_h, 1.f),
-        std::nullopt, false, assets.font_semi_bold, /* TODO: temp */ "1", false
+        std::nullopt, false, assets.font_semi_bold, "1", false
     )),
     selected_progress_text_frame(selected_performance_frame.ref.add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.f),
@@ -1136,6 +1140,98 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
         pos(pos::type::rel, 5.f / 6.f),
         ui::text_size(ui::text_size::type::rel_h, play::selected_info_text_size),
         std::nullopt, false, assets.font_regular, "0", false
+    )),
+    button_music(selected_frame.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::rel, 0.1f),
+        pos(pos::type::rel, 0.9f),
+        dims(
+            dim(dim::type::rel, 0.05f),
+            dim(dim::type::aspect, 1.f)
+        ),
+        true
+    )),
+    button_play(selected_frame.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::rel, 0.1f + 0.8f / 3),
+        pos(pos::type::rel, 0.9f),
+        dims(
+            dim(dim::type::rel, 0.05f),
+            dim(dim::type::aspect, 1.f)
+        ),
+        true
+    )),
+    button_edit(selected_frame.ref.add_child<kee::ui::button>(std::nullopt,
+            pos(pos::type::rel, 0.1f + 2 * 0.8f / 3),
+        pos(pos::type::rel, 0.9f),
+        dims(
+            dim(dim::type::rel, 0.05f),
+            dim(dim::type::aspect, 1.f)
+        ),
+        true
+    )),
+    button_delete(selected_frame.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::rel, 0.9f),
+        pos(pos::type::rel, 0.9f),
+        dims(
+            dim(dim::type::rel, 0.05f),
+            dim(dim::type::aspect, 1.f)
+        ),
+        true
+    )),
+    img_music(button_music.ref.add_child<kee::ui::image>(std::nullopt,
+        menu_scene.music_png, kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::abs, 0.f),
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
+    )),
+    img_play(button_play.ref.add_child<kee::ui::image>(std::nullopt,
+        assets.play_png, kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::abs, 0.f),
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
+    )),
+    img_edit(button_edit.ref.add_child<kee::ui::image>(std::nullopt,
+        menu_scene.edit_png, kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::abs, 0.f),
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
+    )),
+    img_delete(button_delete.ref.add_child<kee::ui::image>(std::nullopt,
+        assets.exit_png, kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::abs, 0.f),
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
+    )),
+    text_music(button_music.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 1.5f),
+        ui::text_size(ui::text_size::type::rel_h, 0.5f),
+        std::nullopt, true, assets.font_regular, "MUSIC", false
+    )),
+    text_play(button_play.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 1.5f),
+        ui::text_size(ui::text_size::type::rel_h, 0.5f),
+        std::nullopt, true, assets.font_regular, "PLAY", false
+    )),
+    text_edit(button_edit.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 1.5f),
+        ui::text_size(ui::text_size::type::rel_h, 0.5f),
+        std::nullopt, true, assets.font_regular, "EDIT", false
+    )),
+    text_delete(button_delete.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 1.5f),
+        ui::text_size(ui::text_size::type::rel_h, 0.5f),
+        std::nullopt, true, assets.font_regular, "DELETE", false
     ))
 {
     const float back_rect_w = back_rect.ref.get_raw_rect().width;
@@ -1171,21 +1267,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
     if (selected_found != 1)
         throw std::runtime_error("Music analyzer's beatmap is malfomed");
 
-    /* TODO: abstract to its own func, prob want to reuse */
-    const level_ui_assets& ui_assets = menu_scene.play_assets[level_list_selected_idx];
-    if (ui_assets.img.has_value())
-        selected_image.emplace(selected_image_frame.ref.add_child<kee::ui::image>(std::nullopt,
-            ui_assets.img.value(), 
-            kee::color::white,
-            pos(pos::type::rel, 0.5f),
-            pos(pos::type::rel, 0.5f),
-            border(border::type::abs, 0),
-            true, ui::image::display::shrink_to_fit, false, false, 0.0f
-        ));
-
-    selected_song_name_text.ref.set_string(ui_assets.song_name);
-    selected_song_artist_text.ref.set_string(ui_assets.song_artist);
-    selected_song_artist_text.ref.refresh_ui();
+    set_selected_ui(level_list_selected_idx);
 
     const raylib::Rectangle level_list_scrollable_rect = level_list_scrollable.ref.scroll_frame_ui.ref.get_raw_rect();
     const float abs_margin = level_list_inner.ref.get_raw_rect().x - level_list_scrollable_rect.x;
@@ -1195,13 +1277,6 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
     const float abs_scrollable_h = level_list_h + 2 * abs_margin;
     const float rel_scrollable_h = abs_scrollable_h / level_list_scrollable_rect.height;
     level_list_scrollable.ref.set_scrollable_rel_h(rel_scrollable_h);
-
-    selected_level_name_text.ref.set_string(" - " + ui_assets.mapper + "'s " + ui_assets.level_name);
-    selected_level_name_text.ref.x.val = selected_song_artist_text.ref.get_raw_rect().width;
-
-    selected_rating_star_img.ref.x.val = selected_rating_star_img.ref.get_raw_rect().width / 2;
-    std::get<kee::dims>(selected_rating_frame.ref.dimensions).w.val = selected_rating_star_img.ref.get_raw_rect().width + selected_rating_text.ref.get_raw_rect().width;
-    std::get<kee::dims>(selected_progress_text_frame.ref.dimensions).h.val = selected_performance_frame.ref.get_raw_rect().height - selected_rating_rect.ref.get_raw_rect().height;
 
     back_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
@@ -1219,6 +1294,86 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
     };
 
     back_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        /* TODO: impl */
+    };
+
+    button_music.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            color_music.set(std::nullopt, kee::color(150, 150, 150), 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            color_music.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    button_music.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        /* TODO: impl */
+    };
+
+    button_play.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            color_play.set(std::nullopt, kee::color(150, 150, 150), 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            color_play.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    button_play.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        /* TODO: impl */
+    };
+
+    button_edit.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            color_edit.set(std::nullopt, kee::color(150, 150, 150), 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            color_edit.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    button_edit.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        /* TODO: impl */
+    };
+
+    button_delete.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            color_delete.set(std::nullopt, kee::color(150, 150, 150), 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            color_delete.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    button_delete.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
         /* TODO: impl */
     };
@@ -1253,16 +1408,56 @@ void play::set_selected_level(std::size_t idx)
     level_list[level_list_selected_idx].ref.unselect();
     level_list[idx].ref.select();
 
+    set_selected_ui(idx);
     level_list_selected_idx = idx;
 }
 
 void play::update_element([[maybe_unused]] float dt)
 {
     back_rect.ref.color = back_rect_color.get();
+
+    img_music.ref.color = color_music.get();
+    img_play.ref.color = color_play.get();
+    img_edit.ref.color = color_edit.get();
+    img_delete.ref.color = color_delete.get();
+
+    text_music.ref.color = color_music.get();
+    text_play.ref.color = color_play.get();
+    text_edit.ref.color = color_edit.get();
+    text_delete.ref.color = color_delete.get();
+}
+
+void play::set_selected_ui(std::size_t idx)
+{
+    const level_ui_assets& ui_assets = menu_scene.play_assets[idx];
+    if (ui_assets.img.has_value())
+        selected_image.emplace(selected_image_frame.ref.add_child<kee::ui::image>(std::nullopt,
+            ui_assets.img.value(), 
+            kee::color::white,
+            pos(pos::type::rel, 0.5f),
+            pos(pos::type::rel, 0.5f),
+            border(border::type::abs, 0),
+            true, ui::image::display::shrink_to_fit, false, false, 0.0f
+        ));
+    else
+        selected_image.reset();
+
+    selected_song_name_text.ref.set_string(ui_assets.song_name);
+    selected_song_artist_text.ref.set_string(ui_assets.song_artist);
+    selected_song_artist_text.ref.refresh_ui();
+
+    selected_level_name_text.ref.set_string(" - " + ui_assets.mapper + "'s " + ui_assets.level_name);
+    selected_level_name_text.ref.x.val = selected_song_artist_text.ref.get_raw_rect().width;
+
+    selected_rating_star_img.ref.x.val = selected_rating_star_img.ref.get_raw_rect().width / 2;
+    std::get<kee::dims>(selected_rating_frame.ref.dimensions).w.val = selected_rating_star_img.ref.get_raw_rect().width + selected_rating_text.ref.get_raw_rect().width;
+    std::get<kee::dims>(selected_progress_text_frame.ref.dimensions).h.val = selected_performance_frame.ref.get_raw_rect().height - selected_rating_rect.ref.get_raw_rect().height;
 }
 
 menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info, bool from_game_init) :
     kee::scene::base(reqs),
+    edit_png("assets/img/edit.png"),
+    music_png("assets/img/music.png"),
     star_png("assets/img/star.png"),
     k_text_alpha(add_transition<float>(0.0f)),
     k_scale(add_transition<float>(1.0f)),

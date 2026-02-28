@@ -3,7 +3,7 @@
 #include "kee/ui/base.hpp"
 #include "kee/ui/rect.hpp"
 
-/* TODO: mouse bound within rect + scroll + arrow (only relevant in menu) input */
+/* TODO: if mouse is on the scrollbar's y range but not on scrollbar, scrollbar tps, dont think this feels clean */
 
 namespace kee {
 namespace ui {

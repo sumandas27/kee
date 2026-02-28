@@ -4,10 +4,6 @@
 #include "kee/scene/editor/setup_tab.hpp"
 #include "kee/scene/editor/timing_tab.hpp"
 
-/* TODO MAYBE: if file gets imported and editted before saved, could cause a crash or sm 
-    might not even be an issue if steam api disallows dir editting or sm
-*/
-
 namespace kee {
 namespace scene {
 namespace editor {
