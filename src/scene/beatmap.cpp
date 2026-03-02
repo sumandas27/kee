@@ -5,16 +5,24 @@
 namespace kee {
 namespace scene {
 
-beatmap_hit_object::beatmap_hit_object(float beat, float duration) :
-    beat(beat),
+beatmap_hit_object_hold::beatmap_hit_object_hold(float beat, float duration) :
     duration(duration),
-    hold_is_held(false),
-    hold_not_missed(true),
-    hold_press_complete(false)
+    is_held(false),
+    not_missed(true),
+    press_complete(false)
 { 
     if (std::floor(beat + 1.0f) < beat + duration)
-        hold_next_combo = std::floor(beat + 1.0f);
+        next_combo = std::floor(beat + 1.0f);
 }
+
+beatmap_hit_object::beatmap_hit_object(float beat) :
+    beat(beat)
+{ }
+
+beatmap_hit_object::beatmap_hit_object(float beat, float duration) :
+    beat(beat),
+    hold(beat, duration)
+{ }
 
 beatmap_key::beatmap_key(const kee::ui::required& reqs, kee::scene::beatmap& beatmap_scene, int key_id, const raylib::Vector2& relative_pos, const std::vector<key_decoration>& key_colors) :
     kee::ui::base(reqs,
@@ -834,9 +842,20 @@ beatmap::beatmap(const kee::scene::required& reqs, const beatmap_dir_info& beatm
     )),
     end_beat(0.0f),
     music((beatmap_info.dir_state.path / beatmap_dir_state::standard_music_filename).string()),
-    hitsound("assets/sfx/hitsound_default/normal.wav"),
     combo_lost_sfx("assets/sfx/combo_lost.wav")
-{ 
+{
+    if (beatmap_info.custom_hitsounds.has_value())
+        hitsounds = std::move(beatmap_info.custom_hitsounds.value());
+    else
+    {
+        static const std::filesystem::path default_hitsound_path = "assets/sfx/hitsound_default";
+        for (const std::filesystem::directory_entry& hitsound_wav : std::filesystem::directory_iterator(default_hitsound_path))
+            map[hitsound_wav.path().filename().string()] = raylib::Sound(hitsound_wav.path().string());
+
+        /* TODO: hard coded don't like */
+        map.at("normal.wav").SetVolume(0.1f);
+    }
+
     reset_level();
 }
 
@@ -951,21 +970,19 @@ void beatmap::reset_level()
             const float beat = static_cast<float>(key_hit_obj_json.at("beat").as_double());
             const std::string start_hitsound = static_cast<std::string>(key_hit_obj_json.at("hitsound").as_string());
 
-            /*if (!key_hit_obj_json.at("hold").is_null())
+            float duration = 0.f;
+            if (!key_hit_obj_json.at("hold").is_null())
             {
                 const boost::json::object& hold_obj = key_hit_obj_json.at("hold").as_object();
-                const float duration = static_cast<float>(hold_obj.at("duration").as_double());
                 const std::string end_hitsound = static_cast<std::string>(hold_obj.at("hitsound").as_string());
-                 TODO: do stuff with all this
-                 ^^^^ FIX THIS WHEN REWORKING ACC PRIORITY
-            }*/
+                
+                duration = static_cast<float>(hold_obj.at("duration").as_double());
+            }
 
             /* TODO: add hitsounds as part of hit object class,
                ^^^^ FIX THIS WHEN REWORKING ACC PRIORITY
-
-            also 0.f temp
             */
-            keys.at(id).ref.push(beatmap_hit_object(beat, 0.f));
+            keys.at(id).ref.push(beatmap_hit_object(beat, duration));
         }
 
         if (keys.at(id).ref.get_hit_objects().empty())

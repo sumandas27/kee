@@ -4,7 +4,7 @@
 
 #include <avcpp/av.h>
 
-#include "kee/scene/menu.hpp"
+#include "kee/scene/beatmap.hpp"
 
 namespace kee {
 
@@ -72,7 +72,7 @@ void nested_scissor_mode::pop()
 }
 
 game::game() :
-    curr_scene([&]()
+    /* TODO: curr_scene([&]()
     {
         std::vector<std::filesystem::path> level_dirs;
         for (const auto& entry : std::filesystem::directory_iterator(beatmap_dir_info::app_data_dir / "play"))
@@ -87,7 +87,8 @@ game::game() :
 
         const beatmap_dir_info random_level_dir(level_dirs[dist(rng)]);
         return make_scene<kee::scene::menu>(random_level_dir, true);
-    }()),
+    }()), */
+    curr_scene(make_scene<kee::scene::beatmap>(beatmap_dir_info("test_app_data/play/daft-punk-something-about-us"))),
     scene_manager(kee::scene::required(*this, assets), curr_scene),
     main_loop_begun(false),
     game_should_exit(false)

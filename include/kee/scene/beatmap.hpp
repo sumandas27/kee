@@ -15,21 +15,28 @@ namespace scene {
 
 class beatmap;
 
+class beatmap_hit_object_hold
+{
+public:
+    beatmap_hit_object_hold(float duration);
+
+    const float duration;
+
+    bool is_held;
+    bool not_missed;
+    bool press_complete;
+    std::optional<float> next_combo;
+};
+
 class beatmap_hit_object
 {
 public:
+    beatmap_hit_object(float beat);
     beatmap_hit_object(float beat, float duration);
 
     const float beat;
-    /**
-     * beatmap_hit_objects with duration zero are taps, otherwise they are holds
-     */
-    const float duration;
-
-    bool hold_is_held;
-    bool hold_not_missed;
-    bool hold_press_complete;
-    std::optional<float> hold_next_combo;
+    
+    std::optional<beatmap_hit_object_hold> hold;
 };
 
 class beatmap_key final : public kee::ui::base
@@ -238,8 +245,8 @@ private:
     float end_beat;
 
     raylib::Music music;
-    raylib::Sound hitsound;
     raylib::Sound combo_lost_sfx;
+    std::unordered_map<std::string, raylib::Sound> hitsounds;
 
     std::optional<bool> load_time_paused;
     std::optional<float> time_till_end_screen;
