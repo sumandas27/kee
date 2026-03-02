@@ -54,7 +54,9 @@
         -DCMAKE_OSX_SYSROOT=$(xcrun --sdk macosx --show-sdk-path) 
         -DCMAKE_EXE_LINKER_FLAGS="-L/opt/homebrew/opt/llvm/lib/c++ -L/opt/homebrew/opt/llvm/lib/unwind -lunwind" 
         -DCMAKE_CXX_FLAGS="-I/opt/homebrew/opt/llvm/include/c++/v1" 
-        -DCMAKE_TOOLCHAIN_FILE=<path-to-vcpkg-root>/scripts/buildsystems/vcpkg.cmake 
+        -DCMAKE_TOOLCHAIN_FILE=<path-to-vcpkg-root>/scripts/buildsystems/vcpkg.cmake
+        -DCMAKE_BUILD_TYPE=Debug
+        -Wno-dev 
         -B build/
     ```
 

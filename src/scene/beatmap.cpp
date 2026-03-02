@@ -5,8 +5,9 @@
 namespace kee {
 namespace scene {
 
-beatmap_hit_object_hold::beatmap_hit_object_hold(float beat, float duration) :
+beatmap_hit_object_hold::beatmap_hit_object_hold(float beat, float duration, std::string_view end_hitsound) :
     duration(duration),
+    hitsound(end_hitsound),
     is_held(false),
     not_missed(true),
     press_complete(false)
@@ -15,14 +16,25 @@ beatmap_hit_object_hold::beatmap_hit_object_hold(float beat, float duration) :
         next_combo = std::floor(beat + 1.0f);
 }
 
-beatmap_hit_object::beatmap_hit_object(float beat) :
-    beat(beat)
+beatmap_hit_object::beatmap_hit_object(float beat, std::string_view start_hitsound) :
+    beat(beat),
+    hitsound(start_hitsound)
 { }
 
-beatmap_hit_object::beatmap_hit_object(float beat, float duration) :
+beatmap_hit_object::beatmap_hit_object(float beat, std::string_view start_hitsound, float duration, std::string_view end_hitsound) :
     beat(beat),
-    hold(beat, duration)
+    hitsound(start_hitsound),
+    hold(beatmap_hit_object_hold(beat, duration, end_hitsound))
 { }
+
+float beatmap_hit_object::get_end_beat() const
+{
+    float res = beat;
+    if (hold.has_value())
+        res += hold.value().duration;
+
+    return res;
+}
 
 beatmap_key::beatmap_key(const kee::ui::required& reqs, kee::scene::beatmap& beatmap_scene, int key_id, const raylib::Vector2& relative_pos, const std::vector<key_decoration>& key_colors) :
     kee::ui::base(reqs,
@@ -91,7 +103,7 @@ beatmap_hit_object& beatmap_key::front()
 
 void beatmap_key::push(const beatmap_hit_object& object)
 {
-    if (!hit_objects.empty() && object.beat <= hit_objects.back().beat + hit_objects.back().duration)
+    if (!hit_objects.empty() && object.beat <= hit_objects.back().get_end_beat())
         throw std::invalid_argument("A new hit object must be strictly after all other ones in its key!");
 
     hit_objects.push_back(object);
@@ -135,14 +147,14 @@ void beatmap_key::update_element([[maybe_unused]] float dt)
     hit_obj_rects.clear();
     for (const beatmap_hit_object& object : hit_objects)
     {
-        if (object.beat + object.duration < beatmap_scene.get_beat())
+        if (object.get_end_beat() < beatmap_scene.get_beat())
             continue;
 
         if (object.beat > beatmap_scene.get_beat() + beatmap_scene.approach_beats)
             break;
 
         const float start_progress = std::max((object.beat - beatmap_scene.get_beat()) / (2 * beatmap_scene.approach_beats), 0.0f);
-        const float end_progress = std::max((object.beat + object.duration - beatmap_scene.get_beat()) / (2 * beatmap_scene.approach_beats), 0.0f);
+        const float end_progress = std::max((object.get_end_beat() - beatmap_scene.get_beat()) / (2 * beatmap_scene.approach_beats), 0.0f);
         hit_obj_rects.push_back(make_temp_child<kee::ui::rect>(
             kee::color::blank,
             pos(pos::type::rel, 0.5),
@@ -162,36 +174,36 @@ void beatmap_key::update_element([[maybe_unused]] float dt)
         return;
 
     beatmap_hit_object& front = hit_objects.front();
-    if (front.duration == 0.0f || (!front.hold_press_complete && !front.hold_is_held))
+    if (!front.hold.has_value() || (!front.hold.value().press_complete && !front.hold.value().is_held))
     {
         if (beatmap_scene.get_beat() - front.beat > beatmap_scene.beat_forgiveness)
         {
             beatmap_scene.max_combo++;
             combo_lose(true);
 
-            if (front.duration != 0.0f)
+            if (front.hold.has_value())
             {
-                front.hold_press_complete = true;
-                front.hold_not_missed = false;
+                front.hold.value().press_complete = true;
+                front.hold.value().not_missed = false;
             }
             else
                 pop();
         }
     }
-    else if (front.hold_next_combo.has_value() && beatmap_scene.get_beat() >= front.hold_next_combo.value())
+    else if (front.hold.has_value() && front.hold.value().next_combo.has_value() && beatmap_scene.get_beat() >= front.hold.value().next_combo.value())
     {
-        if (front.hold_is_held)
-            beatmap_scene.combo_increment(false);
+        if (front.hold.value().is_held)
+            beatmap_scene.combo_increment(std::nullopt);
         else
             beatmap_scene.max_combo++;
 
-        front.hold_next_combo = (front.hold_next_combo.value() + 1.0f < front.beat + front.duration)
-            ? std::make_optional(front.hold_next_combo.value() + 1.0f)
+        front.hold.value().next_combo = (front.hold.value().next_combo.value() + 1.0f < front.get_end_beat())
+            ? std::make_optional(front.hold.value().next_combo.value() + 1.0f)
             : std::nullopt;
     }
-    else if (beatmap_scene.get_beat() - (front.beat + front.duration) > beatmap_scene.beat_forgiveness)
+    else if (front.hold.has_value() && beatmap_scene.get_beat() - front.get_end_beat() > beatmap_scene.beat_forgiveness)
     {
-        if (front.hold_is_held)
+        if (front.hold.value().is_held)
             combo_lose(true);
 
         beatmap_scene.max_combo++;
@@ -716,7 +728,7 @@ void end_screen::update_element([[maybe_unused]] float dt)
     exit_text.ref.color = exit_text_color.get();
 }
 
-beatmap::beatmap(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info) :
+beatmap::beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_info) :
     kee::scene::base(reqs),
     beat_forgiveness(beatmap_info.beat_forgiveness),
     approach_beats(beatmap_info.approach_beats),
@@ -850,10 +862,9 @@ beatmap::beatmap(const kee::scene::required& reqs, const beatmap_dir_info& beatm
     {
         static const std::filesystem::path default_hitsound_path = "assets/sfx/hitsound_default";
         for (const std::filesystem::directory_entry& hitsound_wav : std::filesystem::directory_iterator(default_hitsound_path))
-            map[hitsound_wav.path().filename().string()] = raylib::Sound(hitsound_wav.path().string());
+            hitsounds[hitsound_wav.path().filename().string()] = raylib::Sound(hitsound_wav.path().string());
 
-        /* TODO: hard coded don't like */
-        map.at("normal.wav").SetVolume(0.1f);
+        hitsounds.at("normal.wav").SetVolume(0.1f);
     }
 
     reset_level();
@@ -868,14 +879,14 @@ float beatmap::get_beat() const
     return (music_time - music_start_offset) * music_bpm / 60.0f;
 }
 
-void beatmap::combo_increment(bool play_sfx)
+void beatmap::combo_increment(const std::optional<std::string>& hitsound_name)
 {
     max_combo++;
     combo++;
     combo_gain.set(1.0f, 0.0f, 0.25f, transition_type::lin);
 
-    if (play_sfx)
-        hitsound.Play();
+    if (hitsound_name.has_value())
+        hitsounds.at(hitsound_name.value()).Play();
 }
 
 void beatmap::combo_lose(bool is_miss)
@@ -977,20 +988,18 @@ void beatmap::reset_level()
                 const std::string end_hitsound = static_cast<std::string>(hold_obj.at("hitsound").as_string());
                 
                 duration = static_cast<float>(hold_obj.at("duration").as_double());
+                keys.at(id).ref.push(beatmap_hit_object(beat, start_hitsound, duration, end_hitsound));
             }
-
-            /* TODO: add hitsounds as part of hit object class,
-               ^^^^ FIX THIS WHEN REWORKING ACC PRIORITY
-            */
-            keys.at(id).ref.push(beatmap_hit_object(beat, duration));
+            else
+                keys.at(id).ref.push(beatmap_hit_object(beat, start_hitsound));
         }
 
         if (keys.at(id).ref.get_hit_objects().empty())
             continue;
 
         const beatmap_hit_object& back = keys.at(id).ref.get_hit_objects().back();
-        if (end_beat < back.beat + back.duration)
-            end_beat = back.beat + back.duration;
+        if (end_beat < back.get_end_beat())
+            end_beat = back.get_end_beat();
     }
 
     music.SetLooping(false);
@@ -998,7 +1007,6 @@ void beatmap::reset_level()
     music.Seek(0.0f);
     music.Pause();
 
-    hitsound.SetVolume(0.01f);
     combo_lost_sfx.SetVolume(0.05f);
 
     max_combo = 0;
@@ -1030,24 +1038,24 @@ bool beatmap::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
 
     beatmap_hit_object& front = keys.at(keycode).ref.front();
     const bool is_active = (get_beat() >= front.beat - beat_forgiveness);
-    const bool is_hold_held = (front.duration != 0.0f && front.hold_is_held);
+    const bool is_hold_held = (front.hold.has_value() && front.hold.value().is_held);
     if (!is_active || is_hold_held)
         return true;
 
     const bool is_in_tap_range = (std::abs(front.beat - get_beat()) <= beat_forgiveness);
-    const bool is_hold_press_complete = (front.duration != 0.0f && front.hold_press_complete);
+    const bool is_hold_press_complete = (front.hold.has_value() && front.hold.value().press_complete);
     if (is_in_tap_range && !is_hold_press_complete)
     {
-        combo_increment(true);
+        combo_increment(front.hitsound);
 
-        if (front.duration == 0.0f)
+        if (!front.hold.has_value())
             keys.at(keycode).ref.pop();
     }
 
-    if (front.duration != 0.0f)
+    if (front.hold.has_value())
     {
-        front.hold_is_held = true;
-        front.hold_press_complete = true;
+        front.hold.value().is_held = true;
+        front.hold.value().press_complete = true;
     }
 
     return true;
@@ -1063,28 +1071,27 @@ bool beatmap::on_element_key_up(int keycode, [[maybe_unused]] magic_enum::contai
         return true;
 
     beatmap_hit_object& front = keys.at(keycode).ref.front();
-    if (front.duration == 0.0f || !front.hold_is_held)
+    if (!front.hold.has_value() || !front.hold.value().is_held)
         return true;
     
-    if (get_beat() < front.beat + front.duration - beat_forgiveness)
+    if (get_beat() < front.get_end_beat() - beat_forgiveness)
     {
-        keys.at(keycode).ref.combo_lose(front.hold_not_missed);
-        if (front.hold_not_missed)
-            front.hold_not_missed = false;
+        keys.at(keycode).ref.combo_lose(front.hold.value().not_missed);
+        if (front.hold.value().not_missed)
+            front.hold.value().not_missed = false;
         
-        front.hold_is_held = false;
+        front.hold.value().is_held = false;
     }
     else
     {
-        const float front_end_beat = front.beat + front.duration;
-        if (front.hold_next_combo.has_value() && front.hold_next_combo.value() < front_end_beat)
+        if (front.hold.value().next_combo.has_value() && front.hold.value().next_combo.value() < front.get_end_beat())
         {
-            const unsigned int combo_to_add = static_cast<unsigned int>(std::ceil(front_end_beat) - front.hold_next_combo.value());
+            const unsigned int combo_to_add = static_cast<unsigned int>(std::ceil(front.get_end_beat()) - front.hold.value().next_combo.value());
             max_combo += combo_to_add;
             combo += combo_to_add;
         }    
 
-        combo_increment(true);
+        combo_increment(front.hold.value().hitsound);
         keys.at(keycode).ref.pop();
     }
     

@@ -18,9 +18,10 @@ class beatmap;
 class beatmap_hit_object_hold
 {
 public:
-    beatmap_hit_object_hold(float duration);
+    beatmap_hit_object_hold(float beat, float duration, std::string_view end_hitsound);
 
     const float duration;
+    const std::string hitsound;
 
     bool is_held;
     bool not_missed;
@@ -31,10 +32,13 @@ public:
 class beatmap_hit_object
 {
 public:
-    beatmap_hit_object(float beat);
-    beatmap_hit_object(float beat, float duration);
+    beatmap_hit_object(float beat, std::string_view start_hitsound);
+    beatmap_hit_object(float beat, std::string_view start_hitsound, float duration, std::string_view end_hitsound);
+
+    float get_end_beat() const;
 
     const float beat;
+    const std::string hitsound;
     
     std::optional<beatmap_hit_object_hold> hold;
 };
@@ -169,11 +173,11 @@ private:
 class beatmap final : public kee::scene::base
 {
 public:
-    beatmap(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info);
+    beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_info);
 
     float get_beat() const;
 
-    void combo_increment(bool play_sfx);
+    void combo_increment(const std::optional<std::string>& hitsound_name);
     void combo_lose(bool is_miss);
 
     void pause();
