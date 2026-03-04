@@ -48,7 +48,7 @@ public:
 
     void refresh_ui();
 
-    const raylib::Font& font;
+    std::reference_wrapper<const raylib::Font> font;
 
 private:
     static constexpr float font_cap_height_multiplier_approx = 0.9f;
@@ -61,7 +61,7 @@ private:
 
     std::string str;
     kee::ui::text_size str_size;
-public:
+
     float str_render_size;
 };
 

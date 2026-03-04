@@ -148,6 +148,9 @@ private:
     kee::ui::handle<kee::ui::text> rank_misses_text;
 
     kee::ui::handle<kee::ui::base> ui_frame;
+    kee::ui::handle<kee::ui::rect> image_frame;
+    std::optional<kee::ui::handle<kee::ui::image>> image;
+
     kee::ui::handle<kee::ui::text> song_name;
     kee::ui::handle<kee::ui::text> artist_name;
     kee::ui::handle<kee::ui::text> level_name;
@@ -190,6 +193,7 @@ public:
     const float beat_forgiveness;
     const float approach_beats;
 
+    const std::optional<raylib::Image> level_img;
     const std::string song_name;
     const std::string song_artist;
     const std::string mapper;
@@ -234,6 +238,7 @@ private:
     kee::ui::handle<kee::ui::base> performance_bg;
     kee::ui::handle<kee::ui::base> performance_frame;
     kee::ui::handle<kee::ui::text> accuracy_text;
+    kee::ui::handle<kee::ui::text> progress_text;
     kee::ui::handle<kee::ui::text> fc_text;
 
     kee::ui::handle<kee::ui::text> combo_text;

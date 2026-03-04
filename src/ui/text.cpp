@@ -45,7 +45,7 @@ const std::string& text::get_string() const
 
 float text::get_base_scale() const
 {
-    return str_render_size / font.baseSize;
+    return str_render_size / font.get().baseSize;
 }
 
 void text::set_string(std::string_view new_str)
@@ -63,7 +63,7 @@ void text::refresh_ui()
     const raylib::Rectangle raw_rect = get_raw_rect();
     str_render_size = raw_rect.height;
 
-    raylib::Vector2 ui_text_dims = font.MeasureText(str.data(), str_render_size, 0.0f);
+    raylib::Vector2 ui_text_dims = font.get().MeasureText(str.data(), str_render_size, 0.0f);
     if (has_clamped_width)
     {
         float clamped_width_val = raw_rect.width;
@@ -73,7 +73,7 @@ void text::refresh_ui()
         {
             str = str.substr(0, str_end_char) + "...";
 
-            ui_text_dims = font.MeasureText(str.data(), str_render_size, 0.0f);
+            ui_text_dims = font.get().MeasureText(str.data(), str_render_size, 0.0f);
             str_end_char--;
         }
     }
@@ -96,7 +96,7 @@ void text::render_element() const
         raw_rect.y += raw_rect.height * (1.0f - font_cap_height_multiplier_approx);
 
     assets.shader_sdf_font.BeginMode();
-    font.DrawText(str.c_str(), raw_rect.GetPosition(), str_render_size, 0.0f, color.raylib());
+    font.get().DrawText(str.c_str(), raw_rect.GetPosition(), str_render_size, 0.0f, color.raylib());
     assets.shader_sdf_font.EndMode();
 }
 

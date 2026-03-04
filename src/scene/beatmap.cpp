@@ -515,6 +515,27 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         kee::border(kee::border::type::rel_h, 0.1f),
         true
     )),
+    image_frame(frame.ref.add_child<kee::ui::rect>(std::nullopt,
+        image_frame_color.get(),
+        pos(pos::type::beg, 0),
+        pos(pos::type::beg, 0),
+        kee::dims(
+            dim(dim::type::aspect, static_cast<float>(kee::window_w) / kee::window_h),
+            dim(dim::type::rel, 1)
+        ),
+        false, std::nullopt, std::nullopt
+    )),
+    image(ui_assets.img.has_value() ?
+        std::make_optional(image_frame.ref.add_child<kee::ui::image>(std::nullopt,
+            ui_assets.img.value(), 
+            kee::color::white,
+            pos(pos::type::rel, 0.5f),
+            pos(pos::type::rel, 0.5f),
+            border(border::type::abs, 0),
+            true, ui::image::display::shrink_to_fit, false, false, 0.0f
+        )) :
+        std::nullopt
+    ),
     song_name(ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
         pos(pos::type::rel, 0),
@@ -523,6 +544,27 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         kee::dim(kee::dim::type::rel, 0.45f),
         false, assets.font_semi_bold, beatmap_scene.song_name, false
     )),
+    image_frame(frame.ref.add_child<kee::ui::rect>(std::nullopt,
+        image_frame_color.get(),
+        pos(pos::type::beg, 0),
+        pos(pos::type::beg, 0),
+        kee::dims(
+            dim(dim::type::aspect, static_cast<float>(kee::window_w) / kee::window_h),
+            dim(dim::type::rel, 0.1f)
+        ),
+        false, std::nullopt, std::nullopt
+    )),
+    image(beatmap_scene.level_img.has_value() ?
+        std::make_optional(image_frame.ref.add_child<kee::ui::image>(std::nullopt,
+            beatmap_scene.level_img.value(), 
+            kee::color::white,
+            pos(pos::type::rel, 0.5f),
+            pos(pos::type::rel, 0.5f),
+            border(border::type::abs, 0),
+            true, ui::image::display::shrink_to_fit, false, false, 0.0f
+        )) :
+        std::nullopt
+    ),
     artist_name(ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
         pos(pos::type::rel, 0),
@@ -732,6 +774,10 @@ beatmap::beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_in
     kee::scene::base(reqs),
     beat_forgiveness(beatmap_info.beat_forgiveness),
     approach_beats(beatmap_info.approach_beats),
+    level_img(beatmap_info.dir_state.has_image
+        ? std::make_optional<raylib::Image>((beatmap_info.dir_state.path / beatmap_dir_state::standard_img_filename).string())
+        : std::nullopt
+    ),
     song_name(beatmap_info.song_name),
     song_artist(beatmap_info.song_artist),
     mapper(beatmap_info.mapper),
@@ -812,6 +858,13 @@ beatmap::beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_in
         pos(pos::type::beg, 0),
         ui::text_size(ui::text_size::type::rel_h, 1),
         std::nullopt, false, assets.font_regular, "100.00", false
+    )),
+    progress_text(performance_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        ui::text_size(ui::text_size::type::rel_h, 1),
+        std::nullopt, true, assets.font_semi_bold, "0%", false
     )),
     fc_text(performance_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::gold,
@@ -998,8 +1051,10 @@ void beatmap::reset_level()
             continue;
 
         const beatmap_hit_object& back = keys.at(id).ref.get_hit_objects().back();
-        if (end_beat < back.get_end_beat())
-            end_beat = back.get_end_beat();
+        /* TODO: temp */
+        end_beat = 2.f;
+        //if (end_beat < back.get_end_beat())
+        //    end_beat = back.get_end_beat();
     }
 
     music.SetLooping(false);
@@ -1172,39 +1227,32 @@ void beatmap::update_element(float dt)
         end_fade_out.value().ref.color = kee::color(10, 10, 10, a);
     }
 
+    /* TODO: dont think this works with bpm switches */
+    const float progress = std::clamp(get_beat() / end_beat, 0.0f, 1.0f);
+    std::get<kee::dims>(progress_rect.ref.dimensions).w.val = progress;
+    progress_text.ref.set_string(std::format("{}%", static_cast<int>(progress * 100)));
+
     float accuracy = 100.f;
     if (max_combo != 0)
         accuracy *= static_cast<float>(combo + prev_total_combo) / max_combo;
 
     const float accuracy_trunc = std::floor(accuracy * 100.f) / 100.f;
-
     accuracy_text.ref.set_string(std::format("{:.2f}", accuracy_trunc));
-    if (accuracy == 100.f)
-        accuracy_text.ref.color = kee::color::white;
-    else if (accuracy >= 90.f)
-        accuracy_text.ref.color = kee::color::green_raylib;
-    else if (accuracy >= 80.f)
-        accuracy_text.ref.color = kee::color::blue_raylib;
-    else if (accuracy >= 70.f)
-        accuracy_text.ref.color = kee::color::violet;
-    else
-        accuracy_text.ref.color = kee::color::red_raylib;
 
     if (misses == 0)
     {
         fc_text.ref.set_string("FC");
+
         fc_text.ref.color = kee::color::gold;
-    }
-    else if (misses <= 10)
-    {
-        const float g_and_b = 255 * (1.f - (misses - 1) / 9.f);
-        fc_text.ref.set_string(std::format("{}x", misses));
-        fc_text.ref.color = kee::color(255, g_and_b, g_and_b);
+        fc_text.ref.font = assets.font_semi_bold;
     }
     else
     {
-        fc_text.ref.set_string(">10x");
+        const std::string fc_str = (misses <= 99) ? std::format("{}x", misses) : ">99x";
+        fc_text.ref.set_string(fc_str);
+
         fc_text.ref.color = kee::color::red_raylib;
+        fc_text.ref.font = assets.font_regular;
     }
 
     combo_text.ref.set_string(std::to_string(combo) + "x");
@@ -1214,7 +1262,6 @@ void beatmap::update_element(float dt)
     combo_text_bg.ref.set_string(std::to_string(combo) + "x");
     combo_text_bg.ref.set_text_size_val(0.08f + 0.04f * combo_gain.get());
 
-    std::get<kee::dims>(progress_rect.ref.dimensions).w.val = std::clamp(get_beat() / end_beat, 0.0f, 1.0f);
     if (load_rect.has_value())
     {
         const float load_rect_rel_h = 1 - game_time / load_time;

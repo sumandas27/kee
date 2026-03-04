@@ -144,7 +144,7 @@ bool textbox::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::cont
             float textbox_text_x_change = textbox_frame_x - new_char_pos_x;
             if (curr_idx > 0)
             {
-                const GlyphInfo gi = GetGlyphInfo(textbox_text.font, static_cast<int>(textbox_text.get_string()[curr_idx - 1]));
+                const GlyphInfo gi = GetGlyphInfo(textbox_text.font.get(), static_cast<int>(textbox_text.get_string()[curr_idx - 1]));
                 const float char_size = gi.advanceX * textbox_text.get_base_scale();
                 textbox_text_x_change += char_size * 0.8f;
             }
@@ -488,7 +488,7 @@ float textbox::char_idx_to_pos_x(std::size_t char_idx) const
     const std::size_t max = std::min(char_idx, textbox_string.size());
     for (std::size_t i = 0; i < max; i++)
     {
-        const GlyphInfo gi = GetGlyphInfo(textbox_text.font, static_cast<int>(textbox_string[i]));
+        const GlyphInfo gi = GetGlyphInfo(textbox_text.font.get(), static_cast<int>(textbox_string[i]));
         res += gi.advanceX * textbox_text.get_base_scale();
     }
 
@@ -507,7 +507,7 @@ cursor_idx textbox::pos_x_to_char_idx(float mouse_pos_x, std::optional<bool> sna
         /**
          * Note: No `raylib-cpp` binding for `GetGlyphInfo`.
          */
-        const GlyphInfo gi = GetGlyphInfo(textbox_text.font, static_cast<int>(textbox_string[i]));
+        const GlyphInfo gi = GetGlyphInfo(textbox_text.font.get(), static_cast<int>(textbox_string[i]));
         const float char_width = gi.advanceX * textbox_text.get_base_scale();
 
         float compare_x;
