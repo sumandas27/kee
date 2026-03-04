@@ -27,7 +27,8 @@ global_assets::global_assets() :
     pause_png("assets/img/pause.png"),
     play_png("assets/img/play.png"),
     directory_png("assets/img/directory.png"),
-    exit_png("assets/img/exit.png")
+    exit_png("assets/img/exit.png"),
+    star_png("assets/img/star.png")
 {
     const raylib::Image img_empty(global_assets::texture_empty_size, global_assets::texture_empty_size, raylib::Color::Blank());
     texture_empty = raylib::Texture(img_empty);

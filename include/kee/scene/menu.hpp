@@ -168,7 +168,6 @@ public:
         bool is_selected,
         play& play_ui,
         const level_ui_assets& ui_assets,
-        const raylib::Image& star_png,
         std::size_t idx
     );
 
@@ -325,7 +324,6 @@ public:
 
     const raylib::Image edit_png;
     const raylib::Image music_png;
-    const raylib::Image star_png;
 
 private:
     /* TODO: `friend` is kind of a bad workaround, think about ts */

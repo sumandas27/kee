@@ -89,9 +89,9 @@ const std::deque<beatmap_hit_object>& beatmap_key::get_hit_objects() const
     return hit_objects;
 }
 
-void beatmap_key::combo_lose(bool is_miss)
+void beatmap_key::combo_lose(bool is_miss, float lost_beat)
 {
-    beatmap_scene.combo_lose(is_miss);
+    beatmap_scene.combo_lose(is_miss, lost_beat);
     if (is_miss)
         combo_lost_alpha.set(127.5f, 0.0f, 1.0f, transition_type::lin);
 }
@@ -179,7 +179,7 @@ void beatmap_key::update_element([[maybe_unused]] float dt)
         if (beatmap_scene.get_beat() - front.beat > beatmap_scene.beat_forgiveness)
         {
             beatmap_scene.max_combo++;
-            combo_lose(true);
+            combo_lose(true, front.beat);
 
             if (front.hold.has_value())
             {
@@ -204,7 +204,7 @@ void beatmap_key::update_element([[maybe_unused]] float dt)
     else if (front.hold.has_value() && beatmap_scene.get_beat() - front.get_end_beat() > beatmap_scene.beat_forgiveness)
     {
         if (front.hold.value().is_held)
-            combo_lose(true);
+            combo_lose(true, front.get_end_beat());
 
         beatmap_scene.max_combo++;
         pop();
@@ -493,64 +493,40 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         kee::border(kee::border::type::rel_h, 0.08f),
         true, std::nullopt, std::nullopt
     ),
+    beatmap_scene(beatmap_scene),
     ui_rel_x(add_transition<float>(1)),
-    exit_text_color(add_transition<kee::color>(kee::color::white)),
-    rank_text(add_child<kee::ui::text>(std::nullopt,
-        kee::color::blank,
-        pos(pos::type::rel, 0.25f),
-        pos(pos::type::rel, 0.55f),
-        ui::text_size(ui::text_size::type::rel_h, 0.15f),
-        std::nullopt, true, assets.font_semi_bold, std::string(), false
-    )),
-    rank_misses_text(add_child<kee::ui::text>(std::nullopt,
-        kee::color::blank,
-        pos(pos::type::rel, 0.25f),
-        pos(pos::type::rel, 0.625f),
-        ui::text_size(ui::text_size::type::rel_h, 0.05f),
-        std::nullopt, true, assets.font_semi_bold, std::string(), false
-    )),
-    ui_frame(add_child<kee::ui::base>(std::nullopt,
+    leave_color(add_transition<kee::color>(kee::color::white)),
+    restart_color(add_transition<kee::color>(kee::color::white)),
+    level_frame(add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
-        kee::border(kee::border::type::rel_h, 0.1f),
+        kee::border(kee::border::type::rel_h, 0.05f),
         true
     )),
-    image_frame(frame.ref.add_child<kee::ui::rect>(std::nullopt,
-        image_frame_color.get(),
-        pos(pos::type::beg, 0),
-        pos(pos::type::beg, 0),
-        kee::dims(
-            dim(dim::type::aspect, static_cast<float>(kee::window_w) / kee::window_h),
-            dim(dim::type::rel, 1)
+    display_outer_frame(level_frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::rel, 0.f),
+        dims(
+            dim(dim::type::rel, 1.f),
+            dim(dim::type::rel, 0.2f)
         ),
-        false, std::nullopt, std::nullopt
+        false
     )),
-    image(ui_assets.img.has_value() ?
-        std::make_optional(image_frame.ref.add_child<kee::ui::image>(std::nullopt,
-            ui_assets.img.value(), 
-            kee::color::white,
-            pos(pos::type::rel, 0.5f),
-            pos(pos::type::rel, 0.5f),
-            border(border::type::abs, 0),
-            true, ui::image::display::shrink_to_fit, false, false, 0.0f
-        )) :
-        std::nullopt
-    ),
-    song_name(ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        kee::color::white,
-        pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0),
-        ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        kee::dim(kee::dim::type::rel, 0.45f),
-        false, assets.font_semi_bold, beatmap_scene.song_name, false
+    display_frame(display_outer_frame.ref.add_child<kee::ui::rect>(std::nullopt,
+        kee::color(50, 50, 50),
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        kee::border(kee::border::type::rel_w, 0.01f),
+        true, std::nullopt,
+        ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.2f, std::nullopt)
     )),
-    image_frame(frame.ref.add_child<kee::ui::rect>(std::nullopt,
-        image_frame_color.get(),
+    image_frame(display_frame.ref.add_child<kee::ui::rect>(std::nullopt,
+        kee::color(10, 10, 10),
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         kee::dims(
             dim(dim::type::aspect, static_cast<float>(kee::window_w) / kee::window_h),
-            dim(dim::type::rel, 0.1f)
+            dim(dim::type::rel, 1.f)
         ),
         false, std::nullopt, std::nullopt
     )),
@@ -565,127 +541,275 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         )) :
         std::nullopt
     ),
-    artist_name(ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        kee::color::white,
-        pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0.11f),
-        ui::text_size(ui::text_size::type::rel_h, 0.04f),
-        kee::dim(kee::dim::type::rel, 0.45f),
-        false, assets.font_semi_bold, beatmap_scene.song_artist, false
-    )),
-    level_name(ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
-        kee::color::white,
-        pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0.17f),
-        ui::text_size(ui::text_size::type::rel_h, 0.04f),
-        kee::dim(kee::dim::type::rel, 0.45f),
-        false, assets.font_semi_bold, std::format("{}'s {}", beatmap_scene.mapper, beatmap_scene.level_name), false
-    )),
-    exit_button(ui_frame.ref.add_child<kee::ui::button>(std::nullopt,
-        pos(pos::type::end, 0),
-        pos(pos::type::end, 0),
-        dims(
-            dim(dim::type::rel, 0.5f),
-            dim(dim::type::rel, 0.1f)
+    text_frame(display_frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::beg, 0.f),
+        pos(pos::type::rel, 0.f),
+        kee::dims(
+            dim(dim::type::abs, 0.f),
+            dim(dim::type::rel, 1.f)
         ),
         false
     )),
-    exit_rect(exit_button.ref.add_child<kee::ui::rect>(std::nullopt,
-        kee::color(60, 60, 60),
+    text_inner_frame(text_frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_h, 0.1f),
+        true
+    )),
+    song_name_text(text_inner_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::rel, 0.f),
+        ui::text_size(ui::text_size::type::rel_h, 0.6f),
+        std::nullopt, false, assets.font_semi_bold, beatmap_scene.song_name, false
+    )),
+    song_artist_text(text_inner_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color(200, 200, 200),
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::end, 0.f),
+        ui::text_size(ui::text_size::type::rel_h, 0.35f),
+        std::nullopt, false, assets.font_regular, beatmap_scene.song_artist, false
+    )),
+    level_name_text(text_inner_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color(150, 150, 150),
+        pos(pos::type::beg, 0.f),
+        pos(pos::type::end, 0.f),
+        ui::text_size(ui::text_size::type::rel_h, 0.35f),
+        std::nullopt, false, assets.font_italic, " - " + beatmap_scene.mapper + "'s " + beatmap_scene.level_name, false
+    )),
+    ui_frame(level_frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::rel, 0.2f),
+        dims(
+            dim(dim::type::rel, 1.f),
+            dim(dim::type::rel, 0.6f)
+        ),
+        false
+    )),
+    ui_inner_frame(ui_frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        border(border::type::rel_w, 0.01f),
+        true
+    )),
+    performance_outer_frame(level_frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.25f),
+        pos(pos::type::rel, 0.5f),
+        dims(
+            dim(dim::type::rel, 0.15f),
+            dim(dim::type::rel, 0.35f)
+        ),
+        true
+    )),
+    performance_frame(performance_outer_frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        kee::border(border::type::rel_h, 0.15f),
+        true
+    )),
+    rating_rect(performance_frame.ref.add_child<kee::ui::rect>(std::nullopt,
+        kee::color(120, 120, 120),
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::rel, 0.f),
+        kee::dims(
+            dim(dim::type::rel, 1.f),
+            dim(dim::type::aspect, 0.32f)
+        ),
+        false, std::nullopt,
+        ui::rect_roundness(ui::rect_roundness::type::rel_h, 0.5f, std::nullopt)
+    )),
+    rating_frame(rating_rect.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.45f),
+        pos(pos::type::rel, 0.5f),
+        kee::dims(
+            dim(dim::type::abs, 0.f),
+            dim(dim::type::rel, 1.f)
+        ),
+        true
+    )),
+    rating_star_img(rating_frame.ref.add_child<kee::ui::image>(std::nullopt,
+        assets.star_png, kee::color::white,
+        pos(pos::type::beg, 0.f),
+        pos(pos::type::rel, 0.5f),
+        kee::dims(
+            dim(dim::type::aspect, 1.f),
+            dim(dim::type::rel, 0.8f)
+        ),
+        true, ui::image::display::shrink_to_fit, false, false, 0.0f
+    )),
+    rating_text(rating_star_img.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::rel, 1.25f),
+        pos(pos::type::rel, 0.f),
+        ui::text_size(ui::text_size::type::rel_h, 1.f),
+        std::nullopt, false, assets.font_semi_bold, "1", false
+    )),
+    progress_text_frame(performance_frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::end, 0.f),
+        kee::dims(
+            dim(dim::type::rel, 1.f),
+            dim(dim::type::abs, 0.f)
+        ),
+        false
+    )),
+    progress_text(progress_text_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        ui::text_size(ui::text_size::type::rel_h, 1.f),
+        std::nullopt, true, assets.font_semi_bold, std::string(), false
+    )),
+    leave_button(level_frame.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::rel, 0.25f),
+        pos(pos::type::rel, 0.9f),
+        dims(
+            dim(dim::type::aspect, 1.f),
+            dim(dim::type::rel, 0.1f)
+        ),
+        true
+    )),
+    leave_img(leave_button.ref.add_child<kee::ui::image>(std::nullopt,
+        beatmap_scene.leave_png, kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         kee::border(kee::border::type::abs, 0),
-        true, std::nullopt, std::nullopt
+        true, ui::image::display::shrink_to_fit, false, false, 0.f
     )),
-    exit_text(exit_rect.ref.add_child<kee::ui::text>(std::nullopt,
-        exit_text_color.get(),
-        pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0.5f),
-        ui::text_size(ui::text_size::type::rel_h, 0.5f),
-        std::nullopt, true, assets.font_semi_bold, "EXIT", false
-    )),
-    performance_text(ui_frame.ref.add_child<kee::ui::text>(std::nullopt,
+    leave_text(leave_img.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
-        pos(pos::type::rel, 0.75f),
-        pos(pos::type::rel, 0.04f),
-        ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        std::nullopt, true, assets.font_semi_bold, "PERFORMANCE", false
-    )),
-    label_frame(ui_frame.ref.add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.5f),
-        pos(pos::type::rel, 0),
+        pos(pos::type::rel, 4.f / 3.f),
+        ui::text_size(ui::text_size::type::rel_h, 1.f / 3.f),
+        std::nullopt, true, assets.font_regular, "LEAVE", false
+    )),
+    restart_button(level_frame.ref.add_child<kee::ui::button>(std::nullopt,
+        pos(pos::type::rel, 0.75f),
+        pos(pos::type::rel, 0.9f),
         dims(
-            dim(dim::type::rel, 0),
-            dim(dim::type::rel, 0.8f)
+            dim(dim::type::aspect, 1.f),
+            dim(dim::type::rel, 0.1f)
+        ),
+        true
+    )),
+    restart_img(restart_button.ref.add_child<kee::ui::image>(std::nullopt,
+        beatmap_scene.restart_png, kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.5f),
+        kee::border(kee::border::type::abs, 0),
+        true, ui::image::display::shrink_to_fit, false, false, 0.f
+    )),
+    restart_text(restart_img.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 4.f / 3.f),
+        ui::text_size(ui::text_size::type::rel_h, 1.f / 3.f),
+        std::nullopt, true, assets.font_regular, "RESTART", false
+    )),
+    label_frame(ui_inner_frame.ref.add_child<kee::ui::base>(std::nullopt,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.f),
+        dims(
+            dim(dim::type::rel, 0.5f),
+            dim(dim::type::rel, 1.f)
         ),
         false
+    )),
+    score_text(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::rel, 0.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, end_screen::result_text_size),
+        std::nullopt, false, assets.font_semi_bold, "Score", true
     )),
     accuracy_text(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
-        pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0.3f),
-        ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        std::nullopt, false, assets.font_semi_bold, "ACCURACY", false
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::rel, 1.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, end_screen::result_text_size),
+        std::nullopt, false, assets.font_semi_bold, "Accuracy", true
     )),
     missed_text(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
-        pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0.45f),
-        ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        std::nullopt, false, assets.font_semi_bold, "MISSED", false
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::rel, 2.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, end_screen::result_text_size),
+        std::nullopt, false, assets.font_semi_bold, "Missed", true
     )),
     combo_text(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
-        pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0.6f),
-        ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        std::nullopt, false, assets.font_semi_bold, "COMBO", false
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::rel, 3.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, end_screen::result_text_size),
+        std::nullopt, false, assets.font_semi_bold, "Combo", true
     )),
     highest_combo_text(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
-        pos(pos::type::rel, 0),
-        pos(pos::type::rel, 0.75f),
-        ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        std::nullopt, false, assets.font_semi_bold, "HIGHEST COMBO", false
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::rel, 4.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, end_screen::result_text_size),
+        std::nullopt, false, assets.font_semi_bold, "Best Streak", true
     )),
-    results_frame(ui_frame.ref.add_child<kee::ui::base>(std::nullopt,
-        pos(pos::type::rel, 1),
-        pos(pos::type::rel, 0),
-        dims(
-            dim(dim::type::rel, 0),
-            dim(dim::type::rel, 0.8f)
-        ),
-        false
-    )),
-    accuracy_result(results_frame.ref.add_child<kee::ui::text>(std::nullopt,
+    attempts_text(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
-        pos(pos::type::end, 0),
-        pos(pos::type::rel, 0.3f),
-        ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        std::nullopt, false, assets.font_regular, std::string(), false
+        pos(pos::type::rel, 0.f),
+        pos(pos::type::rel, 5.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, end_screen::result_text_size),
+        std::nullopt, false, assets.font_semi_bold, "Attempts", true
     )),
-    missed_result(results_frame.ref.add_child<kee::ui::text>(std::nullopt,
+    score_result(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
-        pos(pos::type::end, 0),
-        pos(pos::type::rel, 0.45f),
-        ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        std::nullopt, false, assets.font_regular, std::to_string(beatmap_scene.misses), false
+        pos(pos::type::end, 0.f),
+        pos(pos::type::rel, 0.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, end_screen::result_text_size),
+        std::nullopt, false, assets.font_regular, std::string(), true
     )),
-    combo_result(results_frame.ref.add_child<kee::ui::text>(std::nullopt,
+    accuracy_result(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
-        pos(pos::type::end, 0),
-        pos(pos::type::rel, 0.6f),
-        ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        std::nullopt, false, assets.font_regular, std::string(), false
+        pos(pos::type::end, 0.f),
+        pos(pos::type::rel, 1.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, end_screen::result_text_size),
+        std::nullopt, false, assets.font_regular, std::string(), true
     )),
-    highest_combo_result(results_frame.ref.add_child<kee::ui::text>(std::nullopt,
+    missed_result(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
-        pos(pos::type::end, 0),
-        pos(pos::type::rel, 0.75f),
-        ui::text_size(ui::text_size::type::rel_h, 0.08f),
-        std::nullopt, false, assets.font_regular, std::string(), false
-    ))
+        pos(pos::type::end, 0.f),
+        pos(pos::type::rel, 2.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, end_screen::result_text_size),
+        std::nullopt, false, assets.font_regular, std::to_string(beatmap_scene.misses), true
+    )),
+    combo_result(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::end, 0.f),
+        pos(pos::type::rel, 3.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, end_screen::result_text_size),
+        std::nullopt, false, assets.font_regular, std::string(), true
+    )),
+    highest_combo_result(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::end, 0.f),
+        pos(pos::type::rel, 4.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, end_screen::result_text_size),
+        std::nullopt, false, assets.font_regular, std::string(), true
+    )),
+    attempts_result(label_frame.ref.add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::end, 0.f),
+        pos(pos::type::rel, 5.f / 6.f),
+        ui::text_size(ui::text_size::type::rel_h, end_screen::result_text_size),
+        std::nullopt, false, assets.font_regular, "0" /* TODO: temp */, true
+    )),
+    should_reset_flag(false)
 {
+    const float image_frame_w = image_frame.ref.get_raw_rect().width;
+    text_frame.ref.x.val = image_frame_w;
+    std::get<kee::dims>(text_frame.ref.dimensions).w.val = display_outer_frame.ref.get_raw_rect().width - image_frame_w;
+    level_name_text.ref.x.val = song_artist_text.ref.get_raw_rect().width;
+
+    rating_star_img.ref.x.val = rating_star_img.ref.get_raw_rect().width / 2;
+    std::get<kee::dims>(rating_frame.ref.dimensions).w.val = rating_star_img.ref.get_raw_rect().width + rating_text.ref.get_raw_rect().width;
+    std::get<kee::dims>(progress_text_frame.ref.dimensions).h.val = performance_frame.ref.get_raw_rect().height - rating_rect.ref.get_raw_rect().height;
+
     const unsigned int curr_combo = beatmap_scene.combo + beatmap_scene.prev_total_combo;
     const unsigned int highest_combo = std::max(beatmap_scene.combo, beatmap_scene.prev_highest_combo);
 
@@ -701,54 +825,79 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
 
     ui_rel_x.set(std::nullopt, 0.5f, 0.5f, kee::transition_type::exp);
 
-    exit_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    leave_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
         switch (button_event)
         {
         case ui::button::event::on_hot:
-            this->exit_text_color.set(std::nullopt, kee::color::dark_orange, 0.5f, kee::transition_type::exp);
+            this->leave_color.set(std::nullopt, kee::color(200, 200, 200), 0.5f, kee::transition_type::exp);
             break;
         case ui::button::event::on_leave:
-            this->exit_text_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
+            this->leave_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
             break;
         default:
             break;
         }
     };
 
-    exit_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    leave_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
         this->game_ref.queue_game_exit();
     };
 
-    if (beatmap_scene.misses == 0)
+    restart_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        rank_text.ref.color = kee::color::gold;
-        rank_text.ref.set_string("FC");
+        switch (button_event)
+        {
+        case ui::button::event::on_hot:
+            this->restart_color.set(std::nullopt, kee::color(200, 200, 200), 0.5f, kee::transition_type::exp);
+            break;
+        case ui::button::event::on_leave:
+            this->restart_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::exp);
+            break;
+        default:
+            break;
+        }
+    };
+
+    restart_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
+    {
+        should_reset_flag = true;
+    };
+
+    if (!beatmap_scene.progress.has_value())
+    {
+        progress_text.ref.color = kee::color::gold;
+        progress_text.ref.set_string("FC");
+
+        score_result.ref.font = assets.font_semi_bold;
+        score_result.ref.color = kee::color::gold;
+        score_result.ref.set_string("FC");
     }
     else
     {
-        if (beatmap_scene.misses >= 1 && beatmap_scene.misses <= 10)
-        {
-            rank_text.ref.y.val = 0.525f;
-            rank_misses_text.ref.color = kee::color::dark_gray;
-            rank_misses_text.ref.set_string(std::format("({}x)", beatmap_scene.misses));
-        }
+        unsigned int progress_uint = static_cast<unsigned int>(beatmap_scene.progress.value() * 100.f);
+        
+        /**
+         * The last hit object of any level marks its end, missing it would make progress
+         * 100 technically without this clamp.
+         */
+        static constexpr unsigned int max_progress_uint = 99;
+        if (progress_uint > max_progress_uint)
+            progress_uint = max_progress_uint;
 
-        const unsigned int accuracy_uint = static_cast<unsigned int>(accuracy);
-        rank_text.ref.set_string(std::to_string(accuracy_uint));
+        progress_text.ref.color = kee::color::white;
+        progress_text.ref.set_string(std::to_string(progress_uint));
 
-        if (accuracy >= 90.f)
-            rank_text.ref.color = kee::color::green_raylib;
-        else if (accuracy >= 80.f)
-            rank_text.ref.color = kee::color::blue_raylib;
-        else if (accuracy >= 70.f)
-            rank_text.ref.color = kee::color::violet;
-        else
-            rank_text.ref.color = kee::color::red_raylib;
+        score_result.ref.set_string(std::to_string(progress_uint));
     }
 
     take_keyboard_capture();
+}
+
+bool end_screen::should_reset() const
+{
+    return should_reset_flag;
 }
 
 bool end_screen::on_element_key_down([[maybe_unused]] int keycode, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -767,11 +916,18 @@ bool end_screen::on_element_key_up([[maybe_unused]] int keycode, [[maybe_unused]
 void end_screen::update_element([[maybe_unused]] float dt)
 {
     x.val = ui_rel_x.get();
-    exit_text.ref.color = exit_text_color.get();
+
+    leave_img.ref.color = leave_color.get();
+    leave_text.ref.color = leave_color.get();
+
+    restart_img.ref.color = restart_color.get();
+    restart_text.ref.color = restart_color.get();
 }
 
 beatmap::beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_info) :
     kee::scene::base(reqs),
+    leave_png("assets/img/leave.png"),
+    restart_png("assets/img/restart.png"),
     beat_forgiveness(beatmap_info.beat_forgiveness),
     approach_beats(beatmap_info.approach_beats),
     level_img(beatmap_info.dir_state.has_image
@@ -942,8 +1098,11 @@ void beatmap::combo_increment(const std::optional<std::string>& hitsound_name)
         hitsounds.at(hitsound_name.value()).Play();
 }
 
-void beatmap::combo_lose(bool is_miss)
+void beatmap::combo_lose(bool is_miss, float lost_beat)
 {
+    if (!progress.has_value())
+        progress = lost_beat / end_beat;
+
     prev_total_combo += combo;
     if (prev_highest_combo < combo)
         prev_highest_combo = combo;
@@ -1016,6 +1175,7 @@ void beatmap::reset_level()
     ));
 
     pause_menu_ui.reset();
+    end_screen_ui.reset();
     
     keys.clear();
     for (const auto& [id, rel_pos] : kee::key_ui_data)
@@ -1051,8 +1211,7 @@ void beatmap::reset_level()
             continue;
 
         const beatmap_hit_object& back = keys.at(id).ref.get_hit_objects().back();
-        /* TODO: temp */
-        end_beat = 2.f;
+        end_beat = 4.f;
         //if (end_beat < back.get_end_beat())
         //    end_beat = back.get_end_beat();
     }
@@ -1064,14 +1223,16 @@ void beatmap::reset_level()
 
     combo_lost_sfx.SetVolume(0.05f);
 
+    progress.reset();
     max_combo = 0;
     prev_total_combo = 0;
     prev_highest_combo = 0;
     combo = 0;
     misses = 0;
 
-    load_time_paused = false,
-    game_time = 0.0f;
+    load_time_paused = false;
+    time_till_end_screen.reset();
+    game_time = 0.f;
 }
 
 bool beatmap::on_element_key_down(int keycode, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -1131,7 +1292,7 @@ bool beatmap::on_element_key_up(int keycode, [[maybe_unused]] magic_enum::contai
     
     if (get_beat() < front.get_end_beat() - beat_forgiveness)
     {
-        keys.at(keycode).ref.combo_lose(front.hold.value().not_missed);
+        keys.at(keycode).ref.combo_lose(front.hold.value().not_missed, get_beat());
         if (front.hold.value().not_missed)
             front.hold.value().not_missed = false;
         
@@ -1198,6 +1359,9 @@ void beatmap::update_element(float dt)
             reset_level();
     }
 
+    if (end_screen_ui.has_value() && end_screen_ui.value().ref.should_reset())
+        reset_level();
+
     if (!time_till_end_screen.has_value())
     {
         if (get_beat() >= end_beat)
@@ -1228,9 +1392,14 @@ void beatmap::update_element(float dt)
     }
 
     /* TODO: dont think this works with bpm switches */
-    const float progress = std::clamp(get_beat() / end_beat, 0.0f, 1.0f);
-    std::get<kee::dims>(progress_rect.ref.dimensions).w.val = progress;
-    progress_text.ref.set_string(std::format("{}%", static_cast<int>(progress * 100)));
+    const float curr_progress = std::clamp(get_beat() / end_beat, 0.0f, 1.0f);
+    std::get<kee::dims>(progress_rect.ref.dimensions).w.val = curr_progress;
+
+    const std::string progress_str = progress.has_value()
+        ? std::format("{}/{}%", static_cast<int>(progress.value() * 100), static_cast<int>(curr_progress * 100))
+        : std::format("{}%", static_cast<int>(curr_progress * 100));
+
+    progress_text.ref.set_string(progress_str);
 
     float accuracy = 100.f;
     if (max_combo != 0)

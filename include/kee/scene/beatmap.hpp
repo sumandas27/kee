@@ -50,7 +50,7 @@ public:
 
     const std::deque<beatmap_hit_object>& get_hit_objects() const;
 
-    void combo_lose(bool is_miss);
+    void combo_lose(bool is_miss, float lost_beat);
 
     beatmap_hit_object& front();
     void push(const beatmap_hit_object& object);
@@ -135,42 +135,71 @@ class end_screen final : public kee::ui::rect
 public:
     end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene);
 
+    bool should_reset() const;
+
 private:
+    static constexpr float result_text_size = 0.12f;
+
     bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
     bool on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
 
     void update_element(float dt) override;
 
+    beatmap& beatmap_scene;
+
     kee::transition<float>& ui_rel_x;
-    kee::transition<kee::color>& exit_text_color;
+    kee::transition<kee::color>& leave_color;
+    kee::transition<kee::color>& restart_color;
 
-    kee::ui::handle<kee::ui::text> rank_text;
-    kee::ui::handle<kee::ui::text> rank_misses_text;
-
-    kee::ui::handle<kee::ui::base> ui_frame;
+    kee::ui::handle<kee::ui::base> level_frame;
+    kee::ui::handle<kee::ui::base> display_outer_frame;
+    kee::ui::handle<kee::ui::rect> display_frame;
     kee::ui::handle<kee::ui::rect> image_frame;
     std::optional<kee::ui::handle<kee::ui::image>> image;
 
-    kee::ui::handle<kee::ui::text> song_name;
-    kee::ui::handle<kee::ui::text> artist_name;
-    kee::ui::handle<kee::ui::text> level_name;
+    kee::ui::handle<kee::ui::base> text_frame;
+    kee::ui::handle<kee::ui::base> text_inner_frame;
+    kee::ui::handle<kee::ui::text> song_name_text;
+    kee::ui::handle<kee::ui::text> song_artist_text; /* TODO: clamp these */
+    kee::ui::handle<kee::ui::text> level_name_text;
 
-    kee::ui::handle<kee::ui::button> exit_button;
-    kee::ui::handle<kee::ui::rect> exit_rect;
-    kee::ui::handle<kee::ui::text> exit_text;
-    kee::ui::handle<kee::ui::text> performance_text;
+    kee::ui::handle<kee::ui::base> ui_frame;
+    kee::ui::handle<kee::ui::base> ui_inner_frame;
+    kee::ui::handle<kee::ui::base> performance_outer_frame;
+    kee::ui::handle<kee::ui::base> performance_frame;
+
+    kee::ui::handle<kee::ui::rect> rating_rect;
+    kee::ui::handle<kee::ui::base> rating_frame;
+    kee::ui::handle<kee::ui::image> rating_star_img;
+    kee::ui::handle<kee::ui::text> rating_text;
+
+    kee::ui::handle<kee::ui::base> progress_text_frame;
+    kee::ui::handle<kee::ui::text> progress_text;
+
+    kee::ui::handle<kee::ui::button> leave_button;
+    kee::ui::handle<kee::ui::image> leave_img;
+    kee::ui::handle<kee::ui::text> leave_text;
+
+    kee::ui::handle<kee::ui::button> restart_button;
+    kee::ui::handle<kee::ui::image> restart_img;
+    kee::ui::handle<kee::ui::text> restart_text;
 
     kee::ui::handle<kee::ui::base> label_frame;
+    kee::ui::handle<kee::ui::text> score_text;
     kee::ui::handle<kee::ui::text> accuracy_text;
     kee::ui::handle<kee::ui::text> missed_text;
     kee::ui::handle<kee::ui::text> combo_text;
     kee::ui::handle<kee::ui::text> highest_combo_text;
+    kee::ui::handle<kee::ui::text> attempts_text;
 
-    kee::ui::handle<kee::ui::base> results_frame;
+    kee::ui::handle<kee::ui::text> score_result;
     kee::ui::handle<kee::ui::text> accuracy_result;
     kee::ui::handle<kee::ui::text> missed_result;
     kee::ui::handle<kee::ui::text> combo_result;
     kee::ui::handle<kee::ui::text> highest_combo_result;
+    kee::ui::handle<kee::ui::text> attempts_result;
+
+    bool should_reset_flag;
 };
 
 class beatmap final : public kee::scene::base
@@ -181,7 +210,7 @@ public:
     float get_beat() const;
 
     void combo_increment(const std::optional<std::string>& hitsound_name);
-    void combo_lose(bool is_miss);
+    void combo_lose(bool is_miss, float lost_beat);
 
     void pause();
     void unpause();
@@ -189,6 +218,11 @@ public:
     bool has_game_bg() const;
     std::optional<float> get_bg_opacity() const;
     void set_bg_opacity(float opacity);
+
+    void reset_level();
+
+    const raylib::Image leave_png;
+    const raylib::Image restart_png;
 
     const float beat_forgiveness;
     const float approach_beats;
@@ -198,6 +232,8 @@ public:
     const std::string song_artist;
     const std::string mapper;
     const std::string level_name;
+
+    std::optional<float> progress;
 
     unsigned int max_combo;
     unsigned int prev_total_combo;
@@ -210,8 +246,6 @@ private:
     bool on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
 
     void update_element(float dt) override;
-
-    void reset_level();
 
     const boost::json::object keys_json_obj;
     const std::optional<boost::json::object> key_color_json_obj;

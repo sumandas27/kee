@@ -52,6 +52,7 @@ public:
     const raylib::Image play_png;
     const raylib::Image directory_png;
     const raylib::Image exit_png;
+    const raylib::Image star_png;
 
 private:
     static raylib::Font gen_sdf_font(const std::filesystem::path& font_path);

@@ -618,7 +618,6 @@ level_ui::level_ui(
     bool is_selected,
     play& play_ui,
     const level_ui_assets& ui_assets,
-    const raylib::Image& star_png,
     std::size_t idx
 ) :
     kee::ui::button(reqs, x, y, dims, centered),
@@ -727,7 +726,7 @@ level_ui::level_ui(
         true
     )),
     rating_star_img(rating_frame.ref.add_child<kee::ui::image>(std::nullopt,
-        star_png,
+        assets.star_png,
         kee::color::white,
         pos(pos::type::beg, 0.f),
         pos(pos::type::rel, 0.5f),
@@ -1016,7 +1015,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
         true
     )),
     selected_rating_star_img(selected_rating_frame.ref.add_child<kee::ui::image>(std::nullopt,
-        menu_scene.star_png, kee::color::white,
+        assets.star_png, kee::color::white,
         pos(pos::type::beg, 0.f),
         pos(pos::type::rel, 0.5f),
         kee::dims(
@@ -1260,7 +1259,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
                 dim(dim::type::rel, 1.f),
                 dim(dim::type::rel, 0.1f)
             ),
-            true, is_analyzer_playing, *this, ui_assets, menu_scene.star_png, i
+            true, is_analyzer_playing, *this, ui_assets, i
         ));
     }
 
@@ -1458,7 +1457,6 @@ menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_inf
     kee::scene::base(reqs),
     edit_png("assets/img/edit.png"),
     music_png("assets/img/music.png"),
-    star_png("assets/img/star.png"),
     k_text_alpha(add_transition<float>(0.0f)),
     k_scale(add_transition<float>(1.0f)),
     e1_scale(add_transition<float>(1.0f)),
