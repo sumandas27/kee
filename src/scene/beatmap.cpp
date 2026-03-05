@@ -493,7 +493,6 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         kee::border(kee::border::type::rel_h, 0.08f),
         true, std::nullopt, std::nullopt
     ),
-    beatmap_scene(beatmap_scene),
     ui_rel_x(add_transition<float>(1)),
     leave_color(add_transition<kee::color>(kee::color::white)),
     restart_color(add_transition<kee::color>(kee::color::white)),
@@ -895,6 +894,11 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
     take_keyboard_capture();
 }
 
+end_screen::~end_screen()
+{
+    release_keyboard_capture();
+}
+
 bool end_screen::should_reset() const
 {
     return should_reset_flag;
@@ -1176,6 +1180,9 @@ void beatmap::reset_level()
 
     pause_menu_ui.reset();
     end_screen_ui.reset();
+
+    end_fade_out_alpha.set(0.f);
+    end_fade_out.reset();
     
     keys.clear();
     for (const auto& [id, rel_pos] : kee::key_ui_data)
@@ -1360,7 +1367,10 @@ void beatmap::update_element(float dt)
     }
 
     if (end_screen_ui.has_value() && end_screen_ui.value().ref.should_reset())
+    {
         reset_level();
+        std::println("AAA");
+    }
 
     if (!time_till_end_screen.has_value())
     {

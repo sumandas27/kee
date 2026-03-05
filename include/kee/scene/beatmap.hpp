@@ -80,7 +80,6 @@ class pause_menu final : public kee::ui::rect
 {
 public:
     pause_menu(const kee::ui::required& reqs, beatmap& beatmap_scene);
-
     pause_menu(const pause_menu&) = delete;
     pause_menu(pause_menu&&) = delete;
     ~pause_menu();
@@ -134,6 +133,12 @@ class end_screen final : public kee::ui::rect
 {
 public:
     end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene);
+    end_screen(const end_screen&) = delete;
+    end_screen(end_screen&&) = delete;
+    ~end_screen();
+
+    end_screen& operator=(const end_screen&) = delete;
+    end_screen& operator=(end_screen&&) = delete;
 
     bool should_reset() const;
 
@@ -144,8 +149,6 @@ private:
     bool on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
 
     void update_element(float dt) override;
-
-    beatmap& beatmap_scene;
 
     kee::transition<float>& ui_rel_x;
     kee::transition<kee::color>& leave_color;
