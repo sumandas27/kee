@@ -178,7 +178,7 @@ void beatmap_key::update_element([[maybe_unused]] float dt)
     {
         if (beatmap_scene.get_beat() - front.beat > beatmap_scene.beat_forgiveness)
         {
-            beatmap_scene.max_combo++;
+            beatmap_scene.total_combo++;
             combo_lose(true, front.beat);
 
             if (front.hold.has_value())
@@ -195,7 +195,7 @@ void beatmap_key::update_element([[maybe_unused]] float dt)
         if (front.hold.value().is_held)
             beatmap_scene.combo_increment(std::nullopt);
         else
-            beatmap_scene.max_combo++;
+            beatmap_scene.total_combo++;
 
         front.hold.value().next_combo = (front.hold.value().next_combo.value() + 1.0f < front.get_end_beat())
             ? std::make_optional(front.hold.value().next_combo.value() + 1.0f)
@@ -206,7 +206,7 @@ void beatmap_key::update_element([[maybe_unused]] float dt)
         if (front.hold.value().is_held)
             combo_lose(true, front.get_end_beat());
 
-        beatmap_scene.max_combo++;
+        beatmap_scene.total_combo++;
         pop();
     }
 }
@@ -809,17 +809,17 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
     std::get<kee::dims>(rating_frame.ref.dimensions).w.val = rating_star_img.ref.get_raw_rect().width + rating_text.ref.get_raw_rect().width;
     std::get<kee::dims>(progress_text_frame.ref.dimensions).h.val = performance_frame.ref.get_raw_rect().height - rating_rect.ref.get_raw_rect().height;
 
-    const unsigned int curr_combo = beatmap_scene.combo + beatmap_scene.prev_total_combo;
+    const unsigned int curr_combo = beatmap_scene.combo + beatmap_scene.prev_accumulated_combo;
     const unsigned int highest_combo = std::max(beatmap_scene.combo, beatmap_scene.prev_highest_combo);
 
     float accuracy = 100.f;
-    if (beatmap_scene.max_combo != 0)
-        accuracy *= static_cast<float>(curr_combo) / beatmap_scene.max_combo;
+    if (beatmap_scene.total_combo != 0)
+        accuracy *= static_cast<float>(curr_combo) / beatmap_scene.total_combo;
 
     const float accuracy_trunc = std::floor(accuracy * 100.f) / 100.f;
     accuracy_result.ref.set_string(std::format("{:.2f}", accuracy_trunc));
 
-    combo_result.ref.set_string(std::format("{}/{}", curr_combo, beatmap_scene.max_combo));
+    combo_result.ref.set_string(std::format("{}/{}", curr_combo, beatmap_scene.total_combo));
     highest_combo_result.ref.set_string(std::format("{}x", highest_combo));
 
     ui_rel_x.set(std::nullopt, 0.5f, 0.5f, kee::transition_type::exp);
@@ -942,6 +942,7 @@ beatmap::beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_in
     song_artist(beatmap_info.song_artist),
     mapper(beatmap_info.mapper),
     level_name(beatmap_info.level_name),
+    metadata_total_combo(beatmap_info.total_combo),
     keys_json_obj(beatmap_info.keys_json_obj),
     key_color_json_obj(beatmap_info.key_colors_json_obj),
     video_offset(beatmap_info.dir_state.video_dir_info),
@@ -1094,7 +1095,7 @@ float beatmap::get_beat() const
 
 void beatmap::combo_increment(const std::optional<std::string>& hitsound_name)
 {
-    max_combo++;
+    total_combo++;
     combo++;
     combo_gain.set(1.0f, 0.0f, 0.25f, transition_type::lin);
 
@@ -1107,7 +1108,7 @@ void beatmap::combo_lose(bool is_miss, float lost_beat)
     if (!progress.has_value())
         progress = lost_beat / end_beat;
 
-    prev_total_combo += combo;
+    prev_accumulated_combo += combo;
     if (prev_highest_combo < combo)
         prev_highest_combo = combo;
 
@@ -1231,8 +1232,8 @@ void beatmap::reset_level()
     combo_lost_sfx.SetVolume(0.05f);
 
     progress.reset();
-    max_combo = 0;
-    prev_total_combo = 0;
+    total_combo = 0;
+    prev_accumulated_combo = 0;
     prev_highest_combo = 0;
     combo = 0;
     misses = 0;
@@ -1310,7 +1311,7 @@ bool beatmap::on_element_key_up(int keycode, [[maybe_unused]] magic_enum::contai
         if (front.hold.value().next_combo.has_value() && front.hold.value().next_combo.value() < front.get_end_beat())
         {
             const unsigned int combo_to_add = static_cast<unsigned int>(std::ceil(front.get_end_beat()) - front.hold.value().next_combo.value());
-            max_combo += combo_to_add;
+            total_combo += combo_to_add;
             combo += combo_to_add;
         }    
 
@@ -1367,10 +1368,7 @@ void beatmap::update_element(float dt)
     }
 
     if (end_screen_ui.has_value() && end_screen_ui.value().ref.should_reset())
-    {
         reset_level();
-        std::println("AAA");
-    }
 
     if (!time_till_end_screen.has_value())
     {
@@ -1392,7 +1390,12 @@ void beatmap::update_element(float dt)
     {
         time_till_end_screen.value() -= dt;
         if (time_till_end_screen.value() <= 0)
+        {
+            if (total_combo != metadata_total_combo)
+                throw std::runtime_error(std::format("Total combo ({}x) does not match metadata total combo ({}x)", total_combo, metadata_total_combo));
+
             end_screen_ui.emplace(add_child<end_screen>(10, *this));
+        }
     }
 
     if (end_fade_out.has_value())
@@ -1412,8 +1415,8 @@ void beatmap::update_element(float dt)
     progress_text.ref.set_string(progress_str);
 
     float accuracy = 100.f;
-    if (max_combo != 0)
-        accuracy *= static_cast<float>(combo + prev_total_combo) / max_combo;
+    if (total_combo != 0)
+        accuracy *= static_cast<float>(combo + prev_accumulated_combo) / total_combo;
 
     const float accuracy_trunc = std::floor(accuracy * 100.f) / 100.f;
     accuracy_text.ref.set_string(std::format("{:.2f}", accuracy_trunc));

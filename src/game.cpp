@@ -4,7 +4,7 @@
 
 #include <avcpp/av.h>
 
-#include "kee/scene/beatmap.hpp"
+#include "kee/scene/editor/root.hpp"
 
 namespace kee {
 
@@ -88,7 +88,7 @@ game::game() :
         const beatmap_dir_info random_level_dir(level_dirs[dist(rng)]);
         return make_scene<kee::scene::menu>(random_level_dir, true);
     }()), */
-    curr_scene(make_scene<kee::scene::beatmap>(beatmap_dir_info("test_app_data/play/daft-punk-something-about-us"))),
+    curr_scene(make_scene<kee::scene::editor::root>(beatmap_dir_info("test_app_data/play/daft-punk-something-about-us"))),
     scene_manager(kee::scene::required(*this, assets), curr_scene),
     main_loop_begun(false),
     game_should_exit(false)

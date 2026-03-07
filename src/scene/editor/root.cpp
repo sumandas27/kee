@@ -1295,6 +1295,7 @@ void root::save_existing_beatmap()
         if (save_state.value().dir_state.video_dir_info.has_value())
             output["video_offset"] = save_state.value().dir_state.video_dir_info.value();
 
+        unsigned int total_combo = 0;
         boost::json::object& hit_objects = output["hit_objects"].emplace_object();
         for (int key : compose_tab::prio_to_key)
         {
@@ -1307,12 +1308,24 @@ void root::save_existing_beatmap()
 
                 if (hit_obj.hold_info.has_value())
                 {
+                    const float duration = hit_obj.hold_info.value().duration;
+
                     boost::json::object& hold_json = json_hit_obj["hold"].emplace_object();
-                    hold_json["duration"] = hit_obj.hold_info.value().duration;
+                    hold_json["duration"] = duration;
                     hold_json["hitsound"] = hit_obj.hold_info.value().hitsound_name;
+
+                    const int start_floor = static_cast<int>(std::floor(beat));
+                    const int end_ceil = static_cast<int>(std::ceil(beat + duration));
+                    const unsigned int hold_combo = end_ceil - start_floor - 1;
+
+                    static constexpr unsigned int endpoint_combo = 2;
+                    total_combo += hold_combo + endpoint_combo;
                 }
                 else
+                {
                     json_hit_obj["hold"] = nullptr;
+                    total_combo++;
+                }
 
                 key_hit_objs.push_back(json_hit_obj);
             }
@@ -1321,8 +1334,10 @@ void root::save_existing_beatmap()
             hit_objects[key_str] = std::move(key_hit_objs);
         }
 
+        output["total_combo"] = total_combo;
+
         const std::filesystem::path metadata_path = save_state.value().dir_state.path / "metadata.json";
-        std::ofstream metadata_file = std::ofstream(metadata_path, std::ios::binary | std::ios::trunc);
+        std::ofstream metadata_file(metadata_path, std::ios::binary | std::ios::trunc);
         if (!metadata_file)
         {
             set_error("Unable to save metadata file!", false);

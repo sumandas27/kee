@@ -235,11 +235,12 @@ public:
     const std::string song_artist;
     const std::string mapper;
     const std::string level_name;
+    const unsigned int metadata_total_combo;
 
     std::optional<float> progress;
 
-    unsigned int max_combo;
-    unsigned int prev_total_combo;
+    unsigned int total_combo;
+    unsigned int prev_accumulated_combo;
     unsigned int prev_highest_combo;
     unsigned int combo;
     unsigned int misses;

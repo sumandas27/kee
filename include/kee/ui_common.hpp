@@ -251,15 +251,31 @@ public:
     bool has_custom_hitsounds;
 };
 
+class performance_stats
+{
+public:
+    performance_stats(unsigned int high_score, unsigned int misses, unsigned int combo, unsigned int best_streak, float acc);
+
+    unsigned int high_score;
+    unsigned int misses;
+    unsigned int combo;
+    unsigned int best_streak;
+    float acc;
+};
+
 class beatmap_dir_info
 {
 public:
+    /* TODO: we manually inserted `performance.json` into levels, figure out
+        how to insert this programatically
+    */
     static const std::filesystem::path app_data_dir; /* TODO FAR: temp */
 
     static std::expected<std::unordered_map<std::string, raylib::Sound>, std::string> validate_custom_hitsounds(const std::filesystem::path& custom_hitsounds_path);
     static std::expected<boost::json::object, std::string> parse_key_colors(const std::filesystem::path& key_color_json_path);
     static std::vector<key_decoration> get_key_decorations(const boost::json::array& key_color_decos);
 
+    /* TODO: introduce mode parameter on what to load exactly */
     beatmap_dir_info(const std::filesystem::path& beatmap_dir_path);
 
     beatmap_dir_state dir_state;
@@ -275,10 +291,14 @@ public:
     float approach_beats;
     float beat_forgiveness;
 
+    unsigned int total_combo;
     boost::json::object keys_json_obj;
+
     std::optional<boost::json::object> key_colors_json_obj;
-    
     std::optional<std::unordered_map<std::string, raylib::Sound>> custom_hitsounds;
+
+    std::optional<performance_stats> best;
+    unsigned int attempt_count;
 };
 
 class key_pos_data

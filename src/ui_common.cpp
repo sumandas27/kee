@@ -92,6 +92,14 @@ beatmap_dir_state::beatmap_dir_state(const std::filesystem::path& path) :
     has_custom_hitsounds(std::filesystem::is_directory(path / beatmap_dir_state::standard_custom_hitsound_dirname))
 { }
 
+performance_stats::performance_stats(unsigned int high_score, unsigned int misses, unsigned int combo, unsigned int best_streak, float acc) :
+    high_score(high_score),
+    misses(misses),
+    combo(combo),
+    best_streak(best_streak),
+    acc(acc)
+{ }
+
 const std::filesystem::path beatmap_dir_info::app_data_dir = "test_app_data/";
 
 std::expected<std::unordered_map<std::string, raylib::Sound>, std::string> beatmap_dir_info::validate_custom_hitsounds(const std::filesystem::path& custom_hitsounds_path)
@@ -284,6 +292,9 @@ beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_path
     if (!json_object.contains("song_start_offset") || !json_object.at("song_start_offset").is_double())
         throw std::runtime_error("`metadata.json` has malformed `song_start_offset` key.");
 
+    if (!json_object.contains("total_combo") || !json_object.at("total_combo").is_int64())
+        throw std::runtime_error("`metadata.json` has malformed `total_combo` key.");
+
     if (!json_object.contains("hit_objects") || !json_object.at("hit_objects").is_object())
         throw std::runtime_error("`metadata.json` has malformed `song_start_offset` key.");
 
@@ -364,6 +375,7 @@ beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_path
     approach_beats = static_cast<float>(json_object.at("approach_beats").as_double());
     beat_forgiveness = static_cast<float>(json_object.at("beat_forgiveness").as_double());
 
+    total_combo = json_object.at("total_combo").as_int64();
     keys_json_obj = hit_objs;
 }
 
