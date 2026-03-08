@@ -79,11 +79,13 @@ key_decoration::key_decoration(float start_beat, float end_beat, const kee::colo
     interpolation(interpolation)
 { }
 
-const std::string_view beatmap_dir_state::standard_key_colors_filename = "key_colors.json";
-const std::string_view beatmap_dir_state::standard_img_filename = "img.png";
-const std::string_view beatmap_dir_state::standard_vid_filename = "vid.mp4";
 const std::string_view beatmap_dir_state::standard_custom_hitsound_dirname = "hitsounds";
+const std::string_view beatmap_dir_state::standard_img_filename = "img.png";
+const std::string_view beatmap_dir_state::standard_key_colors_filename = "key_colors.json";
+const std::string_view beatmap_dir_state::standard_metadata_filename = "metadata.json";
 const std::string_view beatmap_dir_state::standard_music_filename = "song.mp3";
+const std::string_view beatmap_dir_state::standard_performance_filename = "performance.json";
+const std::string_view beatmap_dir_state::standard_vid_filename = "vid.mp4";
 
 beatmap_dir_state::beatmap_dir_state(const std::filesystem::path& path) :
     path(path),
@@ -253,7 +255,7 @@ std::vector<key_decoration> beatmap_dir_info::get_key_decorations(const boost::j
 beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_path) :
     dir_state(beatmap_dir_path)
 {
-    const std::filesystem::path json_path = beatmap_dir_path / "metadata.json";
+    const std::filesystem::path json_path = beatmap_dir_path / beatmap_dir_state::standard_metadata_filename;
     std::ifstream json_stream = std::ifstream(json_path);
     if (!json_stream)
         throw std::runtime_error("Failed to open `metadata.json`");
@@ -377,7 +379,7 @@ beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_path
     total_combo = static_cast<unsigned int>(json_object.at("total_combo").as_int64());
     keys_json_obj = hit_objs;
 
-    const std::filesystem::path performance_json_path = beatmap_dir_path / "performance.json";
+    const std::filesystem::path performance_json_path = beatmap_dir_path / beatmap_dir_state::standard_performance_filename;
     std::ifstream performance_json_stream = std::ifstream(performance_json_path);
     if (!performance_json_stream)
         throw std::runtime_error("Failed to open `performance.json`");

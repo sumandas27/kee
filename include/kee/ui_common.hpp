@@ -235,11 +235,13 @@ public:
 class beatmap_dir_state
 {
 public:
-    static const std::string_view standard_key_colors_filename;
-    static const std::string_view standard_img_filename;
-    static const std::string_view standard_vid_filename;
     static const std::string_view standard_custom_hitsound_dirname;
+    static const std::string_view standard_img_filename;
+    static const std::string_view standard_key_colors_filename;
+    static const std::string_view standard_metadata_filename;
     static const std::string_view standard_music_filename;
+    static const std::string_view standard_performance_filename;
+    static const std::string_view standard_vid_filename;
 
     beatmap_dir_state(const std::filesystem::path& path);
 

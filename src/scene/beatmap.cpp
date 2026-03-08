@@ -433,6 +433,9 @@ pause_menu::pause_menu(const kee::ui::required& reqs, beatmap& beatmap_scene) :
 
     exit_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
+        beatmap_scene.total_attempts += beatmap_scene.session_attempts;
+        beatmap_scene.update_performance_json();
+
         this->game_ref.queue_game_exit();
     };
 
@@ -643,7 +646,7 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         ui::text_size(ui::text_size::type::rel_h, 1.f),
         std::nullopt, false, assets.font_semi_bold, "1", false
     )),
-    progress_text_frame(performance_frame.ref.add_child<kee::ui::base>(std::nullopt,
+    high_score_text_frame(performance_frame.ref.add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.f),
         pos(pos::type::end, 0.f),
         kee::dims(
@@ -652,7 +655,7 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         ),
         false
     )),
-    progress_text(progress_text_frame.ref.add_child<kee::ui::text>(std::nullopt,
+    high_score_text(high_score_text_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
@@ -796,7 +799,7 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         pos(pos::type::end, 0.f),
         pos(pos::type::rel, 5.f / 6.f),
         ui::text_size(ui::text_size::type::rel_h, end_screen::result_text_size),
-        std::nullopt, false, assets.font_regular, "0" /* TODO: temp */, true
+        std::nullopt, false, assets.font_regular, std::string(), true
     )),
     should_reset_flag(false)
 {
@@ -807,8 +810,12 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
 
     rating_star_img.ref.x.val = rating_star_img.ref.get_raw_rect().width / 2;
     std::get<kee::dims>(rating_frame.ref.dimensions).w.val = rating_star_img.ref.get_raw_rect().width + rating_text.ref.get_raw_rect().width;
-    std::get<kee::dims>(progress_text_frame.ref.dimensions).h.val = performance_frame.ref.get_raw_rect().height - rating_rect.ref.get_raw_rect().height;
+    std::get<kee::dims>(high_score_text_frame.ref.dimensions).h.val = performance_frame.ref.get_raw_rect().height - rating_rect.ref.get_raw_rect().height;
 
+    if (beatmap_scene.total_combo != beatmap_scene.metadata_total_combo)
+        throw std::runtime_error(std::format("Total combo ({}x) does not match metadata total combo ({}x)", beatmap_scene.total_combo, beatmap_scene.metadata_total_combo));
+
+    const unsigned int session_score = beatmap_scene.score.value_or(beatmap::score_fc);
     const unsigned int curr_combo = beatmap_scene.combo + beatmap_scene.prev_accumulated_combo;
     const unsigned int highest_combo = std::max(beatmap_scene.combo, beatmap_scene.prev_highest_combo);
 
@@ -816,11 +823,19 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
     if (beatmap_scene.total_combo != 0)
         accuracy *= static_cast<float>(curr_combo) / beatmap_scene.total_combo;
 
+    if (!beatmap_scene.best_performance.has_value() || beatmap_scene.performance > beatmap_scene.best_performance.value().high_score)
+        beatmap_scene.best_performance.emplace(session_score, beatmap_scene.misses, curr_combo, highest_combo, accuracy);
+
+    beatmap_scene.total_attempts += beatmap_scene.session_attempts;
+    beatmap_scene.session_attempts = 0;
+    beatmap_scene.update_performance_json();
+
     const float accuracy_trunc = std::floor(accuracy * 100.f) / 100.f;
     accuracy_result.ref.set_string(std::format("{:.2f}", accuracy_trunc));
 
     combo_result.ref.set_string(std::format("{}/{}", curr_combo, beatmap_scene.total_combo));
     highest_combo_result.ref.set_string(std::format("{}x", highest_combo));
+    attempts_result.ref.set_string(std::to_string(beatmap_scene.total_attempts));
 
     ui_rel_x.set(std::nullopt, 0.5f, 0.5f, kee::transition_type::exp);
 
@@ -864,32 +879,26 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         should_reset_flag = true;
     };
 
-    if (!beatmap_scene.progress.has_value())
+    const unsigned int high_score = beatmap_scene.best_performance.value().high_score;
+    if (beatmap_scene.high_score == beatmap::score_fc)
     {
-        progress_text.ref.color = kee::color::gold;
-        progress_text.ref.set_string("FC");
+        high_score_text.ref.color = kee::color::gold;
+        high_score_text.ref.set_string("FC");
+    }
+    else
+    {
+        high_score_text.ref.color = kee::color::white;
+        high_score_text.ref.set_string(std::to_string(high_score));
+    }
 
+    if (!beatmap_scene.score.has_value())
+    {
         score_result.ref.font = assets.font_semi_bold;
         score_result.ref.color = kee::color::gold;
         score_result.ref.set_string("FC");
     }
     else
-    {
-        unsigned int progress_uint = static_cast<unsigned int>(beatmap_scene.progress.value() * 100.f);
-        
-        /**
-         * The last hit object of any level marks its end, missing it would make progress
-         * 100 technically without this clamp.
-         */
-        static constexpr unsigned int max_progress_uint = 99;
-        if (progress_uint > max_progress_uint)
-            progress_uint = max_progress_uint;
-
-        progress_text.ref.color = kee::color::white;
-        progress_text.ref.set_string(std::to_string(progress_uint));
-
-        score_result.ref.set_string(std::to_string(progress_uint));
-    }
+        score_result.ref.set_string(std::to_string(progress));
 
     take_keyboard_capture();
 }
@@ -943,14 +952,18 @@ beatmap::beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_in
     mapper(beatmap_info.mapper),
     level_name(beatmap_info.level_name),
     metadata_total_combo(beatmap_info.total_combo),
+    performance_json_path(beatmap_info.dir_state.path / beatmap_dir_state::standard_performance_filename),
+    best_performance(beatmap_info.best),
+    total_attempts(beatmap_info.attempt_count),
+    session_attempts(0),
     keys_json_obj(beatmap_info.keys_json_obj),
     key_color_json_obj(beatmap_info.key_colors_json_obj),
     video_offset(beatmap_info.dir_state.video_dir_info),
-    load_time(2.0f),
     music_start_offset(beatmap_info.song_start_offset),
     music_bpm(beatmap_info.song_bpm),
     combo_gain(add_transition<float>(0.0f)),
     end_fade_out_alpha(add_transition<float>(0.0f)),
+    session_attempts_text_alpha(add_transition<float>(0.0f)),
     game_bg_img(beatmap_info.dir_state.has_image
         ? std::make_optional<raylib::Image>((beatmap_info.dir_state.path / beatmap_dir_state::standard_img_filename).string())
         : std::nullopt
@@ -1020,7 +1033,7 @@ beatmap::beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_in
         ui::text_size(ui::text_size::type::rel_h, 1),
         std::nullopt, false, assets.font_regular, "100.00", false
     )),
-    progress_text(performance_frame.ref.add_child<kee::ui::text>(std::nullopt,
+    score_text(performance_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color::white,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
@@ -1087,7 +1100,7 @@ beatmap::beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_in
 float beatmap::get_beat() const
 {
     const float music_time = load_time_paused.has_value()
-        ? game_time - load_time
+        ? game_time - beatmap::load_time
         : music.GetTimePlayed();
 
     return (music_time - music_start_offset) * music_bpm / 60.0f;
@@ -1105,8 +1118,19 @@ void beatmap::combo_increment(const std::optional<std::string>& hitsound_name)
 
 void beatmap::combo_lose(bool is_miss, float lost_beat)
 {
-    if (!progress.has_value())
-        progress = lost_beat / end_beat;
+    if (!score.has_value())
+    {
+        const float percentage = lost_beat / end_beat;
+        score = static_cast<unsigned int>(percentage * 100.f);
+
+        /**
+         * The last hit object of any level marks its end, missing it would make score
+         * 100 technically without this clamp. The map is not FC'd if combo is lost at
+         * any point.
+         */
+        if (score == beatmap::score_fc)
+            score = 99;
+    }
 
     prev_accumulated_combo += combo;
     if (prev_highest_combo < combo)
@@ -1164,6 +1188,28 @@ void beatmap::set_bg_opacity(float opacity)
         image_ptr->ref.color.a = opacity;
     else if (auto* video_ptr = std::get_if<kee::ui::handle<kee::ui::video_player>>(&game_bg))
         video_ptr->ref.color.a = opacity;
+}
+
+void beatmap::update_performance_json()
+{
+    boost::json::object performance_json_obj;
+    if (best_performance.has_value())
+    {
+        performance_json_obj["high_score"] = best_performance.value().high_score;
+        performance_json_obj["misses"] = best_performance.value().misses;
+        performance_json_obj["combo"] = best_performance.value().combo;
+        performance_json_obj["highest_combo"] = best_performance.value().highest_combo;
+        performance_json_obj["accuracy"] = best_performance.value().accuracy;
+    }
+    else
+        performance_json_obj["high_score"] = nullptr;
+
+    boost::json::object beatmap_json_obj;
+    beatmap_json_obj["total_attempts"] = total_attempts;
+    beatmap_json_obj["best"] = performance_json_obj;
+
+    std::ofstream perf_out(beatmap_scene.performance_json_path);
+    perf_out << boost::json::serialize(beatmap_json_obj);
 }
 
 void beatmap::reset_level()
@@ -1230,12 +1276,24 @@ void beatmap::reset_level()
 
     combo_lost_sfx.SetVolume(0.05f);
 
-    progress.reset();
+    score.reset();
     total_combo = 0;
     prev_accumulated_combo = 0;
     prev_highest_combo = 0;
     combo = 0;
     misses = 0;
+
+    session_attempts++;
+    session_attempts_text_alpha.set(255.f);
+    session_attempts_text.emplace(add_child<kee::ui::text>(std::nullopt,
+        kee::color::white,
+        pos(pos::type::rel, 0.5f),
+        pos(pos::type::rel, 0.15f),
+        ui::text_size(ui::text_size::type::rel_h, 0.07f),
+        std::nullopt, true, assets.font_italic, std::format("Attempt {}", session_attempts), true
+    ));
+
+    has_attempt_text_fade_out_started = false;
 
     load_time_paused = false;
     time_till_end_screen.reset();
@@ -1328,7 +1386,7 @@ void beatmap::update_element(float dt)
     
     if (load_time_paused.has_value())
     {
-        if (game_time >= load_time)
+        if (game_time >= beatmap::load_time)
         {
             music.Play();
             load_time_paused.reset();
@@ -1336,6 +1394,17 @@ void beatmap::update_element(float dt)
     }
     else
         music.Update();
+
+    if (game_time >= beatmap::attempts_text_full_alpha_time && !has_attempt_text_fade_out_started)
+    {
+        session_attempts_text_alpha.set(std::nullopt, 0.f, beatmap::attempts_text_fade_out_time, kee::transition_type::lin);
+        has_attempt_text_fade_out_started = true;
+    }
+    else if (game_time >= beatmap::attempts_text_full_alpha_time + beatmap::attempts_text_fade_out_time && session_attempts_text.has_value())
+        session_attempts_text.reset();
+
+    if (session_attempts_text.has_value())
+        session_attempts_text.value().ref.color.a = static_cast<unsigned char>(session_attempts_text_alpha.get());
 
     if (auto* video_player_ptr = std::get_if<kee::ui::handle<kee::ui::video_player>>(&game_bg))
     {
@@ -1389,12 +1458,7 @@ void beatmap::update_element(float dt)
     {
         time_till_end_screen.value() -= dt;
         if (time_till_end_screen.value() <= 0)
-        {
-            if (total_combo != metadata_total_combo)
-                throw std::runtime_error(std::format("Total combo ({}x) does not match metadata total combo ({}x)", total_combo, metadata_total_combo));
-
             end_screen_ui.emplace(add_child<end_screen>(10, *this));
-        }
     }
 
     if (end_fade_out.has_value())
@@ -1407,11 +1471,12 @@ void beatmap::update_element(float dt)
     const float curr_progress = std::clamp(get_beat() / end_beat, 0.0f, 1.0f);
     std::get<kee::dims>(progress_rect.ref.dimensions).w.val = curr_progress;
 
-    const std::string progress_str = progress.has_value()
-        ? std::format("{}/{}%", static_cast<int>(progress.value() * 100), static_cast<int>(curr_progress * 100))
-        : std::format("{}%", static_cast<int>(curr_progress * 100));
+    const unsigned int curr_score = static_cast<int>(curr_progress * 100);
+    const std::string score_str = score.has_value()
+        ? std::format("{}/{}%", score, curr_score)
+        : std::format("{}%", curr_score);
 
-    progress_text.ref.set_string(progress_str);
+    score_text.ref.set_string(score_str);
 
     float accuracy = 100.f;
     if (total_combo != 0)
@@ -1445,7 +1510,7 @@ void beatmap::update_element(float dt)
 
     if (load_rect.has_value())
     {
-        const float load_rect_rel_h = 1 - game_time / load_time;
+        const float load_rect_rel_h = 1 - game_time / beatmap::load_time;
         if (load_rect_rel_h > 0.0f)
             std::get<kee::dims>(load_rect.value().ref.dimensions).h.val = load_rect_rel_h;
         else

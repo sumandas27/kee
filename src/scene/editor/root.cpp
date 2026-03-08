@@ -1336,7 +1336,7 @@ void root::save_existing_beatmap()
 
         output["total_combo"] = total_combo;
 
-        const std::filesystem::path metadata_path = save_state.value().dir_state.path / "metadata.json";
+        const std::filesystem::path metadata_path = save_state.value().dir_state.path / beatmap_dir_state::standard_metadata_filename;
         std::ofstream metadata_file(metadata_path, std::ios::binary | std::ios::trunc);
         if (!metadata_file)
         {

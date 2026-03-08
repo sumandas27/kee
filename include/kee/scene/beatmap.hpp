@@ -176,8 +176,8 @@ private:
     kee::ui::handle<kee::ui::image> rating_star_img;
     kee::ui::handle<kee::ui::text> rating_text;
 
-    kee::ui::handle<kee::ui::base> progress_text_frame;
-    kee::ui::handle<kee::ui::text> progress_text;
+    kee::ui::handle<kee::ui::base> high_score_text_frame;
+    kee::ui::handle<kee::ui::text> high_score_text;
 
     kee::ui::handle<kee::ui::button> leave_button;
     kee::ui::handle<kee::ui::image> leave_img;
@@ -208,6 +208,8 @@ private:
 class beatmap final : public kee::scene::base
 {
 public:
+    static constexpr unsigned int score_fc = 100;
+
     beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_info);
 
     float get_beat() const;
@@ -222,6 +224,7 @@ public:
     std::optional<float> get_bg_opacity() const;
     void set_bg_opacity(float opacity);
 
+    void update_performance_json();
     void reset_level();
 
     const raylib::Image leave_png;
@@ -237,15 +240,24 @@ public:
     const std::string level_name;
     const unsigned int metadata_total_combo;
 
-    std::optional<float> progress;
+    const std::filesystem::path performance_json_path;
 
+    std::optional<unsigned int> score;
     unsigned int total_combo;
     unsigned int prev_accumulated_combo;
     unsigned int prev_highest_combo;
     unsigned int combo;
     unsigned int misses;
 
+    std::optional<performance_stats> best_performance;
+    unsigned int total_attempts;
+    unsigned int session_attempts;
+
 private:
+    static constexpr float load_time = 2.f;
+    static constexpr float attempts_text_full_alpha_time = 1.25f;
+    static constexpr float attempts_text_fade_out_time = 0.75f;
+
     bool on_element_key_down(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
     bool on_element_key_up(int keycode, magic_enum::containers::bitset<kee::mods> mods) override;
 
@@ -255,12 +267,12 @@ private:
     const std::optional<boost::json::object> key_color_json_obj;
 
     const std::optional<float> video_offset;
-    const float load_time;
     const float music_start_offset;
     const float music_bpm;
 
     kee::transition<float>& combo_gain;
     kee::transition<float>& end_fade_out_alpha;
+    kee::transition<float>& session_attempts_text_alpha;
 
     std::optional<raylib::Image> game_bg_img;
     std::variant<
@@ -269,6 +281,7 @@ private:
         kee::ui::handle<kee::ui::video_player>
     > game_bg;
     std::optional<kee::ui::handle<kee::ui::rect>> load_rect;
+    std::optional<kee::ui::handle<kee::ui::text>> session_attempts_text;
 
     kee::ui::handle<kee::ui::rect> progress_bg;
     kee::ui::handle<kee::ui::rect> progress_rect;
@@ -276,7 +289,7 @@ private:
     kee::ui::handle<kee::ui::base> performance_bg;
     kee::ui::handle<kee::ui::base> performance_frame;
     kee::ui::handle<kee::ui::text> accuracy_text;
-    kee::ui::handle<kee::ui::text> progress_text;
+    kee::ui::handle<kee::ui::text> score_text;
     kee::ui::handle<kee::ui::text> fc_text;
 
     kee::ui::handle<kee::ui::text> combo_text;
@@ -296,6 +309,8 @@ private:
     std::unordered_map<std::string, raylib::Sound> hitsounds;
 
     std::optional<bool> load_time_paused;
+    bool has_attempt_text_fade_out_started;
+
     std::optional<float> time_till_end_screen;
     float game_time;
 };
