@@ -1219,9 +1219,8 @@ void beatmap::reset_level()
             continue;
 
         const beatmap_hit_object& back = keys.at(id).ref.get_hit_objects().back();
-        end_beat = 4.f;
-        //if (end_beat < back.get_end_beat())
-        //    end_beat = back.get_end_beat();
+        if (end_beat < back.get_end_beat())
+            end_beat = back.get_end_beat();
     }
 
     music.SetLooping(false);

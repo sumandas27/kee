@@ -306,7 +306,6 @@ beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_path
         dir_state.video_dir_info = static_cast<float>(json_object.at("video_offset").as_double());    
     }
 
-    
     const boost::json::object& hit_objs = json_object.at("hit_objects").as_object();
     for (const key_pos_data& key_data : kee::key_ui_data)
     {
@@ -375,8 +374,65 @@ beatmap_dir_info::beatmap_dir_info(const std::filesystem::path& beatmap_dir_path
     approach_beats = static_cast<float>(json_object.at("approach_beats").as_double());
     beat_forgiveness = static_cast<float>(json_object.at("beat_forgiveness").as_double());
 
-    total_combo = json_object.at("total_combo").as_int64();
+    total_combo = static_cast<unsigned int>(json_object.at("total_combo").as_int64());
     keys_json_obj = hit_objs;
+
+    const std::filesystem::path performance_json_path = beatmap_dir_path / "performance.json";
+    std::ifstream performance_json_stream = std::ifstream(performance_json_path);
+    if (!performance_json_stream)
+        throw std::runtime_error("Failed to open `performance.json`");
+
+    const std::string performance_json_contents = std::string(
+        std::istreambuf_iterator<char>(performance_json_stream),
+        std::istreambuf_iterator<char>()
+    );
+
+    const boost::json::value& performance_json_root = boost::json::parse(performance_json_contents);
+    if (!performance_json_root.is_object())
+        throw std::runtime_error("`performance.json` root is not an object.");
+
+    const boost::json::object& performance_json_object = performance_json_root.as_object();
+    if (!performance_json_object.contains("attempts") || !performance_json_object.at("attempts").is_int64())
+        throw std::runtime_error("`performance.json` has malformed `attempts` key.");
+
+    if (!performance_json_object.contains("attempts"))
+        throw std::runtime_error("`performance.json` does not have `attempts` key");
+
+    const boost::json::value& best_json = performance_json_object.at("best");
+    if (!best_json.is_null() && !best_json.is_object())
+        throw std::runtime_error("`performance.json` key `best` is not `null` or an object.");
+
+    if (!best_json.is_null())
+    {
+        const boost::json::object& best_obj = best_json.as_object();
+        if (!best_obj.contains("high_score") || !best_obj.at("high_score").is_int64())
+            throw std::runtime_error("`performance.json` key `hold` object has malformed `high_score` key.");
+
+        if (!best_obj.contains("misses") || !best_obj.at("misses").is_int64())
+            throw std::runtime_error("`performance.json` key `hold` object has malformed `misses` key.");
+
+        if (!best_obj.contains("combo") || !best_obj.at("combo").is_int64())
+            throw std::runtime_error("`performance.json` key `hold` object has malformed `combo` key.");
+
+        if (!best_obj.contains("best_streak") || !best_obj.at("best_streak").is_int64())
+            throw std::runtime_error("`performance.json` key `hold` object has malformed `best_streak` key.");
+
+        if (!best_obj.contains("acc") || !best_obj.at("acc").is_double())
+            throw std::runtime_error("`performance.json` key `hold` object has malformed `acc` key.");
+    }
+
+    attempt_count = static_cast<unsigned int>(performance_json_object.at("attempts").as_int64());
+    if (!best_json.is_null())
+    {
+        const boost::json::object& best_obj = best_json.as_object();
+        const unsigned int high_score = static_cast<unsigned int>(best_obj.at("high_score").as_int64());
+        const unsigned int misses = static_cast<unsigned int>(best_obj.at("misses").as_int64());
+        const unsigned int combo = static_cast<unsigned int>(best_obj.at("combo").as_int64());
+        const unsigned int best_streak = static_cast<unsigned int>(best_obj.at("best_streak").as_int64());
+        const float acc = static_cast<float>(best_obj.at("acc").as_double());
+
+        best.emplace(high_score, misses, combo, best_streak, acc);
+    }
 }
 
 key_pos_data::key_pos_data(int raylib_key, const raylib::Vector2& relative_pos) :
