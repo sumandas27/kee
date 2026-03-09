@@ -1,6 +1,8 @@
 #pragma once
 
 #include <filesystem>
+#include <future>
+#include <optional>
 
 /**
  * Disabling MSVC warnings on raylib's source code.
@@ -15,12 +17,45 @@
 
 namespace kee {
 
+class performance_stats
+{
+public:
+    performance_stats(unsigned int high_score, unsigned int misses, unsigned int combo, unsigned int best_streak, float acc);
+
+    unsigned int high_score;
+    unsigned int misses;
+    unsigned int combo;
+    unsigned int best_streak;
+    float acc;
+};
+
+class level_ui_assets
+{
+public:
+    level_ui_assets(const std::filesystem::path& beatmap_dir_path);
+
+    const std::filesystem::path beatmap_dir_path;
+
+    std::optional<raylib::Image> img;
+
+    std::string song_name;
+    std::string song_artist;
+    std::string mapper;
+    std::string level_name;
+
+    std::optional<performance_stats> best;
+    unsigned int total_combo;
+    unsigned int attempt_count;
+};
+
 class global_assets
 {
 public:
-    static constexpr int texture_empty_size = 1;
+    static constexpr int texture_empty_size = 1; /* TODO: when do i use ts ?? */
 
     global_assets();
+
+    void update_futures();
 
     const raylib::Font font_italic;
     const raylib::Font font_light;
@@ -53,6 +88,9 @@ public:
     const raylib::Image directory_png;
     const raylib::Image exit_png;
     const raylib::Image star_png;
+
+    std::future<std::vector<level_ui_assets>> play_assets_future;
+    std::vector<level_ui_assets> play_assets;
 
 private:
     static raylib::Font gen_sdf_font(const std::filesystem::path& font_path);

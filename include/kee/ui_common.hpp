@@ -3,7 +3,6 @@
 #include <array>
 #include <expected>
 #include <fstream>
-#include <optional>
 #include <print>
 
 #include <boost/json.hpp>
@@ -251,18 +250,6 @@ public:
     bool has_key_colors;
     bool has_image;
     bool has_custom_hitsounds;
-};
-
-class performance_stats
-{
-public:
-    performance_stats(unsigned int high_score, unsigned int misses, unsigned int combo, unsigned int best_streak, float acc);
-
-    unsigned int high_score;
-    unsigned int misses;
-    unsigned int combo;
-    unsigned int best_streak;
-    float acc;
 };
 
 class beatmap_dir_info

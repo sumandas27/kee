@@ -1,7 +1,36 @@
 #include "kee/global_assets.hpp"
 
+#include "kee/ui_common.hpp"
+
+using namespace std::literals::chrono_literals;
+
 namespace kee {
     
+performance_stats::performance_stats(unsigned int high_score, unsigned int misses, unsigned int combo, unsigned int best_streak, float acc) :
+    high_score(high_score),
+    misses(misses),
+    combo(combo),
+    best_streak(best_streak),
+    acc(acc)
+{ }
+
+level_ui_assets::level_ui_assets(const std::filesystem::path& beatmap_dir_path) :
+    beatmap_dir_path(beatmap_dir_path)
+{
+    const beatmap_dir_info dir_info(beatmap_dir_path);
+    if (dir_info.dir_state.has_image)
+        img.emplace((dir_info.dir_state.path / beatmap_dir_state::standard_img_filename).string());
+
+    song_name = dir_info.song_name;
+    song_artist = dir_info.song_artist;
+    mapper = dir_info.mapper;
+    level_name = dir_info.level_name;
+
+    best = dir_info.best;
+    total_combo = dir_info.total_combo;
+    attempt_count = dir_info.attempt_count;
+}
+
 global_assets::global_assets() :
     font_italic(global_assets::gen_sdf_font("assets/fonts/Montserrat-Italic.ttf")),
     font_light(global_assets::gen_sdf_font("assets/fonts/Montserrat-Light.ttf")),
@@ -32,6 +61,22 @@ global_assets::global_assets() :
 {
     const raylib::Image img_empty(global_assets::texture_empty_size, global_assets::texture_empty_size, raylib::Color::Blank());
     texture_empty = raylib::Texture(img_empty);
+
+    play_assets_future = std::async(std::launch::async, [] 
+    {
+        std::vector<level_ui_assets> res;
+        for (const auto& entry : std::filesystem::directory_iterator(beatmap_dir_info::app_data_dir / "play"))
+            if (entry.is_directory())
+                res.emplace_back(entry.path());
+
+        return res;
+    });
+}
+
+void global_assets::update_futures()
+{
+    if (play_assets_future.valid() && play_assets_future.wait_for(0s) == std::future_status::ready)
+        play_assets = play_assets_future.get();
 }
 
 raylib::Font global_assets::gen_sdf_font(const std::filesystem::path& font_path)

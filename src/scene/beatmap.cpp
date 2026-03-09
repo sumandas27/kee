@@ -1192,21 +1192,22 @@ void beatmap::set_bg_opacity(float opacity)
 
 void beatmap::update_performance_json()
 {
-    boost::json::object performance_json_obj;
+    boost::json::object beatmap_json_obj;
+    beatmap_json_obj["attempts"] = total_attempts;
+    
     if (best_performance.has_value())
     {
+        boost::json::object performance_json_obj;
         performance_json_obj["high_score"] = best_performance.value().high_score;
         performance_json_obj["misses"] = best_performance.value().misses;
         performance_json_obj["combo"] = best_performance.value().combo;
         performance_json_obj["best_streak"] = best_performance.value().best_streak;
         performance_json_obj["acc"] = best_performance.value().acc;
+
+        beatmap_json_obj["best"] = performance_json_obj;
     }
     else
-        performance_json_obj["high_score"] = nullptr;
-
-    boost::json::object beatmap_json_obj;
-    beatmap_json_obj["total_attempts"] = total_attempts;
-    beatmap_json_obj["best"] = performance_json_obj;
+        beatmap_json_obj["best"] = nullptr;
 
     std::ofstream perf_out(performance_json_path);
     perf_out << boost::json::serialize(beatmap_json_obj);

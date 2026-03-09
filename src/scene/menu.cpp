@@ -4,9 +4,8 @@
 #include <random>
 
 #include "kee/game.hpp"
+#include "kee/scene/beatmap.hpp"
 #include "kee/scene/editor/root.hpp"
-
-using namespace std::chrono_literals;
 
 namespace kee {
 namespace scene {
@@ -35,7 +34,7 @@ void music_analyzer::set_beatmap(const std::filesystem::path& beatmap_dir_path_p
     SetAudioStreamBufferSizeDefault(music_analyzer::frames_per_refresh);
     audio_stream = LoadAudioStream(music_analyzer::sample_rate, music_analyzer::bit_depth, music_analyzer::channels);
 
-    wave = raylib::Wave((beatmap_dir_path / beatmap_dir_state::standard_music_filename).string());
+    wave.Load((beatmap_dir_path / beatmap_dir_state::standard_music_filename).string());
     wave.Format(music_analyzer::sample_rate, music_analyzer::bit_depth, music_analyzer::channels);
     samples = std::span<sample_t>(static_cast<sample_t*>(wave.data), wave.frameCount * music_analyzer::channels);
 }
@@ -301,13 +300,15 @@ opening_transitions::opening_transitions(menu& menu_scene) :
     e2_rect_alpha(menu_scene.add_transition<float>(0.0f)),
     e2_rect_x(menu_scene.add_transition<float>(0.5f))
 {
-    k_rect_alpha.set(std::nullopt, 255.0f, 0.5f, kee::transition_type::exp);
-    k_rect_x.set(std::nullopt, 0.25f, 0.5f, kee::transition_type::exp);
-    e1_text_alpha.set(std::nullopt, 255.0f, 0.5f, kee::transition_type::exp);
-    e1_rect_alpha.set(std::nullopt, 255.0f, 0.5f, kee::transition_type::exp);
-    e2_text_alpha.set(std::nullopt, 255.0f, 0.5f, kee::transition_type::exp);
-    e2_rect_alpha.set(std::nullopt, 255.0f, 0.5f, kee::transition_type::exp);
-    e2_rect_x.set(std::nullopt, 0.75f, 0.5f, kee::transition_type::exp);
+    const float trns_time = menu_scene.from_game_init ? 0.5f : 0.f;
+
+    k_rect_alpha.set(std::nullopt, 255.0f, trns_time, kee::transition_type::exp);
+    k_rect_x.set(std::nullopt, 0.25f, trns_time, kee::transition_type::exp);
+    e1_text_alpha.set(std::nullopt, 255.0f, trns_time, kee::transition_type::exp);
+    e1_rect_alpha.set(std::nullopt, 255.0f, trns_time, kee::transition_type::exp);
+    e2_text_alpha.set(std::nullopt, 255.0f, trns_time, kee::transition_type::exp);
+    e2_rect_alpha.set(std::nullopt, 255.0f, trns_time, kee::transition_type::exp);
+    e2_rect_x.set(std::nullopt, 0.75f, trns_time, kee::transition_type::exp);
 }
 
 music_transitions::music_transitions(menu& menu_scene) :
@@ -423,14 +424,16 @@ music_transitions::music_transitions(menu& menu_scene) :
         true, ui::image::display::shrink_to_fit, false, false, 0.0f
     ))
 {
-    slider_alpha.set(std::nullopt, 255.0f, 0.5f, kee::transition_type::lin);
-    slider_width.set(std::nullopt, 1.0f, 0.5f, kee::transition_type::exp);
-    pause_play_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::lin);
-    step_l_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::lin);
-    step_r_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::lin);
-    setting_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::lin);
-    exit_color.set(std::nullopt, kee::color::white, 0.5f, kee::transition_type::lin);
-    song_ui_alpha.set(std::nullopt, 255.f, 0.5f, kee::transition_type::lin);
+    const float trns_time = menu_scene.from_game_init ? 0.5f : 0.f;
+
+    slider_alpha.set(std::nullopt, 255.0f, trns_time, kee::transition_type::lin);
+    slider_width.set(std::nullopt, 1.0f, trns_time, kee::transition_type::exp);
+    pause_play_color.set(std::nullopt, kee::color::white, trns_time, kee::transition_type::lin);
+    step_l_color.set(std::nullopt, kee::color::white, trns_time, kee::transition_type::lin);
+    step_r_color.set(std::nullopt, kee::color::white, trns_time, kee::transition_type::lin);
+    setting_color.set(std::nullopt, kee::color::white, trns_time, kee::transition_type::lin);
+    exit_color.set(std::nullopt, kee::color::white, trns_time, kee::transition_type::lin);
+    song_ui_alpha.set(std::nullopt, 255.f, trns_time, kee::transition_type::lin);
 
     music_slider.ref.on_event = [&, music_is_playing = this->menu_scene.analyzer.is_playing()](ui::slider::event slider_event) mutable
     {
@@ -599,23 +602,6 @@ music_transitions::music_transitions(menu& menu_scene) :
     {
         this->menu_scene.game_ref.queue_game_exit();
     };
-}
-
-level_ui_assets::level_ui_assets(const std::filesystem::path& beatmap_dir_path) :
-    beatmap_dir_path(beatmap_dir_path)
-{
-    const beatmap_dir_info dir_info(beatmap_dir_path);
-    if (dir_info.dir_state.has_image)
-        img.emplace((dir_info.dir_state.path / beatmap_dir_state::standard_img_filename).string());
-
-    song_name = dir_info.song_name;
-    song_artist = dir_info.song_artist;
-    mapper = dir_info.mapper;
-    level_name = dir_info.level_name;
-
-    best = dir_info.best;
-    total_combo = dir_info.total_combo;
-    attempt_count = dir_info.attempt_count;
 }
 
 level_ui::level_ui(
@@ -844,7 +830,6 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
         true
     ),
     search_png("assets/img/search.png"),
-    menu_scene(menu_scene),
     back_rect_color(add_transition<kee::color>(kee::color(40, 40, 40))),
     color_music(add_transition<kee::color>(kee::color::white)),
     color_play(add_transition<kee::color>(kee::color::white)),
@@ -1251,11 +1236,17 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
     std::get<kee::dims>(search_bar.ref.dimensions).w.val = search_rect_x - back_rect_w;
     std::get<kee::dims>(selected_text_frame.ref.dimensions).h.val = selected_image_frame.ref.get_raw_rect().height;
 
-    std::size_t selected_found = 0;
-    level_list.reserve(menu_scene.play_assets.size());
-    for (std::size_t i = 0; i < menu_scene.play_assets.size(); i++)
+    if (assets.play_assets_future.valid())
     {
-        const level_ui_assets& ui_assets = menu_scene.play_assets[i];
+        assets.play_assets_future.wait();
+        assets.play_assets = assets.play_assets_future.get();
+    }
+
+    std::size_t selected_found = 0;
+    level_list.reserve(assets.play_assets.size());
+    for (std::size_t i = 0; i < assets.play_assets.size(); i++)
+    {
+        const level_ui_assets& ui_assets = assets.play_assets[i];
         const bool is_analyzer_playing = std::filesystem::equivalent(ui_assets.beatmap_dir_path, music_analyzer_beatmap_dir);
         if (is_analyzer_playing)
         {
@@ -1275,7 +1266,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
     }
 
     if (selected_found != 1)
-        throw std::runtime_error("Music analyzer's beatmap is malfomed");
+        throw std::runtime_error("Music analyzer's beatmap is malformed");
 
     set_selected_ui(level_list_selected_idx);
 
@@ -1345,7 +1336,9 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
 
     button_play.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        /* TODO: impl */
+        this->game_ref.scene_manager.request_scene_switch([&]() {
+            return game_ref.make_scene<kee::scene::beatmap>(beatmap_dir_info(assets.play_assets[level_list_selected_idx].beatmap_dir_path));
+        });
     };
 
     button_edit.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -1439,7 +1432,7 @@ void play::update_element([[maybe_unused]] float dt)
 
 void play::set_selected_ui(std::size_t idx)
 {
-    const level_ui_assets& ui_assets = menu_scene.play_assets[idx];
+    const level_ui_assets& ui_assets = assets.play_assets[idx];
     if (ui_assets.img.has_value())
         selected_image.emplace(selected_image_frame.ref.add_child<kee::ui::image>(std::nullopt,
             ui_assets.img.value(), 
@@ -1476,6 +1469,7 @@ menu::menu(const kee::scene::required& reqs, bool from_game_init) :
     kee::scene::base(reqs),
     edit_png("assets/img/edit.png"),
     music_png("assets/img/music.png"),
+    from_game_init(from_game_init),
     k_text_alpha(add_transition<float>(0.0f)),
     k_scale(add_transition<float>(1.0f)),
     e1_scale(add_transition<float>(1.0f)),
@@ -1614,17 +1608,6 @@ menu::menu(const kee::scene::required& reqs, bool from_game_init) :
         ),
         false, std::nullopt, std::nullopt
     )),
-    music_cover_art(music_cover_art_texture.has_value() ?
-        std::make_optional(music_cover_art_frame.ref.add_child<kee::ui::image>(std::nullopt,
-            music_cover_art_texture.value(), 
-            kee::color(255, 255, 255, 0),
-            pos(pos::type::rel, 0.5f),
-            pos(pos::type::rel, 0.5f),
-            border(border::type::abs, 0),
-            true, ui::image::display::shrink_to_fit, false, false, 0.0f
-        )) :
-        std::nullopt
-    ),
     music_info_text_frame(song_ui_frame_outer.ref.add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0),
         pos(pos::type::rel, 0.25f),
@@ -1749,16 +1732,6 @@ menu::menu(const kee::scene::required& reqs, bool from_game_init) :
         /* TODO: impl */
     };
 
-    play_assets_future = std::async(std::launch::async, [] 
-    {
-        std::vector<level_ui_assets> res;
-        for (const auto& entry : std::filesystem::directory_iterator(beatmap_dir_info::app_data_dir / "play"))
-            if (entry.is_directory())
-                res.emplace_back(entry.path());
-
-        return res;
-    });
-
     std::vector<std::filesystem::path> level_dirs;
     for (const auto& entry : std::filesystem::directory_iterator(beatmap_dir_info::app_data_dir / "play"))
         if (entry.is_directory())
@@ -1812,13 +1785,7 @@ menu::menu(const kee::scene::required& reqs, bool from_game_init) :
 void menu::update_element(float dt)
 {
     if (scene_time >= 3.0f && !opening_trns.has_value())
-    {
-        if (!play_assets_future.valid() || play_assets_future.wait_for(0s) != std::future_status::ready)
-            return;
-
-        play_assets = play_assets_future.get();
         opening_trns.emplace(*this);
-    }
     else
         scene_time += dt;
 
@@ -1897,9 +1864,22 @@ void menu::set_menu_level(const std::filesystem::path& beatmap_dir_path)
 {
     const beatmap_dir_info beatmap_info(beatmap_dir_path);
     if (beatmap_info.dir_state.has_image)
+    {
         music_cover_art_texture.emplace((beatmap_info.dir_state.path / beatmap_dir_state::standard_img_filename).string());
+        music_cover_art.emplace(music_cover_art_frame.ref.add_child<kee::ui::image>(std::nullopt,
+            music_cover_art_texture.value(), 
+            kee::color(255, 255, 255, 0),
+            pos(pos::type::rel, 0.5f),
+            pos(pos::type::rel, 0.5f),
+            border(border::type::abs, 0),
+            true, ui::image::display::shrink_to_fit, false, false, 0.0f
+        ));
+    }
     else
+    {
         music_cover_art_texture.reset();
+        music_cover_art.reset();
+    }
     
     analyzer.set_beatmap(beatmap_dir_path);
 

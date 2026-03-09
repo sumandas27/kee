@@ -94,14 +94,6 @@ beatmap_dir_state::beatmap_dir_state(const std::filesystem::path& path) :
     has_custom_hitsounds(std::filesystem::is_directory(path / beatmap_dir_state::standard_custom_hitsound_dirname))
 { }
 
-performance_stats::performance_stats(unsigned int high_score, unsigned int misses, unsigned int combo, unsigned int best_streak, float acc) :
-    high_score(high_score),
-    misses(misses),
-    combo(combo),
-    best_streak(best_streak),
-    acc(acc)
-{ }
-
 const std::filesystem::path beatmap_dir_info::app_data_dir = "test_app_data/";
 
 std::expected<std::unordered_map<std::string, raylib::Sound>, std::string> beatmap_dir_info::validate_custom_hitsounds(const std::filesystem::path& custom_hitsounds_path)

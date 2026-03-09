@@ -1,7 +1,6 @@
 #pragma once
 
 #include <complex>
-#include <future>
 #include <span>
 
 #include "kee/scene/base.hpp"
@@ -143,25 +142,6 @@ public:
     kee::ui::handle<kee::ui::image> exit_img;
 };
 
-class level_ui_assets
-{
-public:
-    level_ui_assets(const std::filesystem::path& beatmap_dir_path);
-
-    const std::filesystem::path beatmap_dir_path;
-
-    std::optional<raylib::Image> img;
-
-    std::string song_name;
-    std::string song_artist;
-    std::string mapper;
-    std::string level_name;
-
-    std::optional<performance_stats> best;
-    unsigned int total_combo;
-    unsigned int attempt_count;
-};
-
 class level_ui final : public kee::ui::button
 {
 public:
@@ -234,8 +214,6 @@ private:
     void set_selected_ui(std::size_t idx);
 
     const raylib::Image search_png;
-
-    menu& menu_scene;
 
     kee::transition<kee::color>& back_rect_color;
 
@@ -331,6 +309,8 @@ public:
     const raylib::Image edit_png;
     const raylib::Image music_png;
 
+    const bool from_game_init;
+
 private:
     /* TODO: `friend` is kind of a bad workaround, think about ts */
     friend class music_transitions;
@@ -351,9 +331,6 @@ private:
     kee::transition<float>& edit_text_alpha;
     kee::transition<float>& play_text_alpha;
     kee::transition<float>& browse_text_alpha;
-
-    std::future<std::vector<level_ui_assets>> play_assets_future;
-    std::vector<level_ui_assets> play_assets;
 
     kee::ui::handle<kee::ui::button> k_button;
     kee::ui::handle<kee::ui::rect> k_rect;
