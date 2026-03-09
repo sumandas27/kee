@@ -1,6 +1,7 @@
 #include "kee/scene/menu.hpp"
 
 #include <chrono>
+#include <random>
 
 #include "kee/game.hpp"
 #include "kee/scene/editor/root.hpp"
@@ -10,20 +11,7 @@ using namespace std::chrono_literals;
 namespace kee {
 namespace scene {
 
-music_analyzer::music_analyzer(const std::filesystem::path& beatmap_dir_path) :
-    beatmap_dir_path(beatmap_dir_path),
-    wave((beatmap_dir_path / beatmap_dir_state::standard_music_filename).string()),
-    frame_cursor(0),
-    fft_pcm_floats{},
-    fft_prev_mags{},
-    visualizer_bins{}
-{ 
-    SetAudioStreamBufferSizeDefault(music_analyzer::frames_per_refresh);
-    audio_stream = LoadAudioStream(music_analyzer::sample_rate, music_analyzer::bit_depth, music_analyzer::channels);
-
-    wave.Format(music_analyzer::sample_rate, music_analyzer::bit_depth, music_analyzer::channels);
-    samples = std::span<sample_t>(static_cast<sample_t*>(wave.data), wave.frameCount * music_analyzer::channels);
-}
+music_analyzer::music_analyzer() { }
 
 music_analyzer::~music_analyzer()
 {
@@ -33,6 +21,23 @@ music_analyzer::~music_analyzer()
 const std::filesystem::path& music_analyzer::get_beatmap_dir_path() const
 {
     return beatmap_dir_path;
+}
+
+void music_analyzer::set_beatmap(const std::filesystem::path& beatmap_dir_path_param)
+{
+    beatmap_dir_path = beatmap_dir_path_param;
+    frame_cursor = 0;
+
+    fft_pcm_floats.fill(0.f);
+    fft_prev_mags.fill(0.f);
+    visualizer_bins.fill(0.f);
+
+    SetAudioStreamBufferSizeDefault(music_analyzer::frames_per_refresh);
+    audio_stream = LoadAudioStream(music_analyzer::sample_rate, music_analyzer::bit_depth, music_analyzer::channels);
+
+    wave = raylib::Wave((beatmap_dir_path / beatmap_dir_state::standard_music_filename).string());
+    wave.Format(music_analyzer::sample_rate, music_analyzer::bit_depth, music_analyzer::channels);
+    samples = std::span<sample_t>(static_cast<sample_t*>(wave.data), wave.frameCount * music_analyzer::channels);
 }
 
 void music_analyzer::update()
@@ -607,6 +612,10 @@ level_ui_assets::level_ui_assets(const std::filesystem::path& beatmap_dir_path) 
     song_artist = dir_info.song_artist;
     mapper = dir_info.mapper;
     level_name = dir_info.level_name;
+
+    best = dir_info.best;
+    total_combo = dir_info.total_combo;
+    attempt_count = dir_info.attempt_count;
 }
 
 level_ui::level_ui(
@@ -757,7 +766,9 @@ level_ui::level_ui(
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.9f),
-        std::nullopt, true, assets.font_semi_bold, "99", true
+        std::nullopt, true, assets.font_semi_bold,
+        ui_assets.best.has_value() ? std::to_string(ui_assets.best.value().high_score) : "0", 
+        true
     )),
     is_selected(is_selected)
 {
@@ -1045,7 +1056,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.9f),
-        std::nullopt, true, assets.font_semi_bold, "99", true
+        std::nullopt, true, assets.font_semi_bold, std::string(), true
     )),
     selected_info_frame(selected_frame.ref.add_child<kee::ui::base>(std::nullopt,
         pos(pos::type::rel, 0.15f),
@@ -1449,11 +1460,19 @@ void play::set_selected_ui(std::size_t idx)
     selected_level_name_text.ref.x.val = selected_song_artist_text.ref.get_raw_rect().width;
 
     selected_rating_star_img.ref.x.val = selected_rating_star_img.ref.get_raw_rect().width / 2;
+    selected_progress_text.ref.set_string(ui_assets.best.has_value() ? std::to_string(ui_assets.best.value().high_score) : "0");
     std::get<kee::dims>(selected_rating_frame.ref.dimensions).w.val = selected_rating_star_img.ref.get_raw_rect().width + selected_rating_text.ref.get_raw_rect().width;
     std::get<kee::dims>(selected_progress_text_frame.ref.dimensions).h.val = selected_performance_frame.ref.get_raw_rect().height - selected_rating_rect.ref.get_raw_rect().height;
+
+    selected_high_score.ref.set_string(ui_assets.best.has_value() ? std::to_string(ui_assets.best.value().high_score) : "--");
+    selected_misses.ref.set_string(ui_assets.best.has_value() ? std::to_string(ui_assets.best.value().misses) : "--");
+    selected_acc.ref.set_string(ui_assets.best.has_value() ? std::to_string(ui_assets.best.value().acc) + "%" : "--");
+    selected_combo.ref.set_string(ui_assets.best.has_value() ? std::format("{}/{}", ui_assets.best.value().combo, ui_assets.total_combo) : "--");
+    selected_best_streak.ref.set_string(ui_assets.best.has_value() ? std::to_string(ui_assets.best.value().best_streak) : "--");
+    selected_attempts.ref.set_string(std::to_string(ui_assets.attempt_count));
 }
 
-menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info, bool from_game_init) :
+menu::menu(const kee::scene::required& reqs, bool from_game_init) :
     kee::scene::base(reqs),
     edit_png("assets/img/edit.png"),
     music_png("assets/img/music.png"),
@@ -1569,11 +1588,6 @@ menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_inf
         ui::text_size(ui::text_size::type::rel_h, 0.1f),
         std::nullopt, true, assets.font_regular, "BROWSE", false
     )),
-    music_cover_art_texture(beatmap_info.dir_state.has_image
-        ? std::make_optional((beatmap_info.dir_state.path / beatmap_dir_state::standard_img_filename).string())
-        : std::nullopt
-    ),
-    analyzer(beatmap_info.dir_state.path),
     music_time(0.f),
     song_ui_frame_outer(add_child<kee::ui::base>(2,
         pos(pos::type::rel, 0.f),
@@ -1625,14 +1639,14 @@ menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_inf
         pos(pos::type::beg, 0),
         pos(pos::type::beg, 0),
         ui::text_size(ui::text_size::type::rel_h, 0.6f),
-        std::nullopt, false, assets.font_semi_bold, beatmap_info.song_name, false
+        std::nullopt, false, assets.font_semi_bold, std::string(), false
     )),
     music_artist_text(music_info_text_frame.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color(255, 255, 255, 0),
         pos(pos::type::beg, 0),
         pos(pos::type::end, 0),
         ui::text_size(ui::text_size::type::rel_h, 0.35f),
-        std::nullopt, false, assets.font_regular, beatmap_info.song_artist, true
+        std::nullopt, false, assets.font_regular, std::string(), true
     )),
     music_time_text(song_ui_frame_inner.ref.add_child<kee::ui::text>(std::nullopt,
         kee::color(255, 255, 255, 0),
@@ -1744,6 +1758,18 @@ menu::menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_inf
 
         return res;
     });
+
+    std::vector<std::filesystem::path> level_dirs;
+    for (const auto& entry : std::filesystem::directory_iterator(beatmap_dir_info::app_data_dir / "play"))
+        if (entry.is_directory())
+            level_dirs.emplace_back(entry.path());
+
+    if (level_dirs.empty())
+        throw std::runtime_error("No level directories found");
+
+    static std::mt19937 rng(std::random_device{}());
+    std::uniform_int_distribution<std::size_t> dist(0, level_dirs.size() - 1);
+    set_menu_level(level_dirs[dist(rng)]);
 
     visualizer_bot.reserve(music_analyzer::bins);
     visualizer_top.reserve(music_analyzer::bins);
@@ -1865,6 +1891,20 @@ void menu::update_element(float dt)
         std::get<kee::dims>(visualizer_bot[i].ref.dimensions).h.val = 0.5f * analyzer.get_visualizer_bin(i);
         std::get<kee::dims>(visualizer_top[i].ref.dimensions).h.val = 0.5f * analyzer.get_visualizer_bin(music_analyzer::bins - i - 1);
     }
+}
+
+void menu::set_menu_level(const std::filesystem::path& beatmap_dir_path)
+{
+    const beatmap_dir_info beatmap_info(beatmap_dir_path);
+    if (beatmap_info.dir_state.has_image)
+        music_cover_art_texture.emplace((beatmap_info.dir_state.path / beatmap_dir_state::standard_img_filename).string());
+    else
+        music_cover_art_texture.reset();
+    
+    analyzer.set_beatmap(beatmap_dir_path);
+
+    music_name_text.ref.set_string(beatmap_info.song_name);
+    music_artist_text.ref.set_string(beatmap_info.song_artist);
 }
 
 } // namespace scene

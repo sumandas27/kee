@@ -823,7 +823,7 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
     if (beatmap_scene.total_combo != 0)
         accuracy *= static_cast<float>(curr_combo) / beatmap_scene.total_combo;
 
-    if (!beatmap_scene.best_performance.has_value() || beatmap_scene.performance > beatmap_scene.best_performance.value().high_score)
+    if (!beatmap_scene.best_performance.has_value() || beatmap_scene.score > beatmap_scene.best_performance.value().high_score)
         beatmap_scene.best_performance.emplace(session_score, beatmap_scene.misses, curr_combo, highest_combo, accuracy);
 
     beatmap_scene.total_attempts += beatmap_scene.session_attempts;
@@ -880,7 +880,7 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
     };
 
     const unsigned int high_score = beatmap_scene.best_performance.value().high_score;
-    if (beatmap_scene.high_score == beatmap::score_fc)
+    if (beatmap_scene.best_performance.value().high_score == beatmap::score_fc)
     {
         high_score_text.ref.color = kee::color::gold;
         high_score_text.ref.set_string("FC");
@@ -891,14 +891,14 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         high_score_text.ref.set_string(std::to_string(high_score));
     }
 
-    if (!beatmap_scene.score.has_value())
+    if (beatmap_scene.score.has_value())
+        score_result.ref.set_string(std::to_string(beatmap_scene.score.value()));
+    else
     {
         score_result.ref.font = assets.font_semi_bold;
         score_result.ref.color = kee::color::gold;
         score_result.ref.set_string("FC");
     }
-    else
-        score_result.ref.set_string(std::to_string(progress));
 
     take_keyboard_capture();
 }
@@ -1198,8 +1198,8 @@ void beatmap::update_performance_json()
         performance_json_obj["high_score"] = best_performance.value().high_score;
         performance_json_obj["misses"] = best_performance.value().misses;
         performance_json_obj["combo"] = best_performance.value().combo;
-        performance_json_obj["highest_combo"] = best_performance.value().highest_combo;
-        performance_json_obj["accuracy"] = best_performance.value().accuracy;
+        performance_json_obj["best_streak"] = best_performance.value().best_streak;
+        performance_json_obj["acc"] = best_performance.value().acc;
     }
     else
         performance_json_obj["high_score"] = nullptr;
@@ -1208,7 +1208,7 @@ void beatmap::update_performance_json()
     beatmap_json_obj["total_attempts"] = total_attempts;
     beatmap_json_obj["best"] = performance_json_obj;
 
-    std::ofstream perf_out(beatmap_scene.performance_json_path);
+    std::ofstream perf_out(performance_json_path);
     perf_out << boost::json::serialize(beatmap_json_obj);
 }
 
@@ -1473,7 +1473,7 @@ void beatmap::update_element(float dt)
 
     const unsigned int curr_score = static_cast<int>(curr_progress * 100);
     const std::string score_str = score.has_value()
-        ? std::format("{}/{}%", score, curr_score)
+        ? std::format("{}/{}%", score.value(), curr_score)
         : std::format("{}%", curr_score);
 
     score_text.ref.set_string(score_str);

@@ -1,10 +1,8 @@
 #include "kee/game.hpp"
 
-#include <random>
-
 #include <avcpp/av.h>
 
-#include "kee/scene/beatmap.hpp"
+#include "kee/scene/menu.hpp"
 
 namespace kee {
 
@@ -72,23 +70,7 @@ void nested_scissor_mode::pop()
 }
 
 game::game() :
-    /* TODO: curr_scene([&]()
-    {
-        std::vector<std::filesystem::path> level_dirs;
-        for (const auto& entry : std::filesystem::directory_iterator(beatmap_dir_info::app_data_dir / "play"))
-            if (entry.is_directory())
-                level_dirs.emplace_back(entry.path());
-    
-        if (level_dirs.empty())
-            throw std::runtime_error("No level directories found");
-    
-        static std::mt19937 rng(std::random_device{}());
-        std::uniform_int_distribution<std::size_t> dist(0, level_dirs.size() - 1);
-
-        const beatmap_dir_info random_level_dir(level_dirs[dist(rng)]);
-        return make_scene<kee::scene::menu>(random_level_dir, true);
-    }()), */
-    curr_scene(make_scene<kee::scene::beatmap>(beatmap_dir_info("test_app_data/play/daft-punk-something-about-us"))),
+    curr_scene(make_scene<kee::scene::menu>(true)),
     scene_manager(kee::scene::required(*this, assets), curr_scene),
     main_loop_begun(false),
     game_should_exit(false)

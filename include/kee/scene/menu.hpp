@@ -23,7 +23,7 @@ class music_analyzer
 public:
     static constexpr std::size_t bins = 64;
 
-    music_analyzer(const std::filesystem::path& beatmap_dir_path);
+    music_analyzer();
     music_analyzer(const music_analyzer&) = delete;
     music_analyzer(music_analyzer&&) = delete;
     ~music_analyzer();
@@ -32,6 +32,8 @@ public:
     music_analyzer& operator=(music_analyzer&&) = delete;
 
     const std::filesystem::path& get_beatmap_dir_path() const;
+
+    void set_beatmap(const std::filesystem::path& beatmap_dir_path_param);
 
     void update();
 
@@ -154,6 +156,10 @@ public:
     std::string song_artist;
     std::string mapper;
     std::string level_name;
+
+    std::optional<performance_stats> best;
+    unsigned int total_combo;
+    unsigned int attempt_count;
 };
 
 class level_ui final : public kee::ui::button
@@ -320,7 +326,7 @@ private:
 class menu final : public kee::scene::base
 {
 public:
-    menu(const kee::scene::required& reqs, const beatmap_dir_info& beatmap_info, bool from_game_init);
+    menu(const kee::scene::required& reqs, bool from_game_init);
 
     const raylib::Image edit_png;
     const raylib::Image music_png;
@@ -331,6 +337,8 @@ private:
     friend class play;
 
     void update_element(float dt) override;
+
+    void set_menu_level(const std::filesystem::path& beatmap_dir_path);
 
     kee::transition<float>& k_text_alpha;
     std::optional<opening_transitions> opening_trns;
