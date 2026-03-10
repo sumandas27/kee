@@ -616,10 +616,10 @@ level_ui::level_ui(
     bool is_selected,
     play& play_ui,
     const level_ui_assets& ui_assets,
-    std::size_t idx
+    std::size_t beatmap_id
 ) :
     kee::ui::button(reqs, x, y, dims, centered),
-    idx(idx),
+    beatmap_id(beatmap_id),
     play_ui(play_ui),
     frame_color(add_transition<kee::color>(is_selected ? kee::color(30, 30, 30) : kee::color(10, 10, 10))),
     image_frame_color(add_transition<kee::color>(is_selected ? kee::color(45, 45, 45) : kee::color(15, 15, 15))),
@@ -783,7 +783,7 @@ level_ui::level_ui(
 
     on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        this->play_ui.set_selected_level(this->idx);
+        this->play_ui.set_selected_level(this->beatmap_id);
     };
 
     const float image_frame_w = image_frame.ref.get_raw_rect().width;
@@ -1248,37 +1248,48 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
     }
 
     std::size_t selected_found = 0;
-    level_list.reserve(assets.play_assets.size());
-    for (std::size_t i = 0; i < assets.play_assets.size(); i++)
+    std::size_t level_list_i = 0;
+
+    float level_ui_y_first, level_ui_y_last, level_ui_height;
+    for (const auto& [beatmap_id, ui_assets] : assets.play_assets)
     {
-        const level_ui_assets& ui_assets = assets.play_assets[i];
         const bool is_analyzer_playing = std::filesystem::equivalent(ui_assets.beatmap_dir_path, music_analyzer_beatmap_dir);
         if (is_analyzer_playing)
         {
-            level_list_selected_idx = i;
+            level_list_selected_id = beatmap_id;
             selected_found++;
         }
 
-        level_list.emplace_back(level_list_inner.ref.add_child<level_ui>(std::nullopt,
+        const auto [inserted_it, _] = level_list.emplace(beatmap_id, level_list_inner.ref.add_child<level_ui>(std::nullopt,
             pos(pos::type::rel, 0.5f),
-            pos(pos::type::rel, static_cast<float>(i) * 0.11f + 0.05f),
+            pos(pos::type::rel, static_cast<float>(level_list_i) * 0.11f + 0.05f),
             dims(
                 dim(dim::type::rel, 1.f),
                 dim(dim::type::rel, 0.1f)
             ),
-            true, is_analyzer_playing, *this, ui_assets, i
+            true, is_analyzer_playing, *this, ui_assets, beatmap_id
         ));
+
+        if (level_list_i == 0)
+        {
+            level_ui_y_first = inserted_it->second.ref.get_raw_rect().y;
+            level_ui_height = inserted_it->second.ref.get_raw_rect().height;
+        }
+        else if (level_list_i == assets.play_assets.size() - 1)
+            level_ui_y_last = inserted_it->second.ref.get_raw_rect().y;
+
+        level_list_i++;
     }
 
     if (selected_found != 1)
         throw std::runtime_error("Music analyzer's beatmap is malformed");
 
-    set_selected_ui(level_list_selected_idx);
+    set_selected_ui(level_list_selected_id);
 
     const raylib::Rectangle level_list_scrollable_rect = level_list_scrollable.ref.scroll_frame_ui.ref.get_raw_rect();
     const float abs_margin = level_list_inner.ref.get_raw_rect().x - level_list_scrollable_rect.x;
-    const float level_list_back_end_y = level_list.back().ref.get_raw_rect().y + level_list.back().ref.get_raw_rect().height;
-    const float level_list_h = level_list_back_end_y - level_list.front().ref.get_raw_rect().y;
+    const float level_list_back_end_y = level_ui_y_last + level_ui_height;
+    const float level_list_h = level_list_back_end_y - level_ui_y_first;
 
     const float abs_scrollable_h = level_list_h + 2 * abs_margin;
     const float rel_scrollable_h = abs_scrollable_h / level_list_scrollable_rect.height;
@@ -1342,7 +1353,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
     button_play.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
         this->game_ref.scene_manager.request_scene_switch([&]() {
-            return game_ref.make_scene<kee::scene::beatmap>(beatmap_dir_info(assets.play_assets[level_list_selected_idx].beatmap_dir_path));
+            return game_ref.make_scene<kee::scene::beatmap>(beatmap_dir_info(assets.play_assets.at(level_list_selected_id).beatmap_dir_path));
         });
     };
 
@@ -1435,16 +1446,16 @@ bool play::should_destruct() const
     return should_destruct_flag;
 }
 
-void play::set_selected_level(std::size_t idx)
+void play::set_selected_level(std::size_t beatmap_id)
 {
-    if (idx == level_list_selected_idx)
+    if (beatmap_id == level_list_selected_id)
         return;
 
-    level_list[level_list_selected_idx].ref.unselect();
-    level_list[idx].ref.select();
+    level_list.at(level_list_selected_id).ref.unselect();
+    level_list.at(beatmap_id).ref.select();
 
-    set_selected_ui(idx);
-    level_list_selected_idx = idx;
+    set_selected_ui(beatmap_id);
+    level_list_selected_id = beatmap_id;
 }
 
 void play::update_element([[maybe_unused]] float dt)
@@ -1462,9 +1473,9 @@ void play::update_element([[maybe_unused]] float dt)
     text_delete.ref.color = color_delete.get();
 }
 
-void play::set_selected_ui(std::size_t idx)
+void play::set_selected_ui(std::size_t beatmap_id)
 {
-    const level_ui_assets& ui_assets = assets.play_assets[idx];
+    const level_ui_assets& ui_assets = assets.play_assets.at(beatmap_id);
     if (ui_assets.img.has_value())
         selected_image.emplace(selected_image_frame.ref.add_child<kee::ui::image>(std::nullopt,
             ui_assets.img.value(), 
@@ -1794,7 +1805,7 @@ menu::menu(const kee::scene::required& reqs, bool from_game_init, const std::opt
     if (!from_beatmap.has_value())
     {
         std::vector<std::filesystem::path> level_dirs;
-        for (const auto& entry : std::filesystem::directory_iterator(beatmap_dir_info::app_data_dir / "play"))
+        for (const auto& entry : std::filesystem::directory_iterator(global_assets::app_data_dir / "play"))
             if (entry.is_directory())
                 level_dirs.emplace_back(entry.path());
 

@@ -1,8 +1,11 @@
 #pragma once
 
+#include <charconv>
 #include <filesystem>
 #include <future>
 #include <optional>
+
+#include <boost/json.hpp>
 
 /**
  * Disabling MSVC warnings on raylib's source code.
@@ -32,9 +35,9 @@ public:
 class level_ui_assets
 {
 public:
-    level_ui_assets(const std::filesystem::path& beatmap_dir_path);
+    level_ui_assets(const std::filesystem::path& beatmap_dir_path, const boost::json::object& user_score_json);
 
-    const std::filesystem::path beatmap_dir_path;
+    const std::filesystem::path beatmap_dir_path; /* TODO: ts needed lil bro ????? */
 
     std::optional<raylib::Image> img;
 
@@ -52,6 +55,9 @@ class global_assets
 {
 public:
     static constexpr int texture_empty_size = 1; /* TODO: when do i use ts ?? */
+
+    static const std::filesystem::path app_data_dir; /* TODO FAR: temp */
+    static const std::filesystem::path user_scores_path;
 
     global_assets();
 
@@ -87,8 +93,8 @@ public:
     const raylib::Image exit_png;
     const raylib::Image star_png;
 
-    std::future<std::vector<level_ui_assets>> play_assets_future;
-    std::vector<level_ui_assets> play_assets;
+    std::future<std::unordered_map<std::size_t, level_ui_assets>> play_assets_future;
+    std::unordered_map<std::size_t, level_ui_assets> play_assets;
 
 private:
     static raylib::Font gen_sdf_font(const std::filesystem::path& font_path);

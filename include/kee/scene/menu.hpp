@@ -154,7 +154,7 @@ public:
         bool is_selected,
         play& play_ui,
         const level_ui_assets& ui_assets,
-        std::size_t idx
+        std::size_t beatmap_id
     );
 
     void select();
@@ -163,7 +163,7 @@ public:
 private:
     void update_element(float dt) override;
 
-    const std::size_t idx;
+    const std::size_t beatmap_id;
 
     play& play_ui;
 
@@ -212,14 +212,14 @@ public:
 
     bool should_destruct() const;
 
-    void set_selected_level(std::size_t idx);
+    void set_selected_level(std::size_t beatmap_id);
 
 private:
     static constexpr float selected_info_text_size = 0.1f;
 
     void update_element(float dt) override;
 
-    void set_selected_ui(std::size_t idx);
+    void set_selected_ui(std::size_t beatmap_id);
 
     const raylib::Image search_png;
 
@@ -245,7 +245,7 @@ private:
 
     kee::ui::handle<kee::ui::scrollable> level_list_scrollable;
     kee::ui::handle<kee::ui::base> level_list_inner;
-    std::vector<kee::ui::handle<level_ui>> level_list;
+    std::unordered_map<std::size_t, kee::ui::handle<level_ui>> level_list;
 
     kee::ui::handle<kee::ui::rect> selected_bg;
     kee::ui::handle<kee::ui::base> selected_frame;
@@ -299,12 +299,7 @@ private:
     kee::ui::handle<kee::ui::text> text_edit;
     kee::ui::handle<kee::ui::text> text_delete;
 
-    /**
-     * `level_list` is never pushed to or popped from, meaning
-     * indexing is a valid pointer.
-     */
-    std::size_t level_list_selected_idx;
-
+    std::size_t level_list_selected_id;
     bool should_destruct_flag;
 };
 

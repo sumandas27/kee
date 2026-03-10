@@ -968,8 +968,6 @@ beatmap::beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_in
     level_name(beatmap_info.level_name),
     metadata_total_combo(beatmap_info.total_combo),
     beatmap_dir_path(beatmap_info.dir_state.path),
-    best_performance(beatmap_info.best),
-    total_attempts(beatmap_info.attempt_count),
     session_attempts(0),
     keys_json_obj(beatmap_info.keys_json_obj),
     key_color_json_obj(beatmap_info.key_colors_json_obj),
@@ -1098,6 +1096,20 @@ beatmap::beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_in
     music((beatmap_info.dir_state.path / beatmap_dir_state::standard_music_filename).string()),
     combo_lost_sfx("assets/sfx/combo_lost.wav")
 {
+    std::size_t beatmap_id;
+
+    const std::string dirname = beatmap_dir_path.filename().string();
+    const auto [ptr, ec] = std::from_chars(dirname.data(), dirname.data() + dirname.size(), beatmap_id);
+    if (ec == std::errc())
+        throw std::runtime_error(std::format("Beatmap name not an ID: {}", dirname));
+
+    auto assets_it = assets.play_assets.find(beatmap_id);
+    if (assets_it != assets.play_assets.end())
+        throw std::runtime_error("Played beatmap's asset metadata cannot be found during construction.");
+
+    best_performance = assets_it->second.best;
+    total_attempts = assets_it->second.attempt_count;
+
     if (beatmap_info.custom_hitsounds.has_value())
         hitsounds = std::move(beatmap_info.custom_hitsounds.value());
     else
@@ -1207,8 +1219,32 @@ void beatmap::set_bg_opacity(float opacity)
 
 void beatmap::update_performance()
 {
-    boost::json::object beatmap_json_obj;
-    beatmap_json_obj["attempts"] = total_attempts;
+    std::size_t beatmap_id;
+
+    const std::string dirname = beatmap_dir_path.filename().string();
+    const auto [ptr, ec] = std::from_chars(dirname.data(), dirname.data() + dirname.size(), beatmap_id);
+    if (ec == std::errc())
+        throw std::runtime_error(std::format("Beatmap name not an ID: {}", dirname));
+
+    std::ifstream performance_json_stream = std::ifstream(global_assets::user_scores_path);
+    if (!performance_json_stream)
+        throw std::runtime_error("Failed to open `user_scores.json`");
+
+    const std::string performance_json_contents = std::string(
+        std::istreambuf_iterator<char>(performance_json_stream),
+        std::istreambuf_iterator<char>()
+    );
+
+    boost::json::value performance_json_root = boost::json::parse(performance_json_contents);
+    if (!performance_json_root.is_object())
+        throw std::runtime_error("`user_scores.json` root is not an object.");
+
+    boost::json::object& performance_json_object = performance_json_root.as_object();
+    if (!performance_json_object.contains(dirname))
+        throw std::runtime_error(std::format("User does not have score entry for level ID {}", beatmap_id));
+
+    boost::json::object& user_score_json = performance_json_object[dirname].as_object();
+    user_score_json["attempts"] = total_attempts;
     
     if (best_performance.has_value())
     {
@@ -1219,13 +1255,13 @@ void beatmap::update_performance()
         performance_json_obj["best_streak"] = best_performance.value().best_streak;
         performance_json_obj["acc"] = best_performance.value().acc;
 
-        beatmap_json_obj["best"] = performance_json_obj;
+        user_score_json["best"] = performance_json_obj;
     }
     else
-        beatmap_json_obj["best"] = nullptr;
+        user_score_json["best"] = nullptr;
 
-    std::ofstream perf_out(beatmap_dir_path / beatmap_dir_state::standard_performance_filename);
-    perf_out << boost::json::serialize(beatmap_json_obj);
+    std::ofstream perf_out(global_assets::user_scores_path);
+    perf_out << boost::json::serialize(performance_json_object);
 
     if (assets.play_assets_future.valid())
     {
@@ -1233,15 +1269,12 @@ void beatmap::update_performance()
         assets.play_assets = assets.play_assets_future.get();
     }
 
-    auto asset_it = std::ranges::find_if(assets.play_assets, [&](const level_ui_assets& info) -> bool {
-        return std::filesystem::equivalent(info.beatmap_dir_path, beatmap_dir_path);
-    });
+    auto assets_it = assets.play_assets.find(beatmap_id);
+    if (assets_it != assets.play_assets.end())
+        throw std::runtime_error("Played beatmap's asset metadata cannot be found");
 
-    if (asset_it == assets.play_assets.end())
-        throw std::runtime_error("Played beatmap's file cannot be found");
-
-    asset_it->best = best_performance;
-    asset_it->attempt_count = total_attempts;
+    assets_it->second.best = best_performance;
+    assets_it->second.attempt_count = total_attempts;
 }
 
 void beatmap::reset_level()

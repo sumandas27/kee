@@ -5,8 +5,6 @@
 #include <fstream>
 #include <print>
 
-#include <boost/json.hpp>
-
 /**
  * Disabling MSVC warnings on magic_enum's source code.
  */
@@ -239,7 +237,6 @@ public:
     static const std::string_view standard_key_colors_filename;
     static const std::string_view standard_metadata_filename;
     static const std::string_view standard_music_filename;
-    static const std::string_view standard_performance_filename;
     static const std::string_view standard_vid_filename;
 
     beatmap_dir_state(const std::filesystem::path& path);
@@ -284,9 +281,6 @@ public:
 
     std::optional<boost::json::object> key_colors_json_obj;
     std::optional<std::unordered_map<std::string, raylib::Sound>> custom_hitsounds;
-
-    std::optional<performance_stats> best;
-    unsigned int attempt_count;
 };
 
 class key_pos_data
