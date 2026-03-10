@@ -833,6 +833,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
         true
     ),
     search_png("assets/img/search.png"),
+    menu_scene(menu_scene),
     back_rect_color(add_transition<kee::color>(kee::color(40, 40, 40))),
     color_music(add_transition<kee::color>(kee::color::white)),
     color_play(add_transition<kee::color>(kee::color::white)),
@@ -1230,7 +1231,8 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
         pos(pos::type::rel, 1.5f),
         ui::text_size(ui::text_size::type::rel_h, 0.5f),
         std::nullopt, true, assets.font_regular, "DELETE", false
-    ))
+    )),
+    should_destruct_flag(false)
 {
     const float back_rect_w = back_rect.ref.get_raw_rect().width;
     const float search_rect_x = search_rect.ref.get_raw_rect().x;
@@ -1299,7 +1301,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
 
     back_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        /* TODO: impl */
+        should_destruct_flag = true;
     };
 
     button_music.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -1406,6 +1408,33 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
     menu_scene.music_trns.value().song_ui_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
 }
 
+play::~play()
+{
+    menu_scene.e1_scale.set(1.0f);
+    menu_scene.k_text_alpha.set(std::nullopt, 255.f, 0.75f, kee::transition_type::exp);
+
+    assert(menu_scene.opening_trns.has_value());
+    menu_scene.opening_trns.value().k_rect_alpha.set(std::nullopt, 255.f, 0.75f, kee::transition_type::exp);
+    menu_scene.opening_trns.value().e1_text_alpha.set(std::nullopt, 255.f, 0.75f, kee::transition_type::exp);
+    menu_scene.opening_trns.value().e1_rect_alpha.set(std::nullopt, 255.f, 0.75f, kee::transition_type::exp);
+    menu_scene.opening_trns.value().e2_text_alpha.set(std::nullopt, 255.f, 0.75f, kee::transition_type::exp);
+    menu_scene.opening_trns.value().e2_rect_alpha.set(std::nullopt, 255.f, 0.75f, kee::transition_type::exp);
+
+    assert(menu_scene.music_trns.has_value());
+    menu_scene.music_trns.value().slider_alpha.set(std::nullopt, 255.f, 0.75f, kee::transition_type::exp);
+    menu_scene.music_trns.value().pause_play_color.set(std::nullopt, kee::color::white, 0.75f, kee::transition_type::exp);
+    menu_scene.music_trns.value().step_l_color.set(std::nullopt, kee::color::white, 0.75f, kee::transition_type::exp);
+    menu_scene.music_trns.value().step_r_color.set(std::nullopt, kee::color::white, 0.75f, kee::transition_type::exp);
+    menu_scene.music_trns.value().setting_color.set(std::nullopt, kee::color::white, 0.75f, kee::transition_type::exp);
+    menu_scene.music_trns.value().exit_color.set(std::nullopt, kee::color::white, 0.75f, kee::transition_type::exp);
+    menu_scene.music_trns.value().song_ui_alpha.set(std::nullopt, 255.f, 0.75f, kee::transition_type::exp);
+}
+
+bool play::should_destruct() const
+{
+    return should_destruct_flag;
+}
+
 void play::set_selected_level(std::size_t idx)
 {
     if (idx == level_list_selected_idx)
@@ -1462,7 +1491,7 @@ void play::set_selected_ui(std::size_t idx)
 
     selected_high_score.ref.set_string(ui_assets.best.has_value() ? std::to_string(ui_assets.best.value().high_score) : "--");
     selected_misses.ref.set_string(ui_assets.best.has_value() ? std::to_string(ui_assets.best.value().misses) : "--");
-    selected_acc.ref.set_string(ui_assets.best.has_value() ? std::to_string(ui_assets.best.value().acc) + "%" : "--");
+    selected_acc.ref.set_string(ui_assets.best.has_value() ? std::format("{:.2f}", ui_assets.best.value().acc) : "--");
     selected_combo.ref.set_string(ui_assets.best.has_value() ? std::format("{}/{}", ui_assets.best.value().combo, ui_assets.total_combo) : "--");
     selected_best_streak.ref.set_string(ui_assets.best.has_value() ? std::to_string(ui_assets.best.value().best_streak) : "--");
     selected_attempts.ref.set_string(std::to_string(ui_assets.attempt_count));
@@ -1784,10 +1813,11 @@ menu::menu(const kee::scene::required& reqs, bool from_game_init, const std::opt
     {
         opening_trns.emplace(*this);
         music_trns.emplace(*this);
-
         analyzer.play();
-        e1_button.ref.on_click_l(magic_enum::containers::bitset<kee::mods>());
     }
+
+    if (from_beatmap.has_value())
+        e1_button.ref.on_click_l(magic_enum::containers::bitset<kee::mods>());
 
     analyzer.set_volume(1.f);
     k_text_alpha.set(std::nullopt, 255.0f, 2.0f, kee::transition_type::lin);
@@ -1845,6 +1875,9 @@ void menu::update_element(float dt)
         if (music_cover_art.has_value())
             music_cover_art.value().ref.color.a = music_trns.value().song_ui_alpha.get();
     }
+
+    if (play_ui.has_value() && play_ui.value().ref.should_destruct())
+        play_ui.reset();
 
     k_text.ref.color.a = k_text_alpha.get();
     edit_text.ref.color.a = edit_text_alpha.get();

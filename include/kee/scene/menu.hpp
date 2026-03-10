@@ -203,6 +203,14 @@ class play final : public kee::ui::button
 {
 public:
     play(const kee::ui::required& reqs, menu& menu_scene, const std::filesystem::path& music_analyzer_beatmap_dir);
+    play(const play&) = delete;
+    play(play&&) = delete;
+    ~play();
+
+    play& operator=(const play&) = delete;
+    play& operator=(play&&) = delete;
+
+    bool should_destruct() const;
 
     void set_selected_level(std::size_t idx);
 
@@ -214,6 +222,8 @@ private:
     void set_selected_ui(std::size_t idx);
 
     const raylib::Image search_png;
+
+    menu& menu_scene;
 
     kee::transition<kee::color>& back_rect_color;
 
@@ -294,6 +304,8 @@ private:
      * indexing is a valid pointer.
      */
     std::size_t level_list_selected_idx;
+
+    bool should_destruct_flag;
 };
 
 /* WISHLIST: make bg more interesting, two ideas:
