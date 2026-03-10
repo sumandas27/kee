@@ -150,6 +150,8 @@ private:
 
     void update_element(float dt) override;
 
+    beatmap& beatmap_scene;
+
     kee::transition<float>& ui_rel_x;
     kee::transition<kee::color>& leave_color;
     kee::transition<kee::color>& restart_color;
@@ -240,7 +242,7 @@ public:
     const std::string level_name;
     const unsigned int metadata_total_combo;
 
-    const std::filesystem::path performance_json_path;
+    const std::filesystem::path beatmap_dir_path;
 
     std::optional<unsigned int> score;
     unsigned int total_combo;

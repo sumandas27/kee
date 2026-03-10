@@ -1,6 +1,7 @@
 #include "kee/scene/beatmap.hpp"
 
 #include "kee/game.hpp"
+#include "kee/scene/menu.hpp"
 
 namespace kee {
 namespace scene {
@@ -436,7 +437,9 @@ pause_menu::pause_menu(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         beatmap_scene.total_attempts += beatmap_scene.session_attempts;
         beatmap_scene.update_performance_json();
 
-        this->game_ref.queue_game_exit();
+        this->game_ref.scene_manager.request_scene_switch([&](){
+            return game_ref.make_scene<kee::scene::menu>(false, beatmap_scene.beatmap_dir_path);
+        });
     };
 
     const std::optional<float> game_bg_opacity = beatmap_scene.get_bg_opacity();
@@ -463,8 +466,15 @@ std::optional<bool> pause_menu::destruct_else_restart() const
 
 bool pause_menu::on_element_key_down([[maybe_unused]] int keycode, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
 {
-    if (keycode == KeyboardKey::KEY_ESCAPE)
-        game_ref.queue_game_exit();
+    if (keycode != KeyboardKey::KEY_ESCAPE)
+        return true;
+
+    beatmap_scene.total_attempts += beatmap_scene.session_attempts;
+    beatmap_scene.update_performance_json();
+
+    game_ref.scene_manager.request_scene_switch([&](){
+        return game_ref.make_scene<kee::scene::menu>(false, beatmap_scene.beatmap_dir_path);
+    });
 
     return true;
 }
@@ -496,6 +506,7 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         kee::border(kee::border::type::rel_h, 0.08f),
         true, std::nullopt, std::nullopt
     ),
+    beatmap_scene(beatmap_scene),
     ui_rel_x(add_transition<float>(1)),
     leave_color(add_transition<kee::color>(kee::color::white)),
     restart_color(add_transition<kee::color>(kee::color::white)),
@@ -856,7 +867,9 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
 
     leave_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
-        this->game_ref.queue_game_exit();
+        this->game_ref.scene_manager.request_scene_switch([&](){
+            return game_ref.make_scene<kee::scene::menu>(false, this->beatmap_scene.beatmap_dir_path);
+        });
     };
 
     restart_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -916,7 +929,9 @@ bool end_screen::should_reset() const
 bool end_screen::on_element_key_down([[maybe_unused]] int keycode, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
 {
     if (keycode == KeyboardKey::KEY_ESCAPE)
-        game_ref.queue_game_exit();
+        game_ref.scene_manager.request_scene_switch([&](){
+            return game_ref.make_scene<kee::scene::menu>(false, beatmap_scene.beatmap_dir_path);
+        });
 
     return true;
 }
@@ -952,7 +967,7 @@ beatmap::beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_in
     mapper(beatmap_info.mapper),
     level_name(beatmap_info.level_name),
     metadata_total_combo(beatmap_info.total_combo),
-    performance_json_path(beatmap_info.dir_state.path / beatmap_dir_state::standard_performance_filename),
+    beatmap_dir_path(beatmap_info.dir_state.path),
     best_performance(beatmap_info.best),
     total_attempts(beatmap_info.attempt_count),
     session_attempts(0),
@@ -1209,7 +1224,7 @@ void beatmap::update_performance_json()
     else
         beatmap_json_obj["best"] = nullptr;
 
-    std::ofstream perf_out(performance_json_path);
+    std::ofstream perf_out(beatmap_dir_path / beatmap_dir_state::standard_performance_filename);
     perf_out << boost::json::serialize(beatmap_json_obj);
 }
 

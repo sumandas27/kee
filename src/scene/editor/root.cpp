@@ -119,7 +119,7 @@ confirm_save_ui::confirm_save_ui(const kee::ui::required& reqs, const raylib::Im
     leave_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
         this->game_ref.scene_manager.request_scene_switch([&]() {
-            return game_ref.make_scene<kee::scene::menu>(false);
+            return game_ref.make_scene<kee::scene::menu>(false, std::nullopt);
         });
     };
 
@@ -142,7 +142,7 @@ confirm_save_ui::confirm_save_ui(const kee::ui::required& reqs, const raylib::Im
     {
         this->root_elem.save();
         this->game_ref.scene_manager.request_scene_switch([&]() {
-            return game_ref.make_scene<kee::scene::menu>(false);
+            return game_ref.make_scene<kee::scene::menu>(false, std::nullopt);
         });
     };
 
@@ -270,7 +270,7 @@ confirm_exit_ui::confirm_exit_ui(const kee::ui::required& reqs, root& root_elem,
             this->confirm_save.emplace(this->root_elem.add_child<confirm_save_ui>(2, this->error_png, this->root_elem, *this));
         else
             this->game_ref.scene_manager.request_scene_switch([&]() {
-                return game_ref.make_scene<kee::scene::menu>(false);
+                return game_ref.make_scene<kee::scene::menu>(false, std::nullopt);
             });
     };
 
@@ -1414,7 +1414,7 @@ bool root::on_element_key_down(int keycode, magic_enum::containers::bitset<kee::
             confirm_exit.value().ref.confirm_button.ref.on_click_l(mods);
         else
             game_ref.scene_manager.request_scene_switch([&]() {
-                return game_ref.make_scene<kee::scene::menu>(false);
+                return game_ref.make_scene<kee::scene::menu>(false, std::nullopt);
             });
 
         return true;

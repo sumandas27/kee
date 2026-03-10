@@ -304,7 +304,7 @@ private:
 class menu final : public kee::scene::base
 {
 public:
-    menu(const kee::scene::required& reqs, bool from_game_init);
+    menu(const kee::scene::required& reqs, bool from_game_init, const std::optional<std::filesystem::path>& from_beatmap);
 
     const raylib::Image edit_png;
     const raylib::Image music_png;

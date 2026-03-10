@@ -41,6 +41,9 @@ void music_analyzer::set_beatmap(const std::filesystem::path& beatmap_dir_path_p
 
 void music_analyzer::update()
 {
+    if (!wave.IsValid())
+        return;
+
     while (IsAudioStreamProcessed(audio_stream))
     {
         std::array<sample_t, music_analyzer::fft_resolution * music_analyzer::channels> to_submit;
@@ -1465,7 +1468,7 @@ void play::set_selected_ui(std::size_t idx)
     selected_attempts.ref.set_string(std::to_string(ui_assets.attempt_count));
 }
 
-menu::menu(const kee::scene::required& reqs, bool from_game_init) :
+menu::menu(const kee::scene::required& reqs, bool from_game_init, const std::optional<std::filesystem::path>& from_beatmap) :
     kee::scene::base(reqs),
     edit_png("assets/img/edit.png"),
     music_png("assets/img/music.png"),
@@ -1732,18 +1735,6 @@ menu::menu(const kee::scene::required& reqs, bool from_game_init) :
         /* TODO: impl */
     };
 
-    std::vector<std::filesystem::path> level_dirs;
-    for (const auto& entry : std::filesystem::directory_iterator(beatmap_dir_info::app_data_dir / "play"))
-        if (entry.is_directory())
-            level_dirs.emplace_back(entry.path());
-
-    if (level_dirs.empty())
-        throw std::runtime_error("No level directories found");
-
-    static std::mt19937 rng(std::random_device{}());
-    std::uniform_int_distribution<std::size_t> dist(0, level_dirs.size() - 1);
-    set_menu_level(level_dirs[dist(rng)]);
-
     visualizer_bot.reserve(music_analyzer::bins);
     visualizer_top.reserve(music_analyzer::bins);
     for (std::size_t i = 0; i < music_analyzer::bins; i++)
@@ -1771,15 +1762,35 @@ menu::menu(const kee::scene::required& reqs, bool from_game_init) :
         ));
     }
 
-    k_text_alpha.set(std::nullopt, 255.0f, 2.0f, kee::transition_type::lin);
-    analyzer.set_volume(1.f);
+    if (!from_beatmap.has_value())
+    {
+        std::vector<std::filesystem::path> level_dirs;
+        for (const auto& entry : std::filesystem::directory_iterator(beatmap_dir_info::app_data_dir / "play"))
+            if (entry.is_directory())
+                level_dirs.emplace_back(entry.path());
+
+        if (level_dirs.empty())
+            throw std::runtime_error("No level directories found");
+
+        static std::mt19937 rng(std::random_device{}());
+        std::uniform_int_distribution<std::size_t> dist(0, level_dirs.size() - 1);
+
+        set_menu_level(level_dirs[dist(rng)]);
+    }
+    else
+        set_menu_level(from_beatmap.value());
 
     if (!from_game_init)
     {
         opening_trns.emplace(*this);
         music_trns.emplace(*this);
+
         analyzer.play();
+        e1_button.ref.on_click_l(magic_enum::containers::bitset<kee::mods>());
     }
+
+    analyzer.set_volume(1.f);
+    k_text_alpha.set(std::nullopt, 255.0f, 2.0f, kee::transition_type::lin);
 }
 
 void menu::update_element(float dt)
