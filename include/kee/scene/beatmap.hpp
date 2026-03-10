@@ -226,7 +226,7 @@ public:
     std::optional<float> get_bg_opacity() const;
     void set_bg_opacity(float opacity);
 
-    void update_performance_json();
+    void update_performance();
     void reset_level();
 
     const raylib::Image leave_png;

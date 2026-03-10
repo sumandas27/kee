@@ -2,8 +2,6 @@
 
 #include "kee/ui_common.hpp"
 
-using namespace std::literals::chrono_literals;
-
 namespace kee {
     
 performance_stats::performance_stats(unsigned int high_score, unsigned int misses, unsigned int combo, unsigned int best_streak, float acc) :
@@ -71,12 +69,6 @@ global_assets::global_assets() :
 
         return res;
     });
-}
-
-void global_assets::update_futures()
-{
-    if (play_assets_future.valid() && play_assets_future.wait_for(0s) == std::future_status::ready)
-        play_assets = play_assets_future.get();
 }
 
 raylib::Font global_assets::gen_sdf_font(const std::filesystem::path& font_path)

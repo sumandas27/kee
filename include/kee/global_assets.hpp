@@ -55,8 +55,6 @@ public:
 
     global_assets();
 
-    void update_futures();
-
     const raylib::Font font_italic;
     const raylib::Font font_light;
     const raylib::Font font_regular;

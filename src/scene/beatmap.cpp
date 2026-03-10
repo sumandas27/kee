@@ -435,7 +435,7 @@ pause_menu::pause_menu(const kee::ui::required& reqs, beatmap& beatmap_scene) :
     exit_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
         beatmap_scene.total_attempts += beatmap_scene.session_attempts;
-        beatmap_scene.update_performance_json();
+        beatmap_scene.update_performance();
 
         this->game_ref.scene_manager.request_scene_switch([&](){
             return game_ref.make_scene<kee::scene::menu>(false, beatmap_scene.beatmap_dir_path);
@@ -470,7 +470,7 @@ bool pause_menu::on_element_key_down([[maybe_unused]] int keycode, [[maybe_unuse
         return true;
 
     beatmap_scene.total_attempts += beatmap_scene.session_attempts;
-    beatmap_scene.update_performance_json();
+    beatmap_scene.update_performance();
 
     game_ref.scene_manager.request_scene_switch([&](){
         return game_ref.make_scene<kee::scene::menu>(false, beatmap_scene.beatmap_dir_path);
@@ -839,7 +839,7 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
 
     beatmap_scene.total_attempts += beatmap_scene.session_attempts;
     beatmap_scene.session_attempts = 0;
-    beatmap_scene.update_performance_json();
+    beatmap_scene.update_performance();
 
     const float accuracy_trunc = std::floor(accuracy * 100.f) / 100.f;
     accuracy_result.ref.set_string(std::format("{:.2f}", accuracy_trunc));
@@ -1205,7 +1205,7 @@ void beatmap::set_bg_opacity(float opacity)
         video_ptr->ref.color.a = opacity;
 }
 
-void beatmap::update_performance_json()
+void beatmap::update_performance()
 {
     boost::json::object beatmap_json_obj;
     beatmap_json_obj["attempts"] = total_attempts;
@@ -1226,6 +1226,22 @@ void beatmap::update_performance_json()
 
     std::ofstream perf_out(beatmap_dir_path / beatmap_dir_state::standard_performance_filename);
     perf_out << boost::json::serialize(beatmap_json_obj);
+
+    if (assets.play_assets_future.valid())
+    {
+        assets.play_assets_future.wait();
+        assets.play_assets = assets.play_assets_future.get();
+    }
+
+    auto asset_it = std::ranges::find_if(assets.play_assets, [&](const level_ui_assets& info) -> bool {
+        return std::filesystem::equivalent(info.beatmap_dir_path, beatmap_dir_path);
+    });
+
+    if (asset_it == assets.play_assets.end())
+        throw std::runtime_error("Played beatmap's file cannot be found");
+
+    asset_it->best = best_performance;
+    asset_it->attempt_count = total_attempts;
 }
 
 void beatmap::reset_level()
