@@ -1127,7 +1127,7 @@ void root::save()
     }
 
     std::error_code ec;
-    const std::filesystem::path new_path = beatmap_dir_info::app_data_dir / "local_0";
+    const std::filesystem::path new_path = global_assets::app_data_dir / "local_0";
     const bool success = std::filesystem::create_directory(new_path, ec);
 
     if (ec)

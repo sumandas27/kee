@@ -94,7 +94,7 @@ global_assets::global_assets() :
             std::size_t entry_id;
 
             const auto [ptr, ec] = std::from_chars(key.data(), key.data() + key.size(), entry_id);
-            if (ec == std::errc())
+            if (ec != std::errc() || ptr != key.data() + key.size())
                 throw std::runtime_error(std::format("`user_scores.json` key is not an ID: {}", key));
 
             if (!val.is_object())
@@ -141,7 +141,7 @@ global_assets::global_assets() :
 
             const std::string dirname = entry.path().filename().string();
             const auto [ptr, ec] = std::from_chars(dirname.data(), dirname.data() + dirname.size(), entry_id);
-            if (ec == std::errc())
+            if (ec != std::errc() || ptr != dirname.data() + dirname.size())
                 throw std::runtime_error(std::format("Beatmap name not an ID: {}", dirname));
 
             if (!performance_json_object.contains(dirname))

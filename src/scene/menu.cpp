@@ -1250,7 +1250,9 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
     std::size_t selected_found = 0;
     std::size_t level_list_i = 0;
 
-    float level_ui_y_first, level_ui_y_last, level_ui_height;
+    float level_ui_y_first = 0.f;
+    float level_ui_y_last = 0.f;
+    float level_ui_height = 0.f;
     for (const auto& [beatmap_id, ui_assets] : assets.play_assets)
     {
         const bool is_analyzer_playing = std::filesystem::equivalent(ui_assets.beatmap_dir_path, music_analyzer_beatmap_dir);
@@ -1829,9 +1831,10 @@ menu::menu(const kee::scene::required& reqs, bool from_game_init, const std::opt
 
     if (from_beatmap.has_value())
         e1_button.ref.on_click_l(magic_enum::containers::bitset<kee::mods>());
+    else
+        k_text_alpha.set(std::nullopt, 255.0f, 2.0f, kee::transition_type::lin);
 
     analyzer.set_volume(1.f);
-    k_text_alpha.set(std::nullopt, 255.0f, 2.0f, kee::transition_type::lin);
 }
 
 void menu::update_element(float dt)

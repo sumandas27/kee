@@ -1100,11 +1100,17 @@ beatmap::beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_in
 
     const std::string dirname = beatmap_dir_path.filename().string();
     const auto [ptr, ec] = std::from_chars(dirname.data(), dirname.data() + dirname.size(), beatmap_id);
-    if (ec == std::errc())
+    if (ec != std::errc() || ptr != dirname.data() + dirname.size())
         throw std::runtime_error(std::format("Beatmap name not an ID: {}", dirname));
 
+    if (assets.play_assets_future.valid())
+    {
+        assets.play_assets_future.wait();
+        assets.play_assets = assets.play_assets_future.get();
+    }
+
     auto assets_it = assets.play_assets.find(beatmap_id);
-    if (assets_it != assets.play_assets.end())
+    if (assets_it == assets.play_assets.end())
         throw std::runtime_error("Played beatmap's asset metadata cannot be found during construction.");
 
     best_performance = assets_it->second.best;
@@ -1223,7 +1229,7 @@ void beatmap::update_performance()
 
     const std::string dirname = beatmap_dir_path.filename().string();
     const auto [ptr, ec] = std::from_chars(dirname.data(), dirname.data() + dirname.size(), beatmap_id);
-    if (ec == std::errc())
+    if (ec != std::errc() || ptr != dirname.data() + dirname.size())
         throw std::runtime_error(std::format("Beatmap name not an ID: {}", dirname));
 
     std::ifstream performance_json_stream = std::ifstream(global_assets::user_scores_path);
@@ -1270,7 +1276,7 @@ void beatmap::update_performance()
     }
 
     auto assets_it = assets.play_assets.find(beatmap_id);
-    if (assets_it != assets.play_assets.end())
+    if (assets_it == assets.play_assets.end())
         throw std::runtime_error("Played beatmap's asset metadata cannot be found");
 
     assets_it->second.best = best_performance;
