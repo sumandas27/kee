@@ -3,6 +3,8 @@
 #include <complex>
 #include <span>
 
+#include <avcpp/audioresampler.h>
+
 #include "kee/scene/base.hpp"
 #include "kee/ui/button.hpp"
 #include "kee/ui/image.hpp"
@@ -22,7 +24,7 @@ class music_analyzer
 public:
     static constexpr std::size_t bins = 64;
 
-    music_analyzer();
+    music_analyzer(const std::filesystem::path& beatmap_dir_path);
     music_analyzer(const music_analyzer&) = delete;
     music_analyzer(music_analyzer&&) = delete;
     ~music_analyzer();
@@ -30,12 +32,11 @@ public:
     music_analyzer& operator=(const music_analyzer&) = delete;
     music_analyzer& operator=(music_analyzer&&) = delete;
 
-    const std::filesystem::path& get_beatmap_dir_path() const;
-
-    void set_beatmap(const std::filesystem::path& beatmap_dir_path_param);
+    const std::filesystem::path& get_beatmap_dir_path() const; /* TODO: should replace with id i think */
 
     void update();
 
+    /* TODO: definitions removed */
     float get_time_length() const;
     float get_time_played() const;
     void seek(float time);
@@ -67,9 +68,14 @@ private:
 
     std::filesystem::path beatmap_dir_path;
 
-    raylib::Wave wave;
+    av::FormatContext audio_input;
+    av::AudioDecoderContext audio_decoder;
+    av::AudioResampler audio_resampler;
+    std::size_t audio_stream_idx;
+
+    av::AudioSamples av_samples;
     std::span<sample_t> samples;
-    unsigned int frame_cursor;
+    std::size_t samples_idx;
 
     std::array<std::complex<float>, music_analyzer::fft_resolution> fft_work_buffer;
     std::array<float, music_analyzer::fft_resolution> fft_pcm_floats;

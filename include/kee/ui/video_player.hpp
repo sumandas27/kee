@@ -1,7 +1,5 @@
 #pragma once
 
-#include <avcpp/codeccontext.h>
-#include <avcpp/formatcontext.h>
 #include <avcpp/videorescaler.h>
 
 #include "kee/ui/base.hpp"

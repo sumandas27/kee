@@ -4,6 +4,8 @@
 #include <map>
 #include <variant>
 
+#include <avcpp/codeccontext.h>
+#include <avcpp/formatcontext.h>
 #include <boost/optional.hpp>
 
 #include "kee/global_assets.hpp"

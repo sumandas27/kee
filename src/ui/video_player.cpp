@@ -138,7 +138,7 @@ void video_player::render_element() const
         tex_size_scaled.x,
         tex_size_scaled.y
     );
-
+    
     curr_texture.Draw(tex_src, tex_dst, tex_size_scaled / 2, 0.0f, color.raylib());
 }
 
