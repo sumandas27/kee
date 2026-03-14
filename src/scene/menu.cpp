@@ -12,8 +12,7 @@ namespace scene {
 
 music_analyzer::music_analyzer(const std::filesystem::path& beatmap_dir_path) :
     beatmap_dir_path(beatmap_dir_path),
-    av_samples(AV_SAMPLE_FMT_S16, music_analyzer::frames_per_refresh, AV_CH_LAYOUT_STEREO, music_analyzer::sample_rate),
-    samples_idx(0),
+    start_frame_idx(0),
     fft_pcm_floats{},
     fft_prev_mags{},
     visualizer_bins{}
@@ -71,50 +70,32 @@ void music_analyzer::update()
 {
     while (IsAudioStreamProcessed(audio_stream))
     {
-        std::array<sample_t, music_analyzer::frames_per_refresh * music_analyzer::channels> to_submit;
+        static constexpr std::size_t samples_per_refresh = music_analyzer::frames_per_refresh * music_analyzer::channels;
+
+        std::array<sample_t, samples_per_refresh> to_submit;
         for (std::size_t i = 0; i < music_analyzer::fft_resolution; i++)
         {
-            if (samples_idx >= av_samples.samplesCount())
-            {
-                bool is_eof = true;
-                while (const av::Packet packet = audio_input.readPacket()) 
-                {
-                    if (static_cast<std::size_t>(packet.streamIndex()) != audio_stream_idx)
-                        continue;
-
-                    const av::AudioSamples samples_raw = audio_decoder.decode(packet);
-                    if (!samples_raw)
-                        continue;
-
-                    audio_resampler.push(samples_raw);
-                    audio_resampler.pop(av_samples, true);
-                    std::println("{} {}", av_samples.pts(), av_samples.pts().seconds());
-
-                    samples = std::span<sample_t>(reinterpret_cast<sample_t*>(av_samples.data()), av_samples.samplesCount() * music_analyzer::channels);
-                    samples_idx = 0;
-                    
-                    is_eof = false;
-                    break;
-                }
-
-                if (is_eof) { /* TODO: reached end, wat to do */ }
-            }
+            const std::size_t samples_frames = samples.size() / music_analyzer::channels;
+            if (i >= samples_frames)
+                decode_next_packet();
 
             float pcm_float = 0;
             for (unsigned int ch = 0; ch < music_analyzer::channels; ch++)
             {
-                const sample_t sample = samples[samples_idx * music_analyzer::channels + ch];
+                const std::size_t sample_idx = i * music_analyzer::channels + ch;
+                const sample_t sample = samples[sample_idx];
                 pcm_float += sample;
 
                 if (i < music_analyzer::frames_per_refresh)
-                    to_submit[i * music_analyzer::channels + ch] = sample;
+                    to_submit[sample_idx] = sample;
             }
 
             pcm_float /= (music_analyzer::channels * std::numeric_limits<sample_t>::max());
             fft_pcm_floats[i] = pcm_float;
-
-            samples_idx++;
         }
+
+        samples.erase(samples.begin(), samples.begin() + samples_per_refresh);
+        start_frame_idx += music_analyzer::frames_per_refresh;
 
         UpdateAudioStream(audio_stream, to_submit.data(), music_analyzer::frames_per_refresh);
     }
@@ -293,20 +274,25 @@ void music_analyzer::update()
 
 float music_analyzer::get_time_length() const
 {
-    return 1.f;
-    //return static_cast<float>(wave.frameCount) / static_cast<float>(sample_rate);
+    return static_cast<float>(audio_input.duration().seconds());
 }
 
 float music_analyzer::get_time_played() const
 {
-    return 1.f;
-    //return static_cast<float>(frame_cursor) / static_cast<float>(sample_rate);
+    return static_cast<float>(start_frame_idx) / static_cast<float>(sample_rate);
 }
 
 void music_analyzer::seek(float time)
 {
-    //time = std::clamp(time, 0.f, get_time_length());
-    //frame_cursor = static_cast<unsigned int>(time * sample_rate);
+    const av::Stream av_audio_stream = audio_input.stream(audio_stream_idx);
+    const int64_t target_ts = static_cast<int64_t>(time / av_audio_stream.timeBase()());
+
+    audio_input.seek(target_ts, static_cast<int>(audio_stream_idx), AVSEEK_FLAG_BACKWARD);
+    avcodec_flush_buffers(audio_decoder.raw());
+    audio_input.flush();
+
+    samples.clear();
+    start_frame_idx = decode_next_packet();
 }
 
 bool music_analyzer::is_playing() const
@@ -341,6 +327,39 @@ float music_analyzer::get_visualizer_bin(std::size_t i)
         throw std::runtime_error("music_analyzer::get_visualizer_bin: out of bounds");
 
     return visualizer_bins[i];
+}
+
+std::size_t music_analyzer::decode_next_packet()
+{
+    av::AudioSamples audio_samples;
+    bool is_eof = true;
+
+    while (const av::Packet packet = audio_input.readPacket()) 
+    {
+        if (static_cast<std::size_t>(packet.streamIndex()) != audio_stream_idx)
+            continue;
+
+        audio_samples = audio_decoder.decode(packet);
+        if (!audio_samples)
+            continue;
+        
+        is_eof = false;
+        break;
+    }
+
+    if (is_eof) 
+    { 
+        seek(0.f);
+        return 0;
+    }
+
+    audio_resampler.push(audio_samples);
+    audio_samples = audio_resampler.pop(0);
+
+    const std::span<sample_t> samples_view(reinterpret_cast<sample_t*>(audio_samples.data()), audio_samples.samplesCount() * music_analyzer::channels);
+    samples.insert(samples.end(), samples_view.begin(), samples_view.end());
+
+    return static_cast<std::size_t>(audio_samples.pts().seconds() * music_analyzer::sample_rate);
 }
 
 opening_transitions::opening_transitions(menu& menu_scene) :
@@ -1871,6 +1890,7 @@ menu::menu(const kee::scene::required& reqs, bool from_game_init, const std::opt
     }
     else
         set_menu_level(from_beatmap.value());*/
+    set_menu_level("test_app_data/play/0000000000");
 
     if (!from_game_init)
     {

@@ -58,13 +58,15 @@ private:
     static constexpr unsigned int channels = 2;
 
     static constexpr std::size_t fft_bins = 8192;
-    static constexpr int fft_resolution = 2048;
+    static constexpr int fft_resolution = 16384;
     static constexpr int frames_per_refresh = 2048;
 
     static constexpr float smoothing_time_const = 0.75f;
     static constexpr float min_db = -100.f;
     static constexpr float max_db = -33.f;
     static constexpr float inv_db_range = 1.f / (music_analyzer::max_db - music_analyzer::min_db);
+
+    std::size_t decode_next_packet();
 
     std::filesystem::path beatmap_dir_path;
 
@@ -73,9 +75,8 @@ private:
     av::AudioResampler audio_resampler;
     std::size_t audio_stream_idx;
 
-    av::AudioSamples av_samples;
-    std::span<sample_t> samples;
-    std::size_t samples_idx;
+    std::deque<sample_t> samples;
+    std::size_t start_frame_idx;
 
     std::array<std::complex<float>, music_analyzer::fft_resolution> fft_work_buffer;
     std::array<float, music_analyzer::fft_resolution> fft_pcm_floats;
