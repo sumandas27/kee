@@ -13,7 +13,6 @@
 #include "kee/ui/slider.hpp"
 #include "kee/ui/text.hpp"
 
-/* TODO NEXT: fix k fading in when moving from editor to main */
 /* TODO NEXT: deprecate beatmap_dir_path */
 
 namespace kee {
