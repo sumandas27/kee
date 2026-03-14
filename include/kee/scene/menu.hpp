@@ -58,7 +58,7 @@ private:
     static constexpr unsigned int channels = 2;
 
     static constexpr std::size_t fft_bins = 8192;
-    static constexpr int fft_resolution = 16384;
+    static constexpr int fft_resolution = 2048;
     static constexpr int frames_per_refresh = 2048;
 
     static constexpr float smoothing_time_const = 0.75f;

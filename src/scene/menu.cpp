@@ -12,6 +12,7 @@ namespace scene {
 
 music_analyzer::music_analyzer(const std::filesystem::path& beatmap_dir_path) :
     beatmap_dir_path(beatmap_dir_path),
+    av_samples(AV_SAMPLE_FMT_S16, music_analyzer::frames_per_refresh, AV_CH_LAYOUT_STEREO, music_analyzer::sample_rate),
     samples_idx(0),
     fft_pcm_floats{},
     fft_prev_mags{},
@@ -47,7 +48,7 @@ music_analyzer::music_analyzer(const std::filesystem::path& beatmap_dir_path) :
         audio_decoder.open({{"threads", "1"}});
     }
 
-    audio_resampler = av::AudioResampler(
+    audio_resampler.init(
         AV_CH_LAYOUT_STEREO /* TODO: hardcoded */, music_analyzer::sample_rate, AV_SAMPLE_FMT_S16,
         audio_decoder.channelLayout(), audio_decoder.sampleRate(), audio_decoder.sampleFormat()
     );
@@ -73,7 +74,7 @@ void music_analyzer::update()
         std::array<sample_t, music_analyzer::frames_per_refresh * music_analyzer::channels> to_submit;
         for (std::size_t i = 0; i < music_analyzer::fft_resolution; i++)
         {
-            if (samples_idx >= samples.size())
+            if (samples_idx >= av_samples.samplesCount())
             {
                 bool is_eof = true;
                 while (const av::Packet packet = audio_input.readPacket()) 
@@ -87,10 +88,11 @@ void music_analyzer::update()
 
                     audio_resampler.push(samples_raw);
                     audio_resampler.pop(av_samples, true);
-                    
+                    std::println("{} {}", av_samples.pts(), av_samples.pts().seconds());
+
                     samples = std::span<sample_t>(reinterpret_cast<sample_t*>(av_samples.data()), av_samples.samplesCount() * music_analyzer::channels);
                     samples_idx = 0;
-
+                    
                     is_eof = false;
                     break;
                 }
