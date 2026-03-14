@@ -1912,18 +1912,23 @@ menu::menu(const kee::scene::required& reqs, bool from_game_init, const std::opt
         set_menu_level(from_beatmap.value());*/
     set_menu_level("test_app_data/play/0000000000");
 
+    float k_text_alpha_time;
     if (!from_game_init)
     {
+        k_text_alpha_time = 0.f;
+
         opening_trns.emplace(*this);
         music_trns.emplace(*this);
         analyzer.play();
     }
+    else
+        k_text_alpha_time = 2.0f;
 
     if (from_beatmap.has_value())
         e1_button.ref.on_click_l(magic_enum::containers::bitset<kee::mods>());
-    else
-        k_text_alpha.set(std::nullopt, 255.0f, 2.0f, kee::transition_type::lin);
 
+
+    k_text_alpha.set(std::nullopt, 255.0f, k_text_alpha_time, kee::transition_type::lin);
     analyzer.set_volume(1.f);
 }
 
