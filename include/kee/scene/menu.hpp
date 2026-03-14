@@ -36,7 +36,6 @@ public:
 
     void update();
 
-    /* TODO: definitions removed */
     float get_time_length() const;
     float get_time_played() const;
     void seek(float time);
@@ -322,8 +321,9 @@ public:
 
     const raylib::Image edit_png;
     const raylib::Image music_png;
-
     const bool from_game_init;
+
+    bool play_ui_immediate_flag;
 
 private:
     /* TODO: `friend` is kind of a bad workaround, think about ts */

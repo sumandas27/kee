@@ -47,8 +47,20 @@ music_analyzer::music_analyzer(const std::filesystem::path& beatmap_dir_path) :
         audio_decoder.open({{"threads", "1"}});
     }
 
+    std::uint64_t dst_channels_layout;
+    if constexpr (music_analyzer::channels == 2)
+        dst_channels_layout = AV_CH_LAYOUT_STEREO;
+    else
+        throw std::runtime_error(std::format("Unsupported analyzer channel count {}", music_analyzer::channels));
+
+    enum AVSampleFormat out_sample_fmt;
+    if constexpr (std::is_same_v<sample_t, std::int16_t>)
+        out_sample_fmt = AV_SAMPLE_FMT_S16;
+    else
+        throw std::runtime_error("Unsupported analyzer sample type.");
+
     audio_resampler.init(
-        AV_CH_LAYOUT_STEREO /* TODO: hardcoded */, music_analyzer::sample_rate, AV_SAMPLE_FMT_S16,
+        dst_channels_layout, music_analyzer::sample_rate, out_sample_fmt,
         audio_decoder.channelLayout(), audio_decoder.sampleRate(), audio_decoder.sampleFormat()
     );
 
@@ -287,10 +299,7 @@ void music_analyzer::seek(float time)
     const av::Stream av_audio_stream = audio_input.stream(audio_stream_idx);
     const int64_t target_ts = static_cast<int64_t>(time / av_audio_stream.timeBase()());
 
-    audio_input.seek(target_ts, static_cast<int>(audio_stream_idx), AVSEEK_FLAG_BACKWARD);
-    avcodec_flush_buffers(audio_decoder.raw());
-    audio_input.flush();
-
+    audio_input.seek(target_ts, static_cast<int>(audio_stream_idx), AVSEEK_FLAG_BACKWARD);;
     samples.clear();
     start_frame_idx = decode_next_packet();
 }
@@ -332,7 +341,7 @@ float music_analyzer::get_visualizer_bin(std::size_t i)
 std::size_t music_analyzer::decode_next_packet()
 {
     av::AudioSamples audio_samples;
-    bool is_eof = true;
+    std::optional<float> packet_pts = std::nullopt;
 
     while (const av::Packet packet = audio_input.readPacket()) 
     {
@@ -343,10 +352,11 @@ std::size_t music_analyzer::decode_next_packet()
         if (!audio_samples)
             continue;
         
-        is_eof = false;
+        packet_pts = packet.pts().seconds();
         break;
     }
 
+    const bool is_eof = !packet_pts.has_value();
     if (is_eof) 
     { 
         seek(0.f);
@@ -359,7 +369,7 @@ std::size_t music_analyzer::decode_next_packet()
     const std::span<sample_t> samples_view(reinterpret_cast<sample_t*>(audio_samples.data()), audio_samples.samplesCount() * music_analyzer::channels);
     samples.insert(samples.end(), samples_view.begin(), samples_view.end());
 
-    return static_cast<std::size_t>(audio_samples.pts().seconds() * music_analyzer::sample_rate);
+    return static_cast<std::size_t>(packet_pts.value() * music_analyzer::sample_rate);
 }
 
 opening_transitions::opening_transitions(menu& menu_scene) :
@@ -1467,26 +1477,35 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
         /* TODO: impl */
     };
 
-    menu_scene.k_text_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
-    menu_scene.edit_text_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
-    menu_scene.play_text_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
-    menu_scene.browse_text_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
+    float trns_time;
+    if (!menu_scene.from_game_init && menu_scene.play_ui_immediate_flag)
+    {
+        trns_time = 0.f;
+        menu_scene.play_ui_immediate_flag = false;
+    }
+    else
+        trns_time = 0.75f;
+
+    menu_scene.k_text_alpha.set(std::nullopt, 0.f, trns_time, kee::transition_type::exp);
+    menu_scene.edit_text_alpha.set(std::nullopt, 0.f, trns_time, kee::transition_type::exp);
+    menu_scene.play_text_alpha.set(std::nullopt, 0.f, trns_time, kee::transition_type::exp);
+    menu_scene.browse_text_alpha.set(std::nullopt, 0.f, trns_time, kee::transition_type::exp);
 
     assert(menu_scene.opening_trns.has_value());
-    menu_scene.opening_trns.value().k_rect_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
-    menu_scene.opening_trns.value().e1_text_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
-    menu_scene.opening_trns.value().e1_rect_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
-    menu_scene.opening_trns.value().e2_text_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
-    menu_scene.opening_trns.value().e2_rect_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
+    menu_scene.opening_trns.value().k_rect_alpha.set(std::nullopt, 0.f, trns_time, kee::transition_type::exp);
+    menu_scene.opening_trns.value().e1_text_alpha.set(std::nullopt, 0.f, trns_time, kee::transition_type::exp);
+    menu_scene.opening_trns.value().e1_rect_alpha.set(std::nullopt, 0.f, trns_time, kee::transition_type::exp);
+    menu_scene.opening_trns.value().e2_text_alpha.set(std::nullopt, 0.f, trns_time, kee::transition_type::exp);
+    menu_scene.opening_trns.value().e2_rect_alpha.set(std::nullopt, 0.f, trns_time, kee::transition_type::exp);
 
     assert(menu_scene.music_trns.has_value());
-    menu_scene.music_trns.value().slider_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
-    menu_scene.music_trns.value().pause_play_color.set(std::nullopt, kee::color::blank, 0.75f, kee::transition_type::exp);
-    menu_scene.music_trns.value().step_l_color.set(std::nullopt, kee::color::blank, 0.75f, kee::transition_type::exp);
-    menu_scene.music_trns.value().step_r_color.set(std::nullopt, kee::color::blank, 0.75f, kee::transition_type::exp);
-    menu_scene.music_trns.value().setting_color.set(std::nullopt, kee::color::blank, 0.75f, kee::transition_type::exp);
-    menu_scene.music_trns.value().exit_color.set(std::nullopt, kee::color::blank, 0.75f, kee::transition_type::exp);
-    menu_scene.music_trns.value().song_ui_alpha.set(std::nullopt, 0.f, 0.75f, kee::transition_type::exp);
+    menu_scene.music_trns.value().slider_alpha.set(std::nullopt, 0.f, trns_time, kee::transition_type::exp);
+    menu_scene.music_trns.value().pause_play_color.set(std::nullopt, kee::color::blank, trns_time, kee::transition_type::exp);
+    menu_scene.music_trns.value().step_l_color.set(std::nullopt, kee::color::blank, trns_time, kee::transition_type::exp);
+    menu_scene.music_trns.value().step_r_color.set(std::nullopt, kee::color::blank, trns_time, kee::transition_type::exp);
+    menu_scene.music_trns.value().setting_color.set(std::nullopt, kee::color::blank, trns_time, kee::transition_type::exp);
+    menu_scene.music_trns.value().exit_color.set(std::nullopt, kee::color::blank, trns_time, kee::transition_type::exp);
+    menu_scene.music_trns.value().song_ui_alpha.set(std::nullopt, 0.f, trns_time, kee::transition_type::exp);
 }
 
 play::~play()
@@ -1583,6 +1602,7 @@ menu::menu(const kee::scene::required& reqs, bool from_game_init, const std::opt
     edit_png("assets/img/edit.png"),
     music_png("assets/img/music.png"),
     from_game_init(from_game_init),
+    play_ui_immediate_flag(true),
     k_text_alpha(add_transition<float>(0.0f)),
     k_scale(add_transition<float>(1.0f)),
     e1_scale(add_transition<float>(1.0f)),
