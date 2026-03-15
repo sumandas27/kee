@@ -9,7 +9,6 @@ namespace kee {
 window::window()
 {
     av::init();
-    av::setFFmpegLoggingLevel(AV_LOG_DEBUG);
 
 #ifdef __APPLE__
     static constexpr int window_fps = 60;

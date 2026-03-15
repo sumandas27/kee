@@ -15,7 +15,8 @@ music_analyzer::music_analyzer(menu& menu_scene, std::optional<std::size_t> beat
     start_frame_idx(0),
     fft_pcm_floats{},
     fft_prev_mags{},
-    visualizer_bins{}
+    visualizer_bins{},
+    is_audio_stream_stopped(true)
 {
     /**
      * This is the earliest `assets.play_assets` is used, all other usages of this are now valid.
@@ -44,7 +45,7 @@ music_analyzer::music_analyzer(menu& menu_scene, std::optional<std::size_t> beat
     SetAudioStreamBufferSizeDefault(music_analyzer::frames_per_refresh);
     audio_stream = LoadAudioStream(music_analyzer::sample_rate, music_analyzer::bit_depth, music_analyzer::channels);
 
-    set_order_song(0);
+    set_order_song(0, true);
 }
 
 music_analyzer::~music_analyzer()
@@ -278,12 +279,16 @@ void music_analyzer::seek(float time)
 {
     const av::Stream av_audio_stream = audio_input.stream(audio_stream_idx);
     const int64_t target_ts = static_cast<int64_t>(time / av_audio_stream.timeBase()());
-
     audio_input.seek(target_ts, static_cast<int>(audio_stream_idx), AVSEEK_FLAG_BACKWARD);
-    audio_input.flush();
 
     samples.clear();
     start_frame_idx = decode_next_packet().value_or(0);
+
+    if (!is_audio_stream_stopped && !is_playing())
+    {
+        StopAudioStream(audio_stream);
+        is_audio_stream_stopped = true;
+    }
 }
 
 bool music_analyzer::is_playing() const
@@ -298,19 +303,20 @@ void music_analyzer::pause()
 
 void music_analyzer::play()
 {
-    PlayAudioStream(audio_stream);
-}
-
-void music_analyzer::resume()
-{
-    ResumeAudioStream(audio_stream);
+    if (is_audio_stream_stopped)
+    {
+        PlayAudioStream(audio_stream);
+        is_audio_stream_stopped = false;
+    }
+    else
+        ResumeAudioStream(audio_stream);
 }
 
 bool music_analyzer::step_l()
 {
     if (order_idx > 0)
     {
-        set_order_song(order_idx - 1);
+        set_order_song(order_idx - 1, false);
         return true;
     }
     else
@@ -322,7 +328,7 @@ bool music_analyzer::step_l()
 
 void music_analyzer::step_r()
 {
-    set_order_song(order_idx + 1);
+    set_order_song(order_idx + 1, false);
     menu_scene.set_menu_level();
 }
 
@@ -340,7 +346,7 @@ float music_analyzer::get_visualizer_bin(std::size_t i)
     return visualizer_bins[i];
 }
 
-void music_analyzer::set_order_song(std::size_t order_idx_param)
+void music_analyzer::set_order_song(std::size_t order_idx_param, bool is_first_call)
 {
     order_idx = order_idx_param;
 
@@ -373,7 +379,7 @@ void music_analyzer::set_order_song(std::size_t order_idx_param)
         av::Codec codec = av::findDecodingCodec(audio_decoder.raw()->codec_id);
         audio_decoder.setCodec(codec);
         audio_decoder.setRefCountedFrames(true);
-        audio_decoder.open({{"threads", "1"}});
+        audio_decoder.open(av::Codec());
     }
 
     std::uint64_t dst_channels_layout;
@@ -393,8 +399,7 @@ void music_analyzer::set_order_song(std::size_t order_idx_param)
         audio_decoder.channelLayout(), audio_decoder.sampleRate(), audio_decoder.sampleFormat()
     );
     
-    samples.clear();
-    start_frame_idx = 0;
+    seek(0.f);
 }
 
 std::optional<std::size_t> music_analyzer::decode_next_packet()
@@ -428,7 +433,6 @@ std::optional<std::size_t> music_analyzer::decode_next_packet()
     const std::span<sample_t> samples_view(reinterpret_cast<sample_t*>(audio_samples.data()), audio_samples.samplesCount() * music_analyzer::channels);
     samples.insert(samples.end(), samples_view.begin(), samples_view.end());
 
-    std::println("{}", packet_pts.value());
     return static_cast<std::size_t>(packet_pts.value() * music_analyzer::sample_rate);
 }
 
@@ -587,7 +591,7 @@ music_transitions::music_transitions(menu& menu_scene) :
         case ui::slider::event::on_release:
             this->menu_scene.analyzer.seek(this->music_slider.ref.progress * this->menu_scene.analyzer.get_time_length());
             if (music_is_playing)
-                this->menu_scene.analyzer.resume();
+                this->menu_scene.analyzer.play();
             break;
         default:
             break;
@@ -623,10 +627,12 @@ music_transitions::music_transitions(menu& menu_scene) :
         {
             this->menu_scene.analyzer.pause();
             this->pause_play_img.ref.set_image(this->menu_scene.assets.pause_png);
+        
+            this->is_slider_touched_during_pause = false;
         }
         else
         {
-            this->menu_scene.analyzer.resume();
+            this->menu_scene.analyzer.play();
             this->pause_play_img.ref.set_image(this->menu_scene.assets.play_png);
         }
     };
@@ -657,7 +663,11 @@ music_transitions::music_transitions(menu& menu_scene) :
     step_l.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     { 
         if (menu_scene.analyzer.get_time_played() < 3.f && menu_scene.analyzer.step_l())
+        {
             menu_scene.set_menu_level();
+            if (!menu_scene.analyzer.is_playing())
+                pause_play.ref.on_click_l(magic_enum::containers::bitset<kee::mods>());
+        }
         else
             menu_scene.analyzer.seek(0.f);
     };
@@ -688,7 +698,8 @@ music_transitions::music_transitions(menu& menu_scene) :
     step_r.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     { 
         menu_scene.analyzer.step_r();
-        menu_scene.analyzer.resume();
+        if (!menu_scene.analyzer.is_playing())
+            pause_play.ref.on_click_l(magic_enum::containers::bitset<kee::mods>());
     };
 
     setting_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)

@@ -13,7 +13,7 @@
 #include "kee/ui/slider.hpp"
 #include "kee/ui/text.hpp"
 
-/* TODO NEXT: deprecate beatmap_dir_path */
+/* TODO NEXT: fix pause/play icon */
 
 namespace kee {
 namespace scene {
@@ -37,6 +37,7 @@ public:
     std::size_t get_beatmap_id() const;
 
     void update();
+    void reset_audio_stream();
 
     float get_time_length() const;
     float get_time_played() const;
@@ -45,7 +46,6 @@ public:
     bool is_playing() const;
     void pause();
     void play();
-    void resume();
 
     bool step_l();
     void step_r();
@@ -70,7 +70,7 @@ private:
     static constexpr float max_db = -33.f;
     static constexpr float inv_db_range = 1.f / (music_analyzer::max_db - music_analyzer::min_db);
 
-    void set_order_song(std::size_t order_idx_param);
+    void set_order_song(std::size_t order_idx_param, bool is_first_call);
 
     std::optional<std::size_t> decode_next_packet();
 
@@ -99,6 +99,8 @@ private:
      * since no audio stream has previously been loaded in.
      */
     AudioStream audio_stream;
+
+    bool is_audio_stream_stopped;
 };
 
 class opening_transitions
@@ -156,6 +158,8 @@ public:
     kee::ui::handle<kee::ui::image> setting_img;
     kee::ui::handle<kee::ui::button> exit_button;
     kee::ui::handle<kee::ui::image> exit_img;
+
+    std::optional<bool> is_slider_touched_during_pause;
 };
 
 class level_ui final : public kee::ui::button
