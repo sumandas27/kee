@@ -45,7 +45,7 @@ music_analyzer::music_analyzer(menu& menu_scene, std::optional<std::size_t> beat
     SetAudioStreamBufferSizeDefault(music_analyzer::frames_per_refresh);
     audio_stream = LoadAudioStream(music_analyzer::sample_rate, music_analyzer::bit_depth, music_analyzer::channels);
 
-    set_order_song(0, true);
+    set_order_song(0);
 }
 
 music_analyzer::~music_analyzer()
@@ -316,7 +316,7 @@ bool music_analyzer::step_l()
 {
     if (order_idx > 0)
     {
-        set_order_song(order_idx - 1, false);
+        set_order_song(order_idx - 1);
         return true;
     }
     else
@@ -328,7 +328,7 @@ bool music_analyzer::step_l()
 
 void music_analyzer::step_r()
 {
-    set_order_song(order_idx + 1, false);
+    set_order_song(order_idx + 1);
     menu_scene.set_menu_level();
 }
 
@@ -346,7 +346,7 @@ float music_analyzer::get_visualizer_bin(std::size_t i)
     return visualizer_bins[i];
 }
 
-void music_analyzer::set_order_song(std::size_t order_idx_param, bool is_first_call)
+void music_analyzer::set_order_song(std::size_t order_idx_param)
 {
     order_idx = order_idx_param;
 
@@ -492,7 +492,7 @@ music_transitions::music_transitions(menu& menu_scene) :
         true
     )),
     pause_play_img(pause_play.ref.add_child<kee::ui::image>(std::nullopt,
-        menu_scene.assets.play_png, pause_play_color.get(),
+        menu_scene.assets.pause_png, pause_play_color.get(),
         pos(pos::type::rel, 0.5),
         pos(pos::type::rel, 0.5),
         border(border::type::rel_h, pause_play_border.get()),
@@ -626,14 +626,14 @@ music_transitions::music_transitions(menu& menu_scene) :
         if (this->menu_scene.analyzer.is_playing())
         {
             this->menu_scene.analyzer.pause();
-            this->pause_play_img.ref.set_image(this->menu_scene.assets.pause_png);
+            this->pause_play_img.ref.set_image(this->menu_scene.assets.play_png);
         
             this->is_slider_touched_during_pause = false;
         }
         else
         {
             this->menu_scene.analyzer.play();
-            this->pause_play_img.ref.set_image(this->menu_scene.assets.play_png);
+            this->pause_play_img.ref.set_image(this->menu_scene.assets.pause_png);
         }
     };
 
@@ -663,13 +663,12 @@ music_transitions::music_transitions(menu& menu_scene) :
     step_l.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     { 
         if (menu_scene.analyzer.get_time_played() < 3.f && menu_scene.analyzer.step_l())
-        {
             menu_scene.set_menu_level();
-            if (!menu_scene.analyzer.is_playing())
-                pause_play.ref.on_click_l(magic_enum::containers::bitset<kee::mods>());
-        }
         else
             menu_scene.analyzer.seek(0.f);
+
+        if (!menu_scene.analyzer.is_playing())
+            pause_play.ref.on_click_l(magic_enum::containers::bitset<kee::mods>());
     };
 
     step_r.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)

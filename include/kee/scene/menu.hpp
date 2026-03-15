@@ -37,7 +37,6 @@ public:
     std::size_t get_beatmap_id() const;
 
     void update();
-    void reset_audio_stream();
 
     float get_time_length() const;
     float get_time_played() const;
@@ -70,7 +69,7 @@ private:
     static constexpr float max_db = -33.f;
     static constexpr float inv_db_range = 1.f / (music_analyzer::max_db - music_analyzer::min_db);
 
-    void set_order_song(std::size_t order_idx_param, bool is_first_call);
+    void set_order_song(std::size_t order_idx_param);
 
     std::optional<std::size_t> decode_next_packet();
 
