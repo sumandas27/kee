@@ -26,7 +26,7 @@ class music_analyzer
 public:
     static constexpr std::size_t bins = 64;
 
-    music_analyzer(const std::filesystem::path& beatmap_dir_path);
+    music_analyzer(menu& menu_scene, std::size_t beatmap_id);
     music_analyzer(const music_analyzer&) = delete;
     music_analyzer(music_analyzer&&) = delete;
     ~music_analyzer();
@@ -34,7 +34,7 @@ public:
     music_analyzer& operator=(const music_analyzer&) = delete;
     music_analyzer& operator=(music_analyzer&&) = delete;
 
-    const std::filesystem::path& get_beatmap_dir_path() const; /* TODO: should replace with id i think */
+    std::size_t get_beatmap_id() const;
 
     void update();
 
@@ -69,7 +69,8 @@ private:
 
     std::size_t decode_next_packet();
 
-    std::filesystem::path beatmap_dir_path;
+    std::vector<std::size_t> beatmap_id_order;
+    std::size_t beatmap_id;
 
     av::FormatContext audio_input;
     av::AudioDecoderContext audio_decoder;
@@ -210,7 +211,7 @@ private:
 class play final : public kee::ui::button
 {
 public:
-    play(const kee::ui::required& reqs, menu& menu_scene, const std::filesystem::path& music_analyzer_beatmap_dir);
+    play(const kee::ui::required& reqs, menu& menu_scene, std::size_t analyzer_beatmap_id);
     play(const play&) = delete;
     play(play&&) = delete;
     ~play();
@@ -334,7 +335,7 @@ private:
 
     void update_element(float dt) override;
 
-    void set_menu_level(const std::filesystem::path& beatmap_dir_path);
+    void set_menu_level(std::size_t beatmap_id);
 
     kee::transition<float>& k_text_alpha;
     std::optional<opening_transitions> opening_trns;
@@ -362,8 +363,6 @@ private:
     kee::ui::handle<kee::ui::rect> e2_rect;
     kee::ui::handle<kee::ui::text> e2_text;
     kee::ui::handle<kee::ui::text> browse_text;
-
-    std::optional<raylib::Image> music_cover_art_texture;
 
     music_analyzer analyzer;
     float music_time;

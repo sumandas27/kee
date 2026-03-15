@@ -131,6 +131,8 @@ public:
 
     kee::color color;
 
+    kee::global_assets& assets;
+
 protected:
     /**
      * Scene subclasses do *NOT* specify a `parent`, non-scene subclasses do.
@@ -148,8 +150,6 @@ protected:
 
     virtual void update_element(float dt);
     virtual void render_element() const;
-
-    kee::global_assets& assets;
 
 private:
     raylib::Vector2 get_dims(const raylib::Rectangle& parent_raw_rect) const;

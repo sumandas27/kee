@@ -10,14 +10,39 @@
 namespace kee {
 namespace scene {
 
-music_analyzer::music_analyzer(const std::filesystem::path& beatmap_dir_path) :
-    beatmap_dir_path(beatmap_dir_path),
+music_analyzer::music_analyzer(menu& menu_scene, std::size_t beatmap_id) :
+    beatmap_id(beatmap_id),
     start_frame_idx(0),
     fft_pcm_floats{},
     fft_prev_mags{},
     visualizer_bins{}
-{ 
-    audio_input.openInput((beatmap_dir_path / beatmap_dir_state::standard_music_filename).string());
+{
+    /* TODO: if (!from_beatmap.has_value())
+    {
+        std::vector<std::filesystem::path> level_dirs;
+        for (const auto& entry : std::filesystem::directory_iterator(global_assets::app_data_dir / "play"))
+            if (entry.is_directory())
+                level_dirs.emplace_back(entry.path());
+
+        if (level_dirs.empty())
+            throw std::runtime_error("No level directories found");
+
+        static std::mt19937 rng(std::random_device{}());
+        std::uniform_int_distribution<std::size_t> dist(0, level_dirs.size() - 1);
+
+        set_menu_level(level_dirs[dist(rng)]);
+    }
+    else
+        set_menu_level(from_beatmap.value());*/
+
+    if (menu_scene.assets.play_assets_future.valid())
+    {
+        menu_scene.assets.play_assets_future.wait();
+        menu_scene.assets.play_assets = menu_scene.assets.play_assets_future.get();
+    }
+
+    const std::string song_path_mp3 = (menu_scene.assets.play_assets.at(beatmap_id).beatmap_dir_path / beatmap_dir_state::standard_music_filename).string();
+    audio_input.openInput(song_path_mp3);
     audio_input.findStreamInfo();
 
     std::optional<std::size_t> opt_audio_stream_idx = std::nullopt;
@@ -73,9 +98,9 @@ music_analyzer::~music_analyzer()
     UnloadAudioStream(audio_stream);
 }
 
-const std::filesystem::path& music_analyzer::get_beatmap_dir_path() const
+std::size_t music_analyzer::get_beatmap_id() const
 {
-    return beatmap_dir_path;
+    return beatmap_id;
 }
 
 void music_analyzer::update()
@@ -903,7 +928,7 @@ void level_ui::update_element([[maybe_unused]] float dt)
     image_frame.ref.color = image_frame_color.get();
 }
 
-play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesystem::path& music_analyzer_beatmap_dir) :
+play::play(const kee::ui::required& reqs, menu& menu_scene, std::size_t analyzer_beatmap_id) :
     kee::ui::button(reqs,
         pos(pos::type::rel, 0.5f),
         pos(pos::type::rel, 0.5f),
@@ -1319,12 +1344,6 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
     std::get<kee::dims>(search_bar.ref.dimensions).w.val = search_rect_x - back_rect_w;
     std::get<kee::dims>(selected_text_frame.ref.dimensions).h.val = selected_image_frame.ref.get_raw_rect().height;
 
-    if (assets.play_assets_future.valid())
-    {
-        assets.play_assets_future.wait();
-        assets.play_assets = assets.play_assets_future.get();
-    }
-
     std::size_t selected_found = 0;
     std::size_t level_list_i = 0;
 
@@ -1333,7 +1352,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
     float level_ui_height = 0.f;
     for (const auto& [beatmap_id, ui_assets] : assets.play_assets)
     {
-        const bool is_analyzer_playing = std::filesystem::equivalent(ui_assets.beatmap_dir_path, music_analyzer_beatmap_dir);
+        const bool is_analyzer_playing = (beatmap_id == analyzer_beatmap_id);
         if (is_analyzer_playing)
         {
             level_list_selected_id = beatmap_id;
@@ -1480,8 +1499,8 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, const std::filesyste
     float trns_time;
     if (!menu_scene.from_game_init && menu_scene.play_ui_immediate_flag)
     {
-        trns_time = 0.f;
         menu_scene.play_ui_immediate_flag = false;
+        trns_time = 0.f;
     }
     else
         trns_time = 0.75f;
@@ -1715,7 +1734,7 @@ menu::menu(const kee::scene::required& reqs, bool from_game_init, const std::opt
         ui::text_size(ui::text_size::type::rel_h, 0.1f),
         std::nullopt, true, assets.font_regular, "BROWSE", false
     )),
-    analyzer("test_app_data/play/0000000000"), /* TODO: temp*/
+    analyzer(*this, 0), /* TODO: temp*/
     music_time(0.f),
     song_ui_frame_outer(add_child<kee::ui::base>(2,
         pos(pos::type::rel, 0.f),
@@ -1835,7 +1854,7 @@ menu::menu(const kee::scene::required& reqs, bool from_game_init, const std::opt
         if (!music_trns.has_value())
             return;
 
-        play_ui.emplace(add_child<play>(3, *this, analyzer.get_beatmap_dir_path()));
+        play_ui.emplace(add_child<play>(3, *this, analyzer.get_beatmap_id()));
     };
 
     e2_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -1893,24 +1912,7 @@ menu::menu(const kee::scene::required& reqs, bool from_game_init, const std::opt
         ));
     }
 
-    /* TODO: if (!from_beatmap.has_value())
-    {
-        std::vector<std::filesystem::path> level_dirs;
-        for (const auto& entry : std::filesystem::directory_iterator(global_assets::app_data_dir / "play"))
-            if (entry.is_directory())
-                level_dirs.emplace_back(entry.path());
-
-        if (level_dirs.empty())
-            throw std::runtime_error("No level directories found");
-
-        static std::mt19937 rng(std::random_device{}());
-        std::uniform_int_distribution<std::size_t> dist(0, level_dirs.size() - 1);
-
-        set_menu_level(level_dirs[dist(rng)]);
-    }
-    else
-        set_menu_level(from_beatmap.value());*/
-    set_menu_level("test_app_data/play/0000000000");
+    set_menu_level(0); /* TODO: temp */
 
     float k_text_alpha_time;
     if (!from_game_init)
@@ -1926,7 +1928,6 @@ menu::menu(const kee::scene::required& reqs, bool from_game_init, const std::opt
 
     if (from_beatmap.has_value())
         e1_button.ref.on_click_l(magic_enum::containers::bitset<kee::mods>());
-
 
     k_text_alpha.set(std::nullopt, 255.0f, k_text_alpha_time, kee::transition_type::lin);
     analyzer.set_volume(1.f);
@@ -2013,14 +2014,13 @@ void menu::update_element(float dt)
     }
 }
 
-void menu::set_menu_level(const std::filesystem::path& beatmap_dir_path)
+void menu::set_menu_level(std::size_t beatmap_id)
 {
-    const beatmap_dir_info beatmap_info(beatmap_dir_path);
-    if (beatmap_info.dir_state.has_image)
+    const level_ui_assets& ui_assets = assets.play_assets.at(beatmap_id);
+    if (ui_assets.img.has_value())
     {
-        music_cover_art_texture.emplace((beatmap_info.dir_state.path / beatmap_dir_state::standard_img_filename).string());
         music_cover_art.emplace(music_cover_art_frame.ref.add_child<kee::ui::image>(std::nullopt,
-            music_cover_art_texture.value(), 
+            ui_assets.img.value(), 
             kee::color(255, 255, 255, 0),
             pos(pos::type::rel, 0.5f),
             pos(pos::type::rel, 0.5f),
@@ -2029,15 +2029,12 @@ void menu::set_menu_level(const std::filesystem::path& beatmap_dir_path)
         ));
     }
     else
-    {
-        music_cover_art_texture.reset();
         music_cover_art.reset();
-    }
     
     // TODO: analyzer.set_beatmap(beatmap_dir_path);
 
-    music_name_text.ref.set_string(beatmap_info.song_name);
-    music_artist_text.ref.set_string(beatmap_info.song_artist);
+    music_name_text.ref.set_string(ui_assets.song_name);
+    music_artist_text.ref.set_string(ui_assets.song_artist);
 }
 
 } // namespace scene
