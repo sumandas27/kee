@@ -438,7 +438,7 @@ pause_menu::pause_menu(const kee::ui::required& reqs, beatmap& beatmap_scene) :
         beatmap_scene.update_performance();
 
         this->game_ref.scene_manager.request_scene_switch([&](){
-            return game_ref.make_scene<kee::scene::menu>(false, beatmap_scene.beatmap_dir_path);
+            return game_ref.make_scene<kee::scene::menu>(false, beatmap_scene.beatmap_id);
         });
     };
 
@@ -473,7 +473,7 @@ bool pause_menu::on_element_key_down([[maybe_unused]] int keycode, [[maybe_unuse
     beatmap_scene.update_performance();
 
     game_ref.scene_manager.request_scene_switch([&](){
-        return game_ref.make_scene<kee::scene::menu>(false, beatmap_scene.beatmap_dir_path);
+        return game_ref.make_scene<kee::scene::menu>(false, beatmap_scene.beatmap_id);
     });
 
     return true;
@@ -868,7 +868,7 @@ end_screen::end_screen(const kee::ui::required& reqs, beatmap& beatmap_scene) :
     leave_button.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
         this->game_ref.scene_manager.request_scene_switch([&](){
-            return game_ref.make_scene<kee::scene::menu>(false, this->beatmap_scene.beatmap_dir_path);
+            return game_ref.make_scene<kee::scene::menu>(false, this->beatmap_scene.beatmap_id);
         });
     };
 
@@ -930,7 +930,7 @@ bool end_screen::on_element_key_down([[maybe_unused]] int keycode, [[maybe_unuse
 {
     if (keycode == KeyboardKey::KEY_ESCAPE)
         game_ref.scene_manager.request_scene_switch([&](){
-            return game_ref.make_scene<kee::scene::menu>(false, beatmap_scene.beatmap_dir_path);
+            return game_ref.make_scene<kee::scene::menu>(false, beatmap_scene.beatmap_id);
         });
 
     return true;
@@ -952,7 +952,7 @@ void end_screen::update_element([[maybe_unused]] float dt)
     restart_text.ref.color = restart_color.get();
 }
 
-beatmap::beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_info) :
+beatmap::beatmap(const kee::scene::required& reqs, std::size_t beatmap_id, beatmap_dir_info&& beatmap_info) :
     kee::scene::base(reqs),
     leave_png("assets/img/leave.png"),
     restart_png("assets/img/restart.png"),
@@ -967,7 +967,7 @@ beatmap::beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_in
     mapper(beatmap_info.mapper),
     level_name(beatmap_info.level_name),
     metadata_total_combo(beatmap_info.total_combo),
-    beatmap_dir_path(beatmap_info.dir_state.path),
+    beatmap_id(beatmap_id),
     session_attempts(0),
     keys_json_obj(beatmap_info.keys_json_obj),
     key_color_json_obj(beatmap_info.key_colors_json_obj),
@@ -1096,25 +1096,9 @@ beatmap::beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_in
     music((beatmap_info.dir_state.path / beatmap_dir_state::standard_music_filename).string()),
     combo_lost_sfx("assets/sfx/combo_lost.wav")
 {
-    std::size_t beatmap_id;
-
-    const std::string dirname = beatmap_dir_path.filename().string();
-    const auto [ptr, ec] = std::from_chars(dirname.data(), dirname.data() + dirname.size(), beatmap_id);
-    if (ec != std::errc() || ptr != dirname.data() + dirname.size())
-        throw std::runtime_error(std::format("Beatmap name not an ID: {}", dirname));
-
-    if (assets.play_assets_future.valid())
-    {
-        assets.play_assets_future.wait();
-        assets.play_assets = assets.play_assets_future.get();
-    }
-
-    auto assets_it = assets.play_assets.find(beatmap_id);
-    if (assets_it == assets.play_assets.end())
-        throw std::runtime_error("Played beatmap's asset metadata cannot be found during construction.");
-
-    best_performance = assets_it->second.best;
-    total_attempts = assets_it->second.attempt_count;
+    const level_ui_assets& level_assets = assets.play_assets.at(beatmap_id);
+    best_performance = level_assets.best;
+    total_attempts = level_assets.attempt_count;
 
     if (beatmap_info.custom_hitsounds.has_value())
         hitsounds = std::move(beatmap_info.custom_hitsounds.value());
@@ -1225,13 +1209,6 @@ void beatmap::set_bg_opacity(float opacity)
 
 void beatmap::update_performance()
 {
-    std::size_t beatmap_id;
-
-    const std::string dirname = beatmap_dir_path.filename().string();
-    const auto [ptr, ec] = std::from_chars(dirname.data(), dirname.data() + dirname.size(), beatmap_id);
-    if (ec != std::errc() || ptr != dirname.data() + dirname.size())
-        throw std::runtime_error(std::format("Beatmap name not an ID: {}", dirname));
-
     std::ifstream performance_json_stream = std::ifstream(global_assets::user_scores_path);
     if (!performance_json_stream)
         throw std::runtime_error("Failed to open `user_scores.json`");
@@ -1245,11 +1222,12 @@ void beatmap::update_performance()
     if (!performance_json_root.is_object())
         throw std::runtime_error("`user_scores.json` root is not an object.");
 
+    const std::string performance_key = std::format("{:010}", beatmap_id);
     boost::json::object& performance_json_object = performance_json_root.as_object();
-    if (!performance_json_object.contains(dirname))
+    if (!performance_json_object.contains(performance_key))
         throw std::runtime_error(std::format("User does not have score entry for level ID {}", beatmap_id));
 
-    boost::json::object& user_score_json = performance_json_object[dirname].as_object();
+    boost::json::object& user_score_json = performance_json_object[performance_key].as_object();
     user_score_json["attempts"] = total_attempts;
     
     if (best_performance.has_value())
@@ -1275,12 +1253,9 @@ void beatmap::update_performance()
         assets.play_assets = assets.play_assets_future.get();
     }
 
-    auto assets_it = assets.play_assets.find(beatmap_id);
-    if (assets_it == assets.play_assets.end())
-        throw std::runtime_error("Played beatmap's asset metadata cannot be found");
-
-    assets_it->second.best = best_performance;
-    assets_it->second.attempt_count = total_attempts;
+    level_ui_assets& level_assets = assets.play_assets.at(beatmap_id);
+    level_assets.best = best_performance;
+    level_assets.attempt_count = total_attempts;
 }
 
 void beatmap::reset_level()

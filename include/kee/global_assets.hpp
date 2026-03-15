@@ -37,7 +37,7 @@ class level_ui_assets
 public:
     level_ui_assets(const std::filesystem::path& beatmap_dir_path, const boost::json::object& user_score_json);
 
-    const std::filesystem::path beatmap_dir_path; /* TODO: ts needed lil bro ????? */
+    const std::filesystem::path beatmap_dir_path;
 
     std::optional<raylib::Image> img;
 

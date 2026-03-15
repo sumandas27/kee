@@ -10,87 +10,41 @@
 namespace kee {
 namespace scene {
 
-music_analyzer::music_analyzer(menu& menu_scene, std::size_t beatmap_id) :
-    beatmap_id(beatmap_id),
+music_analyzer::music_analyzer(menu& menu_scene, std::optional<std::size_t> beatmap_id) :
+    menu_scene(menu_scene),
     start_frame_idx(0),
     fft_pcm_floats{},
     fft_prev_mags{},
     visualizer_bins{}
 {
-    /* TODO: if (!from_beatmap.has_value())
-    {
-        std::vector<std::filesystem::path> level_dirs;
-        for (const auto& entry : std::filesystem::directory_iterator(global_assets::app_data_dir / "play"))
-            if (entry.is_directory())
-                level_dirs.emplace_back(entry.path());
-
-        if (level_dirs.empty())
-            throw std::runtime_error("No level directories found");
-
-        static std::mt19937 rng(std::random_device{}());
-        std::uniform_int_distribution<std::size_t> dist(0, level_dirs.size() - 1);
-
-        set_menu_level(level_dirs[dist(rng)]);
-    }
-    else
-        set_menu_level(from_beatmap.value());*/
-
+    /**
+     * This is the earliest `assets.play_assets` is used, all other usages of this are now valid.
+     */
     if (menu_scene.assets.play_assets_future.valid())
     {
         menu_scene.assets.play_assets_future.wait();
         menu_scene.assets.play_assets = menu_scene.assets.play_assets_future.get();
     }
 
-    const std::string song_path_mp3 = (menu_scene.assets.play_assets.at(beatmap_id).beatmap_dir_path / beatmap_dir_state::standard_music_filename).string();
-    audio_input.openInput(song_path_mp3);
-    audio_input.findStreamInfo();
+    for (const auto& [id, _] : menu_scene.assets.play_assets)
+        beatmap_id_order.push_back(id);
 
-    std::optional<std::size_t> opt_audio_stream_idx = std::nullopt;
-    av::Stream av_audio_stream;
-    for (std::size_t i = 0; i < audio_input.streamsCount(); i++) 
+    std::mt19937 rng(std::random_device{}());
+    std::ranges::shuffle(beatmap_id_order, rng);
+
+    if (beatmap_id.has_value())
     {
-        const av::Stream stream = audio_input.stream(i);
-        if (stream.mediaType() == AVMEDIA_TYPE_AUDIO) 
-        {
-            opt_audio_stream_idx = i;
-            av_audio_stream = stream;
-            break;
-        }
+        auto first_it = std::ranges::find(beatmap_id_order, beatmap_id.value());
+        if (first_it == beatmap_id_order.end())
+            throw std::runtime_error("cannot find analyzer first beatmap");
+
+        std::iter_swap(first_it, beatmap_id_order.begin());
     }
-
-    if (!opt_audio_stream_idx.has_value()) 
-        throw std::runtime_error("Can't find audio stream");
-
-    audio_stream_idx = opt_audio_stream_idx.value();
-    if (av_audio_stream.isValid())
-    {
-        audio_decoder = av::AudioDecoderContext(av_audio_stream);
-
-        av::Codec codec = av::findDecodingCodec(audio_decoder.raw()->codec_id);
-        audio_decoder.setCodec(codec);
-        audio_decoder.setRefCountedFrames(true);
-        audio_decoder.open({{"threads", "1"}});
-    }
-
-    std::uint64_t dst_channels_layout;
-    if constexpr (music_analyzer::channels == 2)
-        dst_channels_layout = AV_CH_LAYOUT_STEREO;
-    else
-        throw std::runtime_error(std::format("Unsupported analyzer channel count {}", music_analyzer::channels));
-
-    enum AVSampleFormat out_sample_fmt;
-    if constexpr (std::is_same_v<sample_t, std::int16_t>)
-        out_sample_fmt = AV_SAMPLE_FMT_S16;
-    else
-        throw std::runtime_error("Unsupported analyzer sample type.");
-
-    audio_resampler.init(
-        dst_channels_layout, music_analyzer::sample_rate, out_sample_fmt,
-        audio_decoder.channelLayout(), audio_decoder.sampleRate(), audio_decoder.sampleFormat()
-    );
 
     SetAudioStreamBufferSizeDefault(music_analyzer::frames_per_refresh);
     audio_stream = LoadAudioStream(music_analyzer::sample_rate, music_analyzer::bit_depth, music_analyzer::channels);
+
+    set_order_song(0);
 }
 
 music_analyzer::~music_analyzer()
@@ -100,11 +54,15 @@ music_analyzer::~music_analyzer()
 
 std::size_t music_analyzer::get_beatmap_id() const
 {
-    return beatmap_id;
+    const std::size_t order_idx_mod = order_idx % beatmap_id_order.size();
+    return beatmap_id_order[order_idx_mod];
 }
 
 void music_analyzer::update()
 {
+    if (!IsAudioStreamPlaying(audio_stream))
+        return;
+
     while (IsAudioStreamProcessed(audio_stream))
     {
         static constexpr std::size_t samples_per_refresh = music_analyzer::frames_per_refresh * music_analyzer::channels;
@@ -113,8 +71,8 @@ void music_analyzer::update()
         for (std::size_t i = 0; i < music_analyzer::fft_resolution; i++)
         {
             const std::size_t samples_frames = samples.size() / music_analyzer::channels;
-            if (i >= samples_frames)
-                decode_next_packet();
+            if (i >= samples_frames && !decode_next_packet().has_value())
+                return;
 
             float pcm_float = 0;
             for (unsigned int ch = 0; ch < music_analyzer::channels; ch++)
@@ -136,9 +94,6 @@ void music_analyzer::update()
 
         UpdateAudioStream(audio_stream, to_submit.data(), music_analyzer::frames_per_refresh);
     }
-
-    if (!IsAudioStreamPlaying(audio_stream))
-        return;
 
     for (std::size_t i = 0; i < music_analyzer::fft_resolution; i++)
     {
@@ -324,9 +279,11 @@ void music_analyzer::seek(float time)
     const av::Stream av_audio_stream = audio_input.stream(audio_stream_idx);
     const int64_t target_ts = static_cast<int64_t>(time / av_audio_stream.timeBase()());
 
-    audio_input.seek(target_ts, static_cast<int>(audio_stream_idx), AVSEEK_FLAG_BACKWARD);;
+    audio_input.seek(target_ts, static_cast<int>(audio_stream_idx), AVSEEK_FLAG_BACKWARD);
+    audio_input.flush();
+
     samples.clear();
-    start_frame_idx = decode_next_packet();
+    start_frame_idx = decode_next_packet().value_or(0);
 }
 
 bool music_analyzer::is_playing() const
@@ -349,6 +306,26 @@ void music_analyzer::resume()
     ResumeAudioStream(audio_stream);
 }
 
+bool music_analyzer::step_l()
+{
+    if (order_idx > 0)
+    {
+        set_order_song(order_idx - 1);
+        return true;
+    }
+    else
+    {
+        seek(0.f);
+        return false;
+    }
+}
+
+void music_analyzer::step_r()
+{
+    set_order_song(order_idx + 1);
+    menu_scene.set_menu_level();
+}
+
 void music_analyzer::set_volume(float new_volume)
 {
     const float new_volume_clamped = std::clamp(new_volume, 0.f, 1.f);
@@ -363,10 +340,67 @@ float music_analyzer::get_visualizer_bin(std::size_t i)
     return visualizer_bins[i];
 }
 
-std::size_t music_analyzer::decode_next_packet()
+void music_analyzer::set_order_song(std::size_t order_idx_param)
+{
+    order_idx = order_idx_param;
+
+    const std::string song_path_mp3 = (menu_scene.assets.play_assets.at(get_beatmap_id()).beatmap_dir_path / beatmap_dir_state::standard_music_filename).string();
+    audio_input.close();
+    audio_input.openInput(song_path_mp3);
+    audio_input.findStreamInfo();
+
+    std::optional<std::size_t> opt_audio_stream_idx = std::nullopt;
+    av::Stream av_audio_stream;
+    for (std::size_t i = 0; i < audio_input.streamsCount(); i++) 
+    {
+        const av::Stream stream = audio_input.stream(i);
+        if (stream.mediaType() == AVMEDIA_TYPE_AUDIO) 
+        {
+            opt_audio_stream_idx = i;
+            av_audio_stream = stream;
+            break;
+        }
+    }
+
+    if (!opt_audio_stream_idx.has_value()) 
+        throw std::runtime_error("Can't find audio stream");
+
+    audio_stream_idx = opt_audio_stream_idx.value();
+    if (av_audio_stream.isValid())
+    {
+        audio_decoder = av::AudioDecoderContext(av_audio_stream);
+
+        av::Codec codec = av::findDecodingCodec(audio_decoder.raw()->codec_id);
+        audio_decoder.setCodec(codec);
+        audio_decoder.setRefCountedFrames(true);
+        audio_decoder.open({{"threads", "1"}});
+    }
+
+    std::uint64_t dst_channels_layout;
+    if constexpr (music_analyzer::channels == 2)
+        dst_channels_layout = AV_CH_LAYOUT_STEREO;
+    else
+        throw std::runtime_error(std::format("Unsupported analyzer channel count {}", music_analyzer::channels));
+
+    enum AVSampleFormat out_sample_fmt;
+    if constexpr (std::is_same_v<sample_t, std::int16_t>)
+        out_sample_fmt = AV_SAMPLE_FMT_S16;
+    else
+        throw std::runtime_error("Unsupported analyzer sample type.");
+
+    audio_resampler.init(
+        dst_channels_layout, music_analyzer::sample_rate, out_sample_fmt,
+        audio_decoder.channelLayout(), audio_decoder.sampleRate(), audio_decoder.sampleFormat()
+    );
+    
+    samples.clear();
+    start_frame_idx = 0;
+}
+
+std::optional<std::size_t> music_analyzer::decode_next_packet()
 {
     av::AudioSamples audio_samples;
-    std::optional<float> packet_pts = std::nullopt;
+    std::optional<double> packet_pts = std::nullopt;
 
     while (const av::Packet packet = audio_input.readPacket()) 
     {
@@ -382,10 +416,10 @@ std::size_t music_analyzer::decode_next_packet()
     }
 
     const bool is_eof = !packet_pts.has_value();
-    if (is_eof) 
+    if (is_eof)
     { 
-        seek(0.f);
-        return 0;
+        step_r();
+        return std::nullopt;
     }
 
     audio_resampler.push(audio_samples);
@@ -394,6 +428,7 @@ std::size_t music_analyzer::decode_next_packet()
     const std::span<sample_t> samples_view(reinterpret_cast<sample_t*>(audio_samples.data()), audio_samples.samplesCount() * music_analyzer::channels);
     samples.insert(samples.end(), samples_view.begin(), samples_view.end());
 
+    std::println("{}", packet_pts.value());
     return static_cast<std::size_t>(packet_pts.value() * music_analyzer::sample_rate);
 }
 
@@ -591,7 +626,6 @@ music_transitions::music_transitions(menu& menu_scene) :
         }
         else
         {
-            this->menu_scene.analyzer.seek(this->music_slider.ref.progress * this->menu_scene.analyzer.get_time_length());
             this->menu_scene.analyzer.resume();
             this->pause_play_img.ref.set_image(this->menu_scene.assets.play_png);
         }
@@ -622,7 +656,10 @@ music_transitions::music_transitions(menu& menu_scene) :
 
     step_l.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     { 
-        /* TODO: impl*/
+        if (menu_scene.analyzer.get_time_played() < 3.f && menu_scene.analyzer.step_l())
+            menu_scene.set_menu_level();
+        else
+            menu_scene.analyzer.seek(0.f);
     };
 
     step_r.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -650,7 +687,8 @@ music_transitions::music_transitions(menu& menu_scene) :
 
     step_r.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     { 
-        /* TODO: impl*/
+        menu_scene.analyzer.step_r();
+        menu_scene.analyzer.resume();
     };
 
     setting_button.ref.on_event = [&](ui::button::event button_event, [[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
@@ -1452,7 +1490,7 @@ play::play(const kee::ui::required& reqs, menu& menu_scene, std::size_t analyzer
     button_play.ref.on_click_l = [&]([[maybe_unused]] magic_enum::containers::bitset<kee::mods> mods)
     {
         this->game_ref.scene_manager.request_scene_switch([&]() {
-            return game_ref.make_scene<kee::scene::beatmap>(beatmap_dir_info(assets.play_assets.at(level_list_selected_id).beatmap_dir_path));
+            return game_ref.make_scene<kee::scene::beatmap>(level_list_selected_id, beatmap_dir_info(assets.play_assets.at(level_list_selected_id).beatmap_dir_path));
         });
     };
 
@@ -1616,7 +1654,7 @@ void play::set_selected_ui(std::size_t beatmap_id)
     selected_attempts.ref.set_string(std::to_string(ui_assets.attempt_count));
 }
 
-menu::menu(const kee::scene::required& reqs, bool from_game_init, const std::optional<std::filesystem::path>& from_beatmap) :
+menu::menu(const kee::scene::required& reqs, bool from_game_init, std::optional<std::size_t> start_beatmap_id) :
     kee::scene::base(reqs),
     edit_png("assets/img/edit.png"),
     music_png("assets/img/music.png"),
@@ -1734,7 +1772,7 @@ menu::menu(const kee::scene::required& reqs, bool from_game_init, const std::opt
         ui::text_size(ui::text_size::type::rel_h, 0.1f),
         std::nullopt, true, assets.font_regular, "BROWSE", false
     )),
-    analyzer(*this, 0), /* TODO: temp*/
+    analyzer(*this, start_beatmap_id),
     music_time(0.f),
     song_ui_frame_outer(add_child<kee::ui::base>(2,
         pos(pos::type::rel, 0.f),
@@ -1912,7 +1950,7 @@ menu::menu(const kee::scene::required& reqs, bool from_game_init, const std::opt
         ));
     }
 
-    set_menu_level(0); /* TODO: temp */
+    set_menu_level();
 
     float k_text_alpha_time;
     if (!from_game_init)
@@ -1926,11 +1964,31 @@ menu::menu(const kee::scene::required& reqs, bool from_game_init, const std::opt
     else
         k_text_alpha_time = 2.0f;
 
-    if (from_beatmap.has_value())
+    if (start_beatmap_id.has_value())
         e1_button.ref.on_click_l(magic_enum::containers::bitset<kee::mods>());
-
-    k_text_alpha.set(std::nullopt, 255.0f, k_text_alpha_time, kee::transition_type::lin);
+    else
+        k_text_alpha.set(std::nullopt, 255.0f, k_text_alpha_time, kee::transition_type::lin);
+    
     analyzer.set_volume(1.f);
+}
+
+void menu::set_menu_level()
+{
+    const level_ui_assets& ui_assets = assets.play_assets.at(analyzer.get_beatmap_id());
+    if (ui_assets.img.has_value())
+        music_cover_art.emplace(music_cover_art_frame.ref.add_child<kee::ui::image>(std::nullopt,
+            ui_assets.img.value(), 
+            kee::color(255, 255, 255, 0),
+            pos(pos::type::rel, 0.5f),
+            pos(pos::type::rel, 0.5f),
+            border(border::type::abs, 0),
+            true, ui::image::display::shrink_to_fit, false, false, 0.0f
+        ));
+    else
+        music_cover_art.reset();
+
+    music_name_text.ref.set_string(ui_assets.song_name);
+    music_artist_text.ref.set_string(ui_assets.song_artist);
 }
 
 void menu::update_element(float dt)
@@ -2012,29 +2070,6 @@ void menu::update_element(float dt)
         std::get<kee::dims>(visualizer_bot[i].ref.dimensions).h.val = 0.5f * analyzer.get_visualizer_bin(i);
         std::get<kee::dims>(visualizer_top[i].ref.dimensions).h.val = 0.5f * analyzer.get_visualizer_bin(music_analyzer::bins - i - 1);
     }
-}
-
-void menu::set_menu_level(std::size_t beatmap_id)
-{
-    const level_ui_assets& ui_assets = assets.play_assets.at(beatmap_id);
-    if (ui_assets.img.has_value())
-    {
-        music_cover_art.emplace(music_cover_art_frame.ref.add_child<kee::ui::image>(std::nullopt,
-            ui_assets.img.value(), 
-            kee::color(255, 255, 255, 0),
-            pos(pos::type::rel, 0.5f),
-            pos(pos::type::rel, 0.5f),
-            border(border::type::abs, 0),
-            true, ui::image::display::shrink_to_fit, false, false, 0.0f
-        ));
-    }
-    else
-        music_cover_art.reset();
-    
-    // TODO: analyzer.set_beatmap(beatmap_dir_path);
-
-    music_name_text.ref.set_string(ui_assets.song_name);
-    music_artist_text.ref.set_string(ui_assets.song_artist);
 }
 
 } // namespace scene

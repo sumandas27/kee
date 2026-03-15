@@ -212,7 +212,7 @@ class beatmap final : public kee::scene::base
 public:
     static constexpr unsigned int score_fc = 100;
 
-    beatmap(const kee::scene::required& reqs, beatmap_dir_info&& beatmap_info);
+    beatmap(const kee::scene::required& reqs, std::size_t beatmap_id, beatmap_dir_info&& beatmap_info);
 
     float get_beat() const;
 
@@ -242,7 +242,7 @@ public:
     const std::string level_name;
     const unsigned int metadata_total_combo;
 
-    const std::filesystem::path beatmap_dir_path;
+    const std::size_t beatmap_id;
 
     std::optional<unsigned int> score;
     unsigned int total_combo;

@@ -26,7 +26,7 @@ class music_analyzer
 public:
     static constexpr std::size_t bins = 64;
 
-    music_analyzer(menu& menu_scene, std::size_t beatmap_id);
+    music_analyzer(menu& menu_scene, std::optional<std::size_t> beatmap_id);
     music_analyzer(const music_analyzer&) = delete;
     music_analyzer(music_analyzer&&) = delete;
     ~music_analyzer();
@@ -46,6 +46,9 @@ public:
     void pause();
     void play();
     void resume();
+
+    bool step_l();
+    void step_r();
 
     void set_volume(float new_volume);
 
@@ -67,10 +70,14 @@ private:
     static constexpr float max_db = -33.f;
     static constexpr float inv_db_range = 1.f / (music_analyzer::max_db - music_analyzer::min_db);
 
-    std::size_t decode_next_packet();
+    void set_order_song(std::size_t order_idx_param);
+
+    std::optional<std::size_t> decode_next_packet();
+
+    menu& menu_scene;
 
     std::vector<std::size_t> beatmap_id_order;
-    std::size_t beatmap_id;
+    std::size_t order_idx;
 
     av::FormatContext audio_input;
     av::AudioDecoderContext audio_decoder;
@@ -320,7 +327,9 @@ private:
 class menu final : public kee::scene::base
 {
 public:
-    menu(const kee::scene::required& reqs, bool from_game_init, const std::optional<std::filesystem::path>& from_beatmap);
+    menu(const kee::scene::required& reqs, bool from_game_init, std::optional<std::size_t> start_beatmap_id);
+
+    void set_menu_level();
 
     const raylib::Image edit_png;
     const raylib::Image music_png;
@@ -334,8 +343,6 @@ private:
     friend class play;
 
     void update_element(float dt) override;
-
-    void set_menu_level(std::size_t beatmap_id);
 
     kee::transition<float>& k_text_alpha;
     std::optional<opening_transitions> opening_trns;
